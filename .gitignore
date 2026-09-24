@@ -1,0 +1,22 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Dependencias (por si algún módulo del backend usa node)
+node_modules/
+backend/node_modules/
+
+# Entorno / secretos — NUNCA subir claves
+.env
+.env.*
+*.key
+secrets.*
+
+# Temporales
+*.log
+tmp/

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#7B2FF7" />
+  <title>Muévete CB — Movilidad de Ciudad Bolívar</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🚡</span>
+      <div>
+        <h1>Muévete CB</h1>
+        <p class="tag">Formal + informal · tiempo real · Ciudad Bolívar</p>
+      </div>
+    </div>
+    <div class="topright">
+      <span id="dataStatus" class="pill" title="Fuente de datos">◍ datos…</span>
+      <span id="netStatus" class="pill net">● offline-ready</span>
+    </div>
+  </header>
+
+  <div id="toasts" class="toasts"></div>
+
+  <main>
+    <!-- VISTA: PLANEADOR -->
+    <section id="view-plan" class="view active">
+      <div class="card">
+        <h2>¿A dónde vas?</h2>
+        <label>Origen
+          <input id="origen" list="lugares" placeholder="Ej: Meissen, Sierra Morena..." autocomplete="off" />
+        </label>
+        <label>Destino
+          <input id="destino" list="lugares" placeholder="Ej: Paraíso, Quiba, Hospital..." autocomplete="off" />
+        </label>
+        <datalist id="lugares"></datalist>
+        <button id="btnBuscar" class="primary">Buscar rutas</button>
+      </div>
+      <div id="resultados" class="resultados"></div>
+    </section>
+
+    <!-- VISTA: CHAT (modo WhatsApp) -->
+    <section id="view-chat" class="view">
+      <div class="wa-header">
+        <span class="wa-avatar">🚡</span>
+        <div><strong>Muévete CB</strong><br /><small>Asistente en línea · escribe como le hablas a alguien</small></div>
+      </div>
+      <div id="chatBody" class="wa-body"></div>
+      <div class="wa-input">
+        <input id="chatInput" placeholder="Ej: de Meissen a Paraíso barato" />
+        <button id="chatSend">➤</button>
+      </div>
+    </section>
+
+    <!-- VISTA: MAPA VIVO (tipo Waze) -->
+    <section id="view-map" class="view">
+      <div class="map-toolbar">
+        <span class="map-title">🗺️ Mapa vivo</span>
+        <span id="incCount" class="pill">0 alertas activas</span>
+      </div>
+      <div id="mapa" class="leaflet-map"></div>
+      <svg id="mapaSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style="display:none"></svg>
+      <div class="map-legend" id="mapLegend"></div>
+    </section>
+
+    <!-- VISTA: REPORTES -->
+    <section id="view-report" class="view">
+      <div class="card">
+        <h2>Reportar novedad 📣</h2>
+        <p class="hint">Como Waze, pero para Ciudad Bolívar. Tu reporte avisa a todos y recalcula las rutas al instante.</p>
+        <label>Tipo <select id="repTipo"></select></label>
+        <label>En la ruta / tramo <select id="repTramo"></select></label>
+        <label>Nota (opcional) <input id="repNota" placeholder="Ej: derrumbe a la altura de..." /></label>
+        <button id="btnReportar" class="primary">Enviar reporte</button>
+      </div>
+      <h3>Alertas activas en tiempo real</h3>
+      <div id="listaReportes" class="reportes"></div>
+      <div class="acciones">
+        <a class="linkbtn" href="simulador.html">👥 Abrir Sala en vivo (multiusuario)</a>
+        <button id="btnLimpiar" class="linkbtn ghost">🗑️ Limpiar alertas (demo)</button>
+      </div>
+    </section>
+
+    <!-- VISTA: CÁMARA EDGE -->
+    <section id="view-cam" class="view">
+      <div class="card">
+        <h2>Cámara Edge AI 📹</h2>
+        <p class="hint">Visión por computador <strong>en el dispositivo</strong> (edge): detecta vehículos y personas sin enviar el video a la nube. Simula un semáforo inteligente de Ciudad Bolívar.</p>
+        <label>Cámara / punto <select id="camSel"></select></label>
+        <div class="cam-wrap">
+          <video id="cam" playsinline muted></video>
+          <div id="camStats" class="cam-stats">Cámara apagada</div>
+        </div>
+        <div class="acciones">
+          <button id="btnCamOn" class="primary">▶️ Encender cámara real</button>
+          <button id="btnCamOff" class="linkbtn ghost">⏹️ Apagar</button>
+        </div>
+        <hr class="sep" />
+        <p class="hint">¿Sin cámara? Activa la red de cámaras <em>simuladas</em> para ver el sistema vivo:</p>
+        <button id="btnSim" class="linkbtn">🛰️ Activar cámaras simuladas</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button data-view="plan" class="active">🔎<span>Rutas</span></button>
+    <button data-view="chat">💬<span>Asistente</span></button>
+    <button data-view="map">🗺️<span>Mapa</span></button>
+    <button data-view="report">📣<span>Reportar</span></button>
+    <button data-view="cam">📹<span>Cámara</span></button>
+  </nav>
+
+  <!-- Librerías (CDN permitido). Se cachean por el service worker para offline. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+  <!-- App -->
+  <script src="js/data.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/datasources.js"></script>
+  <script src="js/realtime.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/edge.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
