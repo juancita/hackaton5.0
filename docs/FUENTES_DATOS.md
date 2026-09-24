@@ -56,6 +56,15 @@ API de catálogo (para descubrir más):
 https://api.us.socrata.com/api/catalog/v1?domains=www.datos.gov.co&q=SITP
 ```
 
+## Cámaras de fotodetección (Secretaría Distrital de Movilidad)
+Ciudad Bolívar cuenta con **cámaras de fotodetección electrónica (fotocomparendos)** ya
+instaladas en semáforos y corredores (Av. Villavicencio, Av. Boyacá, Autopista Sur, etc.),
+operadas por la Secretaría de Movilidad. **Muévete CB propone reutilizar ese video** para correr
+inferencia edge de congestión (ver [`edge.js`](../web/js/edge.js)) — sin nuevo hardware y sin
+exponer video ni placas (solo se publica el índice de congestión). En el prototipo, estos puntos
+están modelados en `CAMARAS` dentro de [`data.js`](../web/js/data.js) y se pueden activar con la
+webcam real como prueba de concepto. Requiere convenio con la Secretaría para el feed en producción.
+
 ## Datos Abiertos de Bogotá (Bogotá Abierta) e IDECA
 - **IDECA** (`https://www.ideca.gov.co/`): Infraestructura de Datos Espaciales del Distrito;
   cartografía base y capas de referencia del territorio. TransMilenio expone una capa

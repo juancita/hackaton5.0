@@ -88,20 +88,20 @@
     <!-- VISTA: CÁMARA EDGE -->
     <section id="view-cam" class="view">
       <div class="card">
-        <h2>Cámara Edge AI 📹</h2>
-        <p class="hint">Visión por computador <strong>en el dispositivo</strong> (edge): detecta vehículos y personas sin enviar el video a la nube. Simula un semáforo inteligente de Ciudad Bolívar.</p>
-        <label>Cámara / punto <select id="camSel"></select></label>
+        <h2>Cámaras de fotodetección + Edge AI 📹</h2>
+        <p class="hint">Reutilizamos las <strong>cámaras de fotodetección (fotocomparendos)</strong> que ya existen en los semáforos de Ciudad Bolívar. En vez de solo multar, corremos visión por computador <strong>en el borde</strong> para estimar congestión. Solo sale el dato, nunca el video ni las placas.</p>
+        <label>Cámara de fotodetección <select id="camSel"></select></label>
         <div class="cam-wrap">
           <video id="cam" playsinline muted></video>
           <div id="camStats" class="cam-stats">Cámara apagada</div>
         </div>
         <div class="acciones">
-          <button id="btnCamOn" class="primary">▶️ Encender cámara real</button>
+          <button id="btnCamOn" class="primary">▶️ Encender cámara real (PoC)</button>
           <button id="btnCamOff" class="linkbtn ghost">⏹️ Apagar</button>
         </div>
         <hr class="sep" />
-        <p class="hint">¿Sin cámara? Activa la red de cámaras <em>simuladas</em> para ver el sistema vivo:</p>
-        <button id="btnSim" class="linkbtn">🛰️ Activar cámaras simuladas</button>
+        <p class="hint">Activa la red de cámaras de fotodetección <em>simuladas</em> para ver el sistema vivo:</p>
+        <button id="btnSim" class="linkbtn">🛰️ Activar cámaras de fotodetección</button>
       </div>
     </section>
   </main>

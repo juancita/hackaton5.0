@@ -1,22 +1,26 @@
 /*
- * edge.js — Computación en el BORDE (Edge AI) con cámaras
+ * edge.js — Computación en el BORDE (Edge AI) sobre CÁMARAS DE FOTODETECCIÓN
  * ===========================================================================
+ * IDEA CLAVE: Ciudad Bolívar YA tiene cámaras de fotodetección (fotocomparendos)
+ * de la Secretaría de Movilidad en varios semáforos/corredores. Hoy solo sirven para
+ * multar. Nosotros REUTILIZAMOS ese video para estimar congestión y alimentar el mapa
+ * en tiempo real. Cero hardware nuevo, cero costo adicional → viabilidad altísima.
+ *
  * DOS modos:
  *
- * A) CÁMARAS SIMULADAS (siempre disponibles): nodos "semáforo inteligente" en
- *    puntos críticos que detectan congestión y publican incidentes al mapa vivo,
- *    igual que un ciudadano. Simula visión por computador desplegada en el borde.
+ * A) CÁMARAS DE FOTODETECCIÓN SIMULADAS (siempre disponibles): nodos en los puntos
+ *    reales de fotodetección que detectan congestión y publican incidentes al mapa,
+ *    igual que un ciudadano. Simula la inferencia edge sobre esas cámaras.
  *
- * B) CÁMARA REAL (PoC demostrable): usa la webcam + TensorFlow.js (COCO-SSD)
- *    para detectar vehículos y personas EN EL DISPOSITIVO (edge, sin nube: solo
- *    se transmite el conteo/evento, nunca el video). Calcula un índice de
- *    congestión y, si supera el umbral, publica un incidente automático.
+ * B) CÁMARA REAL (PoC demostrable): usa la webcam + TensorFlow.js (COCO-SSD) para
+ *    detectar vehículos y personas EN EL DISPOSITIVO (edge). Demuestra, con la cámara
+ *    del portátil, el mismo procesamiento que correría junto a la cámara del semáforo.
  *
  * Por qué "edge" y no nube (argumento para el jurado):
- *   - Privacidad: el video no sale del dispositivo, solo el dato.
+ *   - Privacidad: solo sale el índice de congestión; NUNCA el video ni las placas.
+ *   - Reúso de infraestructura pública: aprovecha las cámaras que ya están instaladas.
  *   - Ancho de banda: en la ladera la conectividad es débil; enviar video sería inviable.
- *   - Latencia: la detección es inmediata, local.
- *   - Costo: no requiere servidores de inferencia.
+ *   - Latencia y costo: detección inmediata y local, sin servidores de inferencia.
  */
 
 const Edge = (() => {

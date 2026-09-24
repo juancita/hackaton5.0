@@ -86,16 +86,18 @@ const TRAMOS = [
 ];
 
 /*
- * CÁMARAS / SENSORES EDGE — "semáforos inteligentes" en puntos críticos.
- * Cada nodo simula visión por computador (conteo de vehículos) corriendo EN EL
- * BORDE (edge): procesa localmente y solo envía el evento de congestión, no video.
- * Uno de ellos puede activarse con la webcam real (ver edge.js).
+ * CÁMARAS DE FOTODETECCIÓN — infraestructura EXISTENTE de la Secretaría Distrital
+ * de Movilidad (las cámaras de semáforo que hoy solo se usan para fotocomparendos).
+ * REUTILIZAMOS su video: en vez de solo multar, corremos visión por computador EN EL
+ * BORDE (edge) para estimar congestión y alimentar el mapa. Sin hardware nuevo, sin
+ * costo adicional. Solo sale el DATO de congestión, nunca el video ni placas (privacidad).
+ * Una de ellas puede activarse con la webcam real como prueba de concepto (ver edge.js).
  */
 const CAMARAS = [
-  { id: 'cam-tunal',   nombre: 'Cámara Portal Tunal',    tramo: { de: 'tunal', a: 'meissen', modo: 'sitp' }, lat: 4.5820, lng: -74.1400 },
-  { id: 'cam-sierra',  nombre: 'Cámara Sierra Morena',   tramo: { de: 'perdomo', a: 'sierramorena', modo: 'sitp' }, lat: 4.5960, lng: -74.1600 },
-  { id: 'cam-paraiso', nombre: 'Cámara subida Paraíso',  tramo: { de: 'mirador', a: 'paraiso', modo: 'jeep' }, lat: 4.5835, lng: -74.1640 },
-  { id: 'cam-meissen', nombre: 'Cámara Av. Villavicencio',tramo: { de: 'tunal', a: 'perdomo', modo: 'troncal' }, lat: 4.5850, lng: -74.1425 },
+  { id: 'cam-villavicencio', nombre: 'Fotodetección Av. Villavicencio', tramo: { de: 'tunal', a: 'perdomo', modo: 'troncal' }, lat: 4.5850, lng: -74.1425 },
+  { id: 'cam-tunal',    nombre: 'Fotodetección Portal Tunal',    tramo: { de: 'tunal', a: 'meissen', modo: 'sitp' }, lat: 4.5820, lng: -74.1400 },
+  { id: 'cam-boyaca',   nombre: 'Fotodetección Av. Boyacá (Sierra Morena)', tramo: { de: 'perdomo', a: 'sierramorena', modo: 'sitp' }, lat: 4.5960, lng: -74.1600 },
+  { id: 'cam-paraiso',  nombre: 'Fotodetección subida a Paraíso', tramo: { de: 'mirador', a: 'paraiso', modo: 'jeep' }, lat: 4.5835, lng: -74.1640 },
 ];
 
 // Alias / apodos que la gente usa (para el buscador y el chat de IA)

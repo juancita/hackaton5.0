@@ -76,11 +76,17 @@ El badge superior muestra 🟢 vivo / 🟡 caché / ⚪ semilla. Ver [FUENTES_DA
 - Traduce incidentes vigentes en **penalizaciones** del grafo → las rutas se recalculan solas.
 - Tipos: derrumbe, bloqueo, trancón, lleno, sin servicio, novedad (con severidad y vida útil).
 
-### 5) Edge AI (`edge.js`)
-- **Simulado:** nodos "semáforo" que emiten congestión periódica al mapa.
-- **Real:** webcam + **TensorFlow.js COCO-SSD** detecta vehículos/personas **en el dispositivo**;
-  calcula un índice de congestión y publica incidentes automáticos. El video **nunca sale del equipo**.
-- Argumento edge: privacidad + ancho de banda + latencia + costo (ver comentarios del archivo).
+### 5) Edge AI sobre cámaras de fotodetección (`edge.js`)
+> **Idea clave:** Ciudad Bolívar YA tiene cámaras de **fotodetección (fotocomparendos)** de la
+> Secretaría de Movilidad en semáforos/corredores. Hoy solo multan. Las **reutilizamos** para
+> estimar congestión en tiempo real. **Cero hardware nuevo, cero costo** → viabilidad altísima.
+- **Simulado:** nodos en los puntos reales de fotodetección (Av. Villavicencio, Portal Tunal,
+  Av. Boyacá, subida a Paraíso) que emiten congestión al mapa.
+- **Real (PoC):** webcam + **TensorFlow.js COCO-SSD** detecta vehículos/personas **en el dispositivo**;
+  calcula un índice de congestión y publica incidentes automáticos. Demuestra el mismo procesamiento
+  que correría junto a la cámara del semáforo. El video **nunca sale del equipo** (solo el dato).
+- Argumento edge: privacidad (no video ni placas) + reúso de infraestructura pública + ancho de
+  banda + latencia + costo (ver comentarios del archivo).
 
 ### 6) Asistente (`ai.js`)
 - **Local (siempre):** interpreta "de X a Y", prioridad y **reportes** en lenguaje natural.

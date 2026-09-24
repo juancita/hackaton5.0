@@ -49,7 +49,7 @@ const Reports = (() => {
       const t = TIPOS[i.tipo]; if (!t) return;
       pen[`${i.deId}|${i.aId}|${i.modo}`] = {
         bloqueado: t.bloquea, factor: t.factor || 1,
-        motivo: `${t.icono} ${t.label}${i.nota ? ': ' + i.nota : ''}${i.canal === 'edge' ? ' (cámara IA)' : ''}`,
+        motivo: `${t.icono} ${t.label}${i.nota ? ': ' + i.nota : ''}${i.canal === 'edge' ? ' (cámara fotodetección)' : ''}`,
       };
     });
     Engine.setPenalizaciones(pen);

@@ -141,7 +141,7 @@
   function dibujarCamaras() {
     CAMARAS.forEach((c) => {
       L.marker([c.lat, c.lng], { icon: L.divIcon({ className: 'cam-icon', html: '📹', iconSize: [26, 26] }) })
-        .addTo(mapa).bindPopup(`<b>${c.nombre}</b><br>Sensor Edge AI`);
+        .addTo(mapa).bindPopup(`<b>${c.nombre}</b><br>Cámara de fotodetección (reúso Edge AI)`);
     });
   }
   function pintarOficiales() {
@@ -167,7 +167,7 @@
   function pintarLeyenda() {
     $('#mapLegend').innerHTML = Object.values(MODOS)
       .map((m) => `<span class="leg" style="background:${m.color}">${m.icono} ${m.nombre}</span>`).join('')
-      + '<span class="leg" style="background:#111">📹 Cámara Edge</span>';
+      + '<span class="leg" style="background:#111">📹 Fotodetección</span>';
   }
   function dibujarSvg() {
     const svg = $('#mapaSvg'); if (!svg) return; svg.innerHTML = '';
@@ -231,7 +231,7 @@
     Reports.aplicarAlMotor();
     if (ev.action === 'add' && ev.incidente) {
       const t = Reports.TIPOS[ev.incidente.tipo] || Reports.TIPOS.novedad;
-      const canalIco = ev.incidente.canal === 'edge' ? '📹 Cámara IA' : ev.incidente.canal === 'whatsapp' ? '💬 WhatsApp' : '🌐 Web';
+      const canalIco = ev.incidente.canal === 'edge' ? '📹 Fotodetección' : ev.incidente.canal === 'whatsapp' ? '💬 WhatsApp' : '🌐 Web';
       toast(`<b>${t.icono} ${t.label}</b><br>${Engine.nodoPorId[ev.incidente.deId].nombre} → ${Engine.nodoPorId[ev.incidente.aId].nombre}<br><small>${canalIco} · ${ev.incidente.autor}</small>`, t.color);
     }
     pintarReportes();
@@ -256,8 +256,8 @@
   let simOn = false;
   $('#btnSim').addEventListener('click', (e) => {
     simOn = !simOn;
-    if (simOn) { Edge.iniciarSimulacion(9000); e.target.textContent = '⏸️ Detener cámaras simuladas'; toast('🛰️ Red de cámaras edge simuladas ACTIVA'); }
-    else { Edge.detenerSimulacion(); e.target.textContent = '🛰️ Activar cámaras simuladas'; }
+    if (simOn) { Edge.iniciarSimulacion(9000); e.target.textContent = '⏸️ Detener cámaras de fotodetección'; toast('🛰️ Red de cámaras de fotodetección ACTIVA'); }
+    else { Edge.detenerSimulacion(); e.target.textContent = '🛰️ Activar cámaras de fotodetección'; }
   });
 
   // ---------- Service worker ----------

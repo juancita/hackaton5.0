@@ -16,7 +16,7 @@ informal** ni un sistema colaborativo en tiempo real para la ladera. Esa es la b
 del reto y es nuestro corazón:
 1. **Digitalizamos lo informal** (jeeps de Quiba, colectivos a Paraíso, veredales).
 2. **Tiempo real tipo Waze**: la comunidad reporta y todos ven al instante.
-3. **Edge AI**: cámaras que detectan congestión **en el dispositivo** (sin nube).
+3. **Edge AI sobre fotodetección**: reutilizamos las cámaras de fotocomparendos que **ya existen** en los semáforos para detectar congestión **en el dispositivo** (sin nube, sin hardware nuevo).
 4. **Inclusión real**: WhatsApp para quien solo usa WhatsApp; web para el resto. Mismo cerebro.
 5. **Offline-first**: en las zonas altas no hay señal; la app igual funciona.
 
