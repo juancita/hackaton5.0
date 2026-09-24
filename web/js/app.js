@@ -1,6 +1,7 @@
 /*
- * app.js — Interfaz. Une planeador, asistente, mapa vivo (Waze), reportes y cámara edge.
- * Vainilla JS + Leaflet + TensorFlow.js. Funciona offline (con degradación elegante).
+ * app.js — Interfaz. Une planeador, asistente, mapa vivo (Waze) y reportes.
+ * Vainilla JS + Leaflet. Usa el backend (api.js) si responde; si no, funciona offline
+ * con engine.js / ai.js / realtime.js (degradación elegante).
  */
 (() => {
   const { PARADEROS, MODOS, TRAMOS, CAMARAS } = window.DB;
@@ -37,17 +38,71 @@
     setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 5000);
   }
 
-  // ---------- Autocompletar ----------
-  const datalist = $('#lugares');
-  PARADEROS.forEach((p) => { const o = document.createElement('option'); o.value = p.nombre; datalist.appendChild(o); });
+  // ---------- Autocompletar origen / destino ----------
+  // Pide sugerencias al backend (/places/suggest); sin backend, filtra PARADEROS en local.
+  const norm = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  function sugerirLocal(q) {
+    const n = norm(q);
+    const rango = (p) => {
+      const nom = norm(p.nombre);
+      if (nom.startsWith(n)) return 1;
+      if (nom.split(/\s+/).some((w) => w.startsWith(n))) return 2;
+      if (Object.entries(window.DB.ALIAS).some(([a, id]) => id === p.id && norm(a).startsWith(n))) return 3;
+      return nom.includes(n) ? 4 : 0;
+    };
+    return PARADEROS.map((p) => [rango(p), p]).filter(([r]) => r)
+      .sort((a, b) => a[0] - b[0] || a[1].nombre.localeCompare(b[1].nombre)).slice(0, 8).map(([, p]) => p);
+  }
+  function autocompletar(input) {
+    const lista = document.createElement('ul');
+    lista.className = 'sugerencias'; lista.setAttribute('role', 'listbox'); lista.hidden = true;
+    input.parentElement.appendChild(lista);
+    let items = [], activo = -1, timer = null, pedido = 0;
+
+    function pintar() {
+      lista.innerHTML = items.map((p, i) => `<li role="option" data-i="${i}" class="${i === activo ? 'activo' : ''}">
+        <strong>${p.nombre}</strong><small>${p.tipo} · zona ${p.zona}</small></li>`).join('');
+      lista.hidden = !items.length;
+      input.setAttribute('aria-expanded', String(!lista.hidden));
+    }
+    function elegir(i) {
+      const p = items[i]; if (!p) return;
+      input.value = p.nombre; input.dataset.id = p.id;
+      items = []; activo = -1; pintar();
+    }
+    input.addEventListener('input', () => {
+      delete input.dataset.id;
+      clearTimeout(timer);
+      const q = input.value;
+      if (!norm(q)) { items = []; pintar(); return; }
+      timer = setTimeout(async () => {
+        const n = ++pedido;
+        const remotas = await API.suggest(q);
+        if (n !== pedido) return; // llegó una respuesta vieja
+        items = remotas || sugerirLocal(q); activo = -1; pintar();
+      }, 200);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (lista.hidden) return;
+      if (e.key === 'ArrowDown') { activo = (activo + 1) % items.length; pintar(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { activo = (activo - 1 + items.length) % items.length; pintar(); e.preventDefault(); }
+      else if (e.key === 'Enter' && activo >= 0) { elegir(activo); e.preventDefault(); }
+      else if (e.key === 'Escape') { items = []; pintar(); }
+    });
+    lista.addEventListener('mousedown', (e) => { const li = e.target.closest('li'); if (li) { elegir(+li.dataset.i); e.preventDefault(); } });
+    input.addEventListener('blur', () => setTimeout(() => { items = []; pintar(); }, 100));
+  }
+  autocompletar($('#origen'));
+  autocompletar($('#destino'));
+  const idLugar = (input) => input.dataset.id || Engine.resolver(input.value);
 
   // ---------- Planeador ----------
   Reports.aplicarAlMotor();
   $('#btnBuscar').addEventListener('click', buscar);
   function buscar() {
     Reports.aplicarAlMotor();
-    const oId = Engine.resolver($('#origen').value);
-    const dId = Engine.resolver($('#destino').value);
+    const oId = idLugar($('#origen'));
+    const dId = idLugar($('#destino'));
     const cont = $('#resultados');
     if (!oId || !dId) { cont.innerHTML = '<p class="empty">Escribe un origen y un destino válidos 🙏</p>'; return; }
     if (oId === dId) { cont.innerHTML = '<p class="empty">El origen y el destino son iguales 😅</p>'; return; }
@@ -71,21 +126,40 @@
     </div>`;
   }
 
-  // ---------- Chat (modo WhatsApp) ----------
+  // ---------- Chat (asistente guiado / manual) ----------
+  // Con backend: /chat/web (estado de conversación, pasos, LLM). Sin backend: ai.js local.
   const chatBody = $('#chatBody');
+  const chips = $('#chatChips');
   function addMsg(texto, quien) {
     const d = document.createElement('div'); d.className = 'msg ' + quien; d.textContent = texto;
     chatBody.appendChild(d); chatBody.scrollTop = chatBody.scrollHeight;
   }
-  async function enviarChat() {
-    const input = $('#chatInput'); const t = input.value.trim(); if (!t) return;
-    addMsg(t, 'me'); input.value = '';
-    const r = await AI.responder(t, 'whatsapp', 'Tú');
-    addMsg(r.texto, 'bot');
+  function pintarChips(opciones) {
+    chips.innerHTML = '';
+    (opciones || []).forEach((o) => {
+      const b = document.createElement('button'); b.className = 'chip'; b.textContent = o.label;
+      b.addEventListener('click', () => enviarChat(o.label));
+      chips.appendChild(b);
+    });
   }
-  $('#chatSend').addEventListener('click', enviarChat);
+  async function responderChat(t) {
+    const r = await API.chat(t);
+    if (r) {
+      addMsg(r.texto, 'bot'); pintarChips(r.opciones_rapidas);
+      if (r.reporte) Realtime.publicar(incidenteLocal(r.reporte, 'Tú (chat)'));
+      return;
+    }
+    const local = await AI.responder(t, 'web', 'Tú');
+    addMsg(local.texto, 'bot'); pintarChips([]);
+  }
+  async function enviarChat(texto) {
+    const input = $('#chatInput'); const t = (typeof texto === 'string' ? texto : input.value).trim(); if (!t) return;
+    addMsg(t, 'me'); input.value = ''; pintarChips([]);
+    await responderChat(t);
+  }
+  $('#chatSend').addEventListener('click', () => enviarChat());
   $('#chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') enviarChat(); });
-  addMsg('¡Hola! 👋 Soy tu asistente de Muévete CB.\n• "de Meissen a Paraíso"\n• "reporto un derrumbe en Paraíso"', 'bot');
+  responderChat('hola');
 
   // ---------- Fuentes de datos oficiales ----------
   let nodosOficiales = [];
@@ -141,7 +215,7 @@
   function dibujarCamaras() {
     CAMARAS.forEach((c) => {
       L.marker([c.lat, c.lng], { icon: L.divIcon({ className: 'cam-icon', html: '📹', iconSize: [26, 26] }) })
-        .addTo(mapa).bindPopup(`<b>${c.nombre}</b><br>Cámara de fotodetección (reúso Edge AI)`);
+        .addTo(mapa).bindPopup(`<b>📹 ${c.nombre}</b><br>Cámara de fotodetección (ubicación de referencia)`);
     });
   }
   function pintarOficiales() {
@@ -161,13 +235,13 @@
       const t = Reports.TIPOS[i.tipo] || Reports.TIPOS.novedad;
       const icon = L.divIcon({ className: 'inc-icon', html: `<div class="inc-pin" style="--c:${t.color}">${t.icono}</div>`, iconSize: [34, 34] });
       L.marker([i.lat, i.lng], { icon }).addTo(capaInc)
-        .bindPopup(`<b>${t.icono} ${t.label}</b><br>${i.nota || ''}<br><small>${i.canal === 'edge' ? '📹 ' : ''}${i.autor} · ${hace(i.ts)}</small>`);
+        .bindPopup(`<b>${t.icono} ${t.label}</b><br>${i.nota || ''}<br><small>${i.autor} · ${hace(i.ts)}</small>`);
     });
   }
   function pintarLeyenda() {
     $('#mapLegend').innerHTML = Object.values(MODOS)
       .map((m) => `<span class="leg" style="background:${m.color}">${m.icono} ${m.nombre}</span>`).join('')
-      + '<span class="leg" style="background:#111">📹 Fotodetección</span>';
+      + '<span class="leg" style="background:#111">📹 Cámara de fotodetección</span>';
   }
   function dibujarSvg() {
     const svg = $('#mapaSvg'); if (!svg) return; svg.innerHTML = '';
@@ -204,10 +278,21 @@
   const repTramo = $('#repTramo');
   TRAMOS.forEach((t, i) => { const o = document.createElement('option'); o.value = i;
     o.textContent = `${MODOS[t.modo].icono} ${t.ruta}: ${Engine.nodoPorId[t.de].nombre} → ${Engine.nodoPorId[t.a].nombre}`; repTramo.appendChild(o); });
-  $('#btnReportar').addEventListener('click', () => {
+  // Incidente del backend -> formato del bus local (realtime.js) para el mapa y la lista
+  function incidenteLocal(v, autor) {
+    const t = Reports.TIPOS[v.tipo] || Reports.TIPOS.novedad;
+    return { id: v.id, tipo: v.tipo, deId: v.de_id, aId: v.a_id, modo: v.modo, nota: v.nota, canal: 'web',
+      autor, lat: v.lat, lng: v.lng, vidaMin: t.vidaMin, sev: t.sev, confianza: v.confianza, ts: Date.parse(v.creado_en) || Date.now() };
+  }
+  $('#btnReportar').addEventListener('click', async () => {
     const t = TRAMOS[+repTramo.value];
-    Reports.reportar({ tipo: repTipo.value, deId: t.de, aId: t.a, modo: t.modo, nota: $('#repNota').value, canal: 'web', autor: 'Tú (web)' });
+    const nota = $('#repNota').value;
     $('#repNota').value = '';
+    // El feedback se guarda en el backend (Postgres) con tu identidad anónima; si no hay red, queda local.
+    const r = await API.reportar({ tipo: repTipo.value, de_id: t.de, a_id: t.a, modo: t.modo, nota });
+    if (r && r.ok) { Realtime.publicar(incidenteLocal(r.data, 'Tú (web)')); return; }
+    if (r && r.status === 429) { toast('Ya reportaste esto hace poco 🙏'); return; }
+    Reports.reportar({ tipo: repTipo.value, deId: t.de, aId: t.a, modo: t.modo, nota, canal: 'web', autor: 'Tú (web)' });
   });
   $('#btnLimpiar').addEventListener('click', () => { if (confirm('¿Limpiar todas las alertas? (solo para el demo)')) Realtime.limpiarTodo(); });
   function pintarReportes() {
@@ -215,14 +300,18 @@
     if (!lista.length) { cont.innerHTML = '<p class="empty">No hay alertas activas ahora mismo.</p>'; return; }
     cont.innerHTML = lista.map((i) => {
       const t = Reports.TIPOS[i.tipo] || Reports.TIPOS.novedad;
-      const canalIco = i.canal === 'whatsapp' ? '💬' : i.canal === 'edge' ? '📹' : '🌐';
+      const canalIco = i.canal === 'whatsapp' ? '💬' : i.canal === 'telegram' ? '✈️' : '🌐';
+      const conf = i.confianza != null ? ` · confianza ${Math.round(i.confianza * 100)}%` : '';
       return `<div class="rep-item" style="border-left-color:${t.color}">${t.icono} <strong>${t.label}</strong>
         <br>${Engine.nodoPorId[i.deId].nombre} → ${Engine.nodoPorId[i.aId].nombre}
         ${i.nota ? '<br>“' + i.nota + '”' : ''}
-        <br><small>${canalIco} ${i.autor} · ${hace(i.ts)}</small>
+        <br><small>${canalIco} ${i.autor} · ${hace(i.ts)}${conf}</small>
         <button class="voto" data-id="${i.id}">👍 ${i.votos || 0}</button></div>`;
     }).join('');
-    $$('.voto').forEach((b) => b.addEventListener('click', () => Realtime.votar(b.dataset.id)));
+    $$('.voto').forEach((b) => b.addEventListener('click', () => {
+      Realtime.votar(b.dataset.id);
+      API.votar(b.dataset.id, 'confirma'); // si el incidente existe en el backend, suma confianza
+    }));
   }
   function hace(ts) { const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? 'ahora' : `hace ${m} min`; }
 
@@ -231,34 +320,13 @@
     Reports.aplicarAlMotor();
     if (ev.action === 'add' && ev.incidente) {
       const t = Reports.TIPOS[ev.incidente.tipo] || Reports.TIPOS.novedad;
-      const canalIco = ev.incidente.canal === 'edge' ? '📹 Fotodetección' : ev.incidente.canal === 'whatsapp' ? '💬 WhatsApp' : '🌐 Web';
+      const canalIco = ev.incidente.canal === 'whatsapp' ? '💬 WhatsApp' : ev.incidente.canal === 'telegram' ? '✈️ Telegram' : '🌐 Web';
       toast(`<b>${t.icono} ${t.label}</b><br>${Engine.nodoPorId[ev.incidente.deId].nombre} → ${Engine.nodoPorId[ev.incidente.aId].nombre}<br><small>${canalIco} · ${ev.incidente.autor}</small>`, t.color);
     }
     pintarReportes();
     pintarIncidentes(Realtime.vigentes());
   });
   pintarReportes();
-
-  // ---------- Cámara Edge ----------
-  const camSel = $('#camSel');
-  CAMARAS.forEach((c) => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.nombre; camSel.appendChild(o); });
-  const video = $('#cam');
-  $('#btnCamOn').addEventListener('click', () => {
-    $('#camStats').textContent = 'Iniciando…';
-    Edge.iniciarCamaraReal(video, camSel.value,
-      ({ vehiculos, personas, indice }) => {
-        $('#camStats').innerHTML = `🚗 ${vehiculos} vehículos · 🚶 ${personas} personas<br>Índice de congestión: <b>${indice.toFixed(0)}%</b>
-          <div class="barra"><span style="width:${indice}%;background:${indice > 70 ? '#e74c3c' : indice > 40 ? '#f39c12' : '#2ecc71'}"></span></div>`;
-      },
-      (msg) => toast(msg));
-  });
-  $('#btnCamOff').addEventListener('click', () => { Edge.detenerCamaraReal(video); $('#camStats').textContent = 'Cámara apagada'; });
-  let simOn = false;
-  $('#btnSim').addEventListener('click', (e) => {
-    simOn = !simOn;
-    if (simOn) { Edge.iniciarSimulacion(9000); e.target.textContent = '⏸️ Detener cámaras de fotodetección'; toast('🛰️ Red de cámaras de fotodetección ACTIVA'); }
-    else { Edge.detenerSimulacion(); e.target.textContent = '🛰️ Activar cámaras de fotodetección'; }
-  });
 
   // ---------- Service worker ----------
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

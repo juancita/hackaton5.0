@@ -1,7 +1,7 @@
 /*
  * realtime.js — Sincronización en tiempo real HÍBRIDA (tipo Waze)
  * ===========================================================================
- * Cada incidente (derrumbe, trancón, bloqueo, cámara edge) se propaga al
+ * Cada incidente (derrumbe, trancón, bloqueo…) se propaga al
  * instante a TODOS los usuarios conectados y aparece en el mapa de todos.
  *
  * Capa 1 (DEMO GARANTIZADO, offline):

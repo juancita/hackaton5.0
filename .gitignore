@@ -14,9 +14,16 @@ backend/node_modules/
 # Entorno / secretos — NUNCA subir claves
 .env
 .env.*
+!.env.example
 *.key
 secrets.*
 
 # Temporales
 *.log
 tmp/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

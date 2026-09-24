@@ -86,12 +86,8 @@ const TRAMOS = [
 ];
 
 /*
- * CÁMARAS DE FOTODETECCIÓN — infraestructura EXISTENTE de la Secretaría Distrital
- * de Movilidad (las cámaras de semáforo que hoy solo se usan para fotocomparendos).
- * REUTILIZAMOS su video: en vez de solo multar, corremos visión por computador EN EL
- * BORDE (edge) para estimar congestión y alimentar el mapa. Sin hardware nuevo, sin
- * costo adicional. Solo sale el DATO de congestión, nunca el video ni placas (privacidad).
- * Una de ellas puede activarse con la webcam real como prueba de concepto (ver edge.js).
+ * CÁMARAS DE FOTODETECCIÓN — infraestructura existente de la Secretaría Distrital de
+ * Movilidad. Hoy solo se muestran como marcadores de referencia en el mapa (sin detección).
  */
 const CAMARAS = [
   { id: 'cam-villavicencio', nombre: 'Fotodetección Av. Villavicencio', tramo: { de: 'tunal', a: 'perdomo', modo: 'troncal' }, lat: 4.5850, lng: -74.1425 },

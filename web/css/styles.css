@@ -66,7 +66,7 @@ button.primary:active { transform: scale(.98); }
 .totales span { color: var(--morado); }
 
 /* Chat WhatsApp */
-#view-chat { padding: 0; height: calc(100vh - 68px - 60px); display: flex; flex-direction: column; }
+#view-chat { padding: 0; height: calc(100vh - 68px - 60px); flex-direction: column; }
 #view-chat.active { display: flex; }
 .wa-header { background: #075e54; color: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
 .wa-avatar { font-size: 26px; background: #fff2; border-radius: 50%; padding: 4px; }
@@ -128,10 +128,6 @@ button.primary:active { transform: scale(.98); }
 @keyframes pulso { 0%,100% { transform: scale(1); } 50% { transform: scale(1.14); } }
 .cam-icon { font-size: 20px; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
 
-/* Cámara edge */
-.cam-wrap { position: relative; border-radius: 12px; overflow: hidden; background: #000; margin: 8px 0; }
-#cam { width: 100%; max-height: 46vh; display: block; object-fit: cover; background: #111; }
-.cam-stats { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.6); color: #fff; padding: 8px 12px; font-size: 13px; }
 .barra { height: 8px; background: #ffffff33; border-radius: 6px; margin-top: 4px; overflow: hidden; }
 .barra span { display: block; height: 100%; border-radius: 6px; transition: width .3s; }
 .sep { border: none; border-top: 1px solid #eee; margin: 14px 0; }
@@ -141,3 +137,17 @@ button.primary:active { transform: scale(.98); }
 .linkbtn { flex: 1; text-align: center; background: var(--morado); color: #fff; border: none; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; }
 .linkbtn.ghost { background: #f0ecfa; color: var(--morado); }
 .voto { float: right; background: #f0ecfa; color: var(--morado); border: none; border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* Autocompletar origen / destino */
+.ac { position: relative; display: block; }
+.sugerencias { position: absolute; z-index: 20; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 4px 0; list-style: none;
+  background: #fff; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.12); max-height: 260px; overflow-y: auto; }
+.sugerencias li { padding: 8px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; color: #222; }
+.sugerencias li small { color: #777; font-size: 12px; }
+.sugerencias li.activo, .sugerencias li:hover { background: #f1e9ff; }
+
+/* Respuestas rápidas del asistente */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+.chips:empty { display: none; }
+.chip { border: 1px solid #7B2FF7; color: #7B2FF7; background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer; }
+.chip:hover { background: #7B2FF7; color: #fff; }
