@@ -1,7 +1,7 @@
 /*
  * app.js — Interfaz. Une planeador, asistente, mapa vivo (Waze) y reportes.
  * Vainilla JS + Leaflet. Usa el backend (api.js) si responde; si no, funciona offline
- * con engine.js / ai.js / realtime.js (degradación elegante).
+ * con engine.js / ai.js para rutas y chat; los reportes siempre van al servidor.
  */
 (() => {
   const { PARADEROS, MODOS, TRAMOS, CAMARAS } = window.DB;
@@ -16,7 +16,7 @@
     $$('.view').forEach((v) => v.classList.remove('active'));
     $('#view-' + vista).classList.add('active');
     if (vista === 'plan') abrirMapa();
-    if (vista === 'report') abrirReporte();
+    if (vista === 'report') { abrirReporte(); vigilarFeed(); }
     if (vista === 'admin') pintarAdmin();
   }
   function aplicarRuta() {
@@ -35,10 +35,13 @@
   const esMovil = () => !matchMedia('(min-width: 860px)').matches;
   function medirTopbar() {
     document.documentElement.style.setProperty('--topbar-h', $('.topbar').offsetHeight + 'px');
+    // Alto real de la barra inferior (incluye safe-area) para que el chat no quede tapado ni deje hueco
+    document.documentElement.style.setProperty('--tabbar-real', $('.tabbar').offsetHeight + 'px');
     if (mapa) mapa.invalidateSize();
   }
   window.addEventListener('resize', medirTopbar);
   new ResizeObserver(medirTopbar).observe($('.topbar'));
+  new ResizeObserver(medirTopbar).observe($('.tabbar'));
   new ResizeObserver(() => mapa && mapa.invalidateSize()).observe($('#mapa'));
 
 
@@ -113,7 +116,7 @@
 
   // ---------- Conexión con el servidor ----------
   // Con servidor: rutas, reportes y alertas son compartidos por todos los dispositivos (Postgres).
-  // Sin servidor: todo sigue funcionando en este dispositivo (engine.js + realtime.js).
+  // Sin servidor: rutas y chat funcionan en este dispositivo (engine.js + ai.js); reportes no.
   let enLinea = false;
   let incServidor = [];
   let incRecientes = []; // últimos reportes guardados en Postgres (vigentes y vencidos), para el mapa
@@ -121,29 +124,33 @@
   async function revisarServidor() {
     const antes = enLinea;
     enLinea = await API.salud();
-    if (enLinea !== antes) { firmaInc = null; await refrescarIncidentes(false); pintarPerfil(); pintarAdmin(); pintarEnvio(); }
+    if (enLinea !== antes) { firmaInc = null; await refrescarIncidentes(false); pintarPerfil(); pintarAdmin(); pintarEnvio(); vigilarFeed(); }
   }
 
-  // Incidente del backend -> formato de la UI (el mismo que usa realtime.js)
+  // Incidente del backend -> formato de la UI
   function incidenteLocal(v) {
     const t = Reports.TIPOS[v.tipo] || Reports.TIPOS.novedad;
     return { id: v.id, tipo: v.tipo, deId: v.de_id, aId: v.a_id, modo: v.modo, nota: v.nota, canal: 'web',
       autor: v.n_reportes > 1 ? `${v.n_reportes} vecinos` : 'Un vecino', lat: v.lat, lng: v.lng,
       vidaMin: t.vidaMin, sev: t.sev, ts: Date.parse(v.creado_en) || Date.now(), servidor: true,
       estado: v.estado, confianza: v.confianza, afecta: v.afecta_rutas, vigente: v.vigente !== false,
-      nReportes: v.n_reportes, nConfirma: v.n_confirma, nNiega: v.n_niega };
+      nReportes: v.n_reportes, nConfirma: v.n_confirma, nNiega: v.n_niega, estrellasAutor: v.estrellas_autor };
   }
-  // Alertas visibles: las del servidor + las que solo existen en este dispositivo (p. ej. el simulador)
+  // Reportes hechos desde este dispositivo: no se califican a sí mismos (el servidor también lo impide)
+  const MIOS_KEY = 'muevecb_mios';
+  const mios = new Set((() => { try { return JSON.parse(localStorage.getItem(MIOS_KEY) || '[]'); } catch (e) { return []; } })());
+  function marcarMio(id) {
+    mios.add(id);
+    try { localStorage.setItem(MIOS_KEY, JSON.stringify([...mios].slice(-200))); } catch (e) {}
+  }
+  // Alertas vigentes: solo las del servidor (Postgres). Sin conexión no hay alertas que mostrar.
   function vigentes() {
-    const locales = Realtime.vigentes();
-    if (!enLinea) return locales;
-    const ids = new Set(incServidor.map((i) => i.id));
-    return [...incServidor.map(incidenteLocal), ...locales.filter((i) => !ids.has(i.id))];
+    return enLinea ? incServidor.map(incidenteLocal) : [];
   }
   async function refrescarIncidentes(avisar = true) {
     if (!enLinea) { pintarTodo(); return; }
     // Los últimos reportes guardados de la misma ventana que muestra el mapa (1 h)
-    const [lista, ultimos] = await Promise.all([API.incidentes(), API.recientes(1, 50)]);
+    const [lista, ultimos] = await Promise.all([API.incidentes(), API.recientes({ horas: 1, limit: 50 })]);
     if (!lista) return;
     const firma = JSON.stringify([lista, ultimos || []].map((l) => l.map((i) => [i.id, i.confianza, i.estado, i.n_reportes, i.n_confirma, i.n_niega, i.vigente])));
     if (firma === firmaInc) return;
@@ -154,13 +161,48 @@
     if (ultimos) incRecientes = ultimos;
     pintarTodo();
   }
-  // Mapa de rutas: con servidor, los últimos reportes guardados (los vencidos, atenuados) + los locales
+  // Mapa de rutas: los últimos reportes guardados en el servidor (los vencidos, atenuados)
   function paraMapa() {
-    if (!enLinea) return vigentes();
-    const ids = new Set(incRecientes.map((i) => i.id));
-    return [...incRecientes.map(incidenteLocal), ...vigentes().filter((i) => !ids.has(i.id))];
+    return enLinea ? incRecientes.map(incidenteLocal) : [];
   }
   function pintarTodo() { pintarReportes(); pintarIncidentes(paraMapa()); }
+
+  // ---------- Feed "Alertas en vivo": la última hora; al bajar se cargan las anteriores ----------
+  const PAGINA_FEED = 10;
+  let feedMas = [], feedFin = false, feedCargando = false;
+  function listaFeed() {
+    if (!enLinea) return [];
+    const vistos = new Set(), out = [];
+    [...incRecientes, ...feedMas].forEach((v) => { if (!vistos.has(v.id)) { vistos.add(v.id); out.push(incidenteLocal(v)); } });
+    return out.sort((a, b) => b.ts - a.ts);
+  }
+  async function cargarMasFeed() {
+    if (!enLinea || feedFin || feedCargando) return;
+    feedCargando = true; pintarFinFeed();
+    const servidor = [...incRecientes, ...feedMas];
+    const antes = servidor.length
+      ? servidor.reduce((m, v) => (v.creado_en < m ? v.creado_en : m), servidor[0].creado_en)
+      : new Date().toISOString();
+    const pag = await API.recientes({ antes, limit: PAGINA_FEED });
+    feedCargando = false;
+    if (pag) { feedMas.push(...pag); feedFin = pag.length < PAGINA_FEED; pintarReportes(); }
+    pintarFinFeed();
+    if (pag && !feedFin) vigilarFeed();
+  }
+  function pintarFinFeed() {
+    const el = $('#feedMas');
+    el.hidden = !enLinea;
+    el.innerHTML = feedCargando ? 'Cargando alertas anteriores…'
+      : feedFin ? `${ico('history')} No hay más alertas` : `${ico('expand_more')} Desliza para ver alertas anteriores`;
+  }
+  // Actualiza en el feed un incidente que cambió (p. ej. tras un voto) sin esperar al sondeo
+  function actualizarEnFeed(v) {
+    [incRecientes, feedMas].forEach((l) => { const k = l.findIndex((x) => x.id === v.id); if (k >= 0) l[k] = v; });
+  }
+  const obsFeed = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) cargarMasFeed(); }, { rootMargin: '200px' });
+  // Volver a observar dispara el callback si el final de la lista ya está a la vista (lista corta)
+  function vigilarFeed() { obsFeed.unobserve($('#feedMas')); obsFeed.observe($('#feedMas')); }
+  vigilarFeed();
   function toastIncidente(i, origen) {
     const t = Reports.TIPOS[i.tipo] || Reports.TIPOS.novedad;
     toast(`<b>${icoTipo(i.tipo)} ${t.label}</b><br>${Engine.nodoPorId[i.deId].nombre} → ${Engine.nodoPorId[i.aId].nombre}<br><small>${origen} · ${i.autor}</small>`, t.color);
@@ -171,7 +213,6 @@
   };
 
   // ---------- Planeador ----------
-  Reports.aplicarAlMotor();
   $('#btnBuscar').addEventListener('click', buscar);
   $('#btnInvertir').addEventListener('click', () => {
     const o = $('#origen'), d = $('#destino');
@@ -181,6 +222,16 @@
     if (idO) d.dataset.id = idO; else delete d.dataset.id;
     if (o.value && d.value) buscar();
   });
+  // Medios de transporte marcados (cada casilla puede agrupar varios modos, p. ej. "sitp,alimentador").
+  // null = todos marcados (sin filtro). Caminar siempre se permite.
+  function mediosElegidos() {
+    const cajas = [...$$('#medios input')];
+    const marcadas = cajas.filter((c) => c.checked);
+    if (marcadas.length === cajas.length) return null;
+    return marcadas.flatMap((c) => c.value.split(','));
+  }
+  // Cambiar los medios con resultados en pantalla vuelve a buscar
+  $('#medios').addEventListener('change', () => { if (opsPlan.length || $('#resultados').textContent.trim()) buscar(); });
   async function buscar() {
     const oId = idLugar($('#origen'));
     const dId = idLugar($('#destino'));
@@ -189,22 +240,29 @@
     ocultarMapaRuta();
     if (!oId || !dId) { cont.innerHTML = '<p class="empty">Escribe un origen y un destino válidos.</p>'; return; }
     if (oId === dId) { cont.innerHTML = '<p class="empty">El origen y el destino son iguales.</p>'; return; }
+    const modos = mediosElegidos();
+    if (modos && !modos.length) { opsPlan = []; cont.innerHTML = '<p class="empty">Marca al menos un medio de transporte.</p>'; return; }
 
     if (enLinea) {
       cont.innerHTML = '<p class="empty">Buscando rutas…</p>';
-      const r = await API.rutas(oId, dId, prioridad);
+      const r = await API.rutas(oId, dId, prioridad, modos);
       if (r && r.ok) { pintarPlan(r.data.opciones, r.data.recomendada, r.data.incidentes_aplicados.length, 'servidor'); return; }
       if (r) { cont.innerHTML = `<p class="empty">${detalle(r)}</p>`; return; }
     }
-    // Sin servidor: motor local con las alertas de este dispositivo
-    Reports.aplicarAlMotor();
-    const ops = Engine.opciones(oId, dId);
-    pintarPlan(ops, Math.max(0, ops.findIndex((o) => o.prioridad === prioridad)), 0, 'local');
+    // Sin servidor: motor local, sin alertas (las alertas viven en el servidor)
+    const ops = Engine.opciones(oId, dId, modos, prioridad);
+    pintarPlan(ops, Math.max(0, ops.findIndex((o) => o.prioridad === prioridad && !/^(Sin|Con) /.test(o.etiqueta))), 0, 'local');
   }
   function pintarPlan(ops, recomendada, nIncidentes, fuente) {
     const cont = $('#resultados');
     opsPlan = ops;
-    if (!ops.length) { ocultarMapaRuta(); cont.innerHTML = '<p class="empty">No encontré ruta entre esos puntos. Puede haber un tramo bloqueado por un reporte.</p>'; return; }
+    if (!ops.length) {
+      ocultarMapaRuta();
+      cont.innerHTML = mediosElegidos()
+        ? '<p class="empty">No encontré ruta con los medios que marcaste. Prueba marcando otro medio.</p>'
+        : '<p class="empty">No encontré ruta entre esos puntos. Puede haber un tramo bloqueado por un reporte.</p>';
+      return;
+    }
     const orden = [recomendada, ...ops.map((_, i) => i).filter((i) => i !== recomendada)];
     const aviso = nIncidentes ? `<p class="hint aviso-ruta">${ico('warning')} ${nIncidentes} alerta(s) ciudadana(s) afectan estas rutas.</p>` : '';
     const origen = fuente === 'servidor' ? `${ico('cloud_done')} Calculado en el servidor con las alertas de toda la comunidad` : `${ico('smartphone')} Calculado en este dispositivo (sin servidor)`;
@@ -453,9 +511,9 @@
         L.polyline(t.geom || [[a.lat, a.lng], [b.lat, b.lng]], { color: MODOS[t.modo].color, weight: 3, opacity: 0.35, interactive: false }).addTo(mapaRep);
       });
       capaTramoRep = L.layerGroup().addTo(mapaRep);
-      // Fijo: se mueve solo con el GPS, no se arrastra ni se ubica tocando el mapa
+      // Punto azul "estás aquí": se mueve solo con el GPS, no se arrastra ni se ubica tocando el mapa
       pinRep = L.marker(CENTRO_CB, { interactive: false, keyboard: false,
-        icon: L.divIcon({ className: 'rep-pin', html: `<div class="rep-pin-in">${ico('campaign', 'fill')}</div>`, iconSize: [40, 48], iconAnchor: [20, 46] }) });
+        icon: L.divIcon({ className: 'yo-marker', html: '<span class="yo-dot"></span>', iconSize: [22, 22], iconAnchor: [11, 11] }) });
       if (repPos) fijarPosicion(repPos.lat, repPos.lng, repPrecision);
     } else if (typeof L === 'undefined') {
       $('.rep-mapa-wrap').hidden = true;
@@ -520,7 +578,10 @@
   const repImpreciso = () => repPrecision > PRECISION_MAX_M;
   const repFuera = () => !repCercano || repCercano.dist > Reports.RADIO_M;
   function pintarDonde() {
-    const el = $('#repDonde');
+    $$('.rep-donde').forEach(pintarDondeEn);
+    pintarEnvio();
+  }
+  function pintarDondeEn(el) {
     el.classList.toggle('fuera', !!repError || (!!repPos && (repImpreciso() || repFuera())));
     if (repError) el.innerHTML = ico('location_off') + ' ' + MENSAJE_GPS[repError];
     else if (!repPos) el.textContent = 'Buscando tu ubicación…';
@@ -532,7 +593,6 @@
       el.innerHTML = `<span class="rep-donde-ico" style="--c:${m.color}">${icoModo(t.modo)}</span>
         <span><b>${m.nombre} · ${esc(t.ruta)}</b><br><small>${Engine.nodoPorId[t.de].nombre} ↔ ${Engine.nodoPorId[t.a].nombre} · ${dist}</small></span>`;
     }
-    pintarEnvio();
   }
   function pintarEnvio() {
     const b = $('#btnReportar');
@@ -546,6 +606,23 @@
   }
   pintarEnvio();
 
+  // Panel inferior para crear el reporte (tipo + detalle + enviar)
+  const sheet = $('#repSheet');
+  function abrirSheet() {
+    pintarDonde();
+    sheet.appendChild($('#toasts')); // los avisos quedan visibles por encima del fondo del panel
+    sheet.showModal();
+  }
+  function cerrarSheet() { if (sheet.open) sheet.close(); }
+  sheet.addEventListener('close', () => document.body.insertBefore($('#toasts'), $('main')));
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) cerrarSheet(); }); // toque en el fondo
+  $('#btnAbrirReporte').addEventListener('click', abrirSheet);
+  $('#repCerrar').addEventListener('click', cerrarSheet);
+  $('#repCentrar').addEventListener('click', () => {
+    if (repPos && mapaRep) mapaRep.setView([repPos.lat, repPos.lng], Math.max(mapaRep.getZoom(), 16));
+    else ubicar();
+  });
+
   $('#btnReportar').addEventListener('click', async () => {
     const tipo = repTipo.value, nota = $('#repNota').value.trim();
     if (!tipo || !repPos || repError || !enLinea) return;
@@ -554,10 +631,12 @@
     const r = await API.reportar({ tipo, lat: repPos.lat, lng: repPos.lng, nota });
     if (r && r.ok) {
       const v = r.data;
+      marcarMio(v.id);
       toast(v.afecta_rutas
         ? `${ico('check_circle')} Reporte guardado · confianza ${Math.round(v.confianza * 100)}%. Ya afecta las rutas.`
         : `${ico('check_circle')} Reporte guardado · confianza ${Math.round(v.confianza * 100)}%. Se aplicará cuando otros lo confirmen.`);
       $('#repNota').value = ''; marcarTipo('');
+      cerrarSheet();
       await refrescarIncidentes(false); pintarPerfil();
       return;
     }
@@ -573,40 +652,45 @@
     const nota = i.nota ? `<p class="rep-nota">“${esc(i.nota)}”</p>` : '';
     const cabeza = (estado) => `<div class="rep-head"><span class="rep-ico">${icoTipo(i.tipo)}</span>
       <div class="rep-tit"><strong>${t.label}</strong><span class="rep-ruta">${ruta}</span></div>${estado}</div>`;
-    if (!i.servidor) {
-      return `<div class="rep-item" style="--c:${t.color}">${cabeza('')}${nota}
-        <div class="rep-pie"><small>${icoCanal(i.canal)} ${esc(i.autor)} · ${hace(i.ts)} · solo en este dispositivo</small>
-        ${modoAdmin ? '' : `<button class="voto" data-accion="local" data-id="${i.id}">${ico('thumb_up')}${i.votos || 0}</button>`}</div></div>`;
-    }
     const pct = Math.round(i.confianza * 100);
     const estado = i.estado === 'verificado' ? `<span class="estado ok">${ico('verified', 'fill')}Verificado</span>`
       : i.afecta ? '<span class="estado">Afecta rutas</span>' : '<span class="estado bajo">Por confirmar</span>';
+    const vencida = i.vigente === false;
+    const mio = mios.has(i.id);
     const acciones = modoAdmin
       ? (i.estado !== 'verificado' ? `<button class="voto admin" data-accion="verificar" data-id="${i.id}">${ico('verified')}Verificar</button>` : '')
         + `<button class="voto admin peligro" data-accion="rechazar" data-id="${i.id}">${ico('block')}Rechazar</button>`
-      : `<button class="voto" data-accion="confirma" data-id="${i.id}">${ico('thumb_up')}Sigue ahí</button>
-         <button class="voto" data-accion="niega" data-id="${i.id}">${ico('thumb_down')}Ya no está</button>`;
-    return `<div class="rep-item" style="--c:${t.color}">${cabeza(estado)}${nota}
-      <div class="conf"><span style="width:${pct}%;background:${pct >= 70 ? '#e74c3c' : pct >= 40 ? '#f39c12' : '#bbb'}"></span></div>
-      <small>Confianza ${pct}% · ${i.autor} · ${hace(i.ts)} · ${ico('thumb_up')} ${i.nConfirma} · ${ico('thumb_down')} ${i.nNiega}</small>
-      <div class="rep-acciones">${acciones}</div></div>`;
+      : vencida ? ''
+      : mio ? `<small class="rep-mio">${ico('person')} Tu reporte: lo califican los demás</small>`
+      : `<button class="voto" data-accion="confirma" data-id="${i.id}" title="Le suma estrellas a quien reportó">${ico('thumb_up')}Sigue ahí</button>
+         <button class="voto" data-accion="niega" data-id="${i.id}" title="Le resta estrellas a quien reportó">${ico('thumb_down')}Ya no está</button>`;
+    const autor = i.estrellasAutor != null ? `${esc(i.autor)} ${estrellas(i.estrellasAutor, true)}` : esc(i.autor);
+    const est = vencida ? '<span class="estado bajo">Vencida</span>' : estado;
+    return `<div class="rep-item${vencida ? ' vencida' : ''}" style="--c:${t.color}">${cabeza(est)}${nota}
+      ${vencida ? '' : `<div class="conf"><span style="width:${pct}%;background:${pct >= 70 ? '#e74c3c' : pct >= 40 ? '#f39c12' : '#bbb'}"></span></div>`}
+      <small class="rep-meta">${vencida ? '' : `Confianza ${pct}% · `}${autor} · ${hace(i.ts)} · ${ico('thumb_up')} ${i.nConfirma} · ${ico('thumb_down')} ${i.nNiega}</small>
+      ${acciones ? `<div class="rep-acciones">${acciones}</div>` : ''}</div>`;
   }
   function pintarReportes() {
-    const lista = vigentes(); const cont = $('#listaReportes');
-    $('#repCount').textContent = lista.length === 1 ? '1 alerta' : `${lista.length} alertas`;
-    cont.innerHTML = lista.length ? lista.map((i) => tarjetaAlerta(i, false)).join('')
-      : `<p class="empty">${ico('task_alt')}<br>No hay alertas activas ahora mismo.<br><small>Si ves algo en la vía, repórtalo y avisamos a todos.</small></p>`;
+    const lista = listaFeed(); const cont = $('#listaReportes');
+    const ultimaHora = lista.filter((i) => Date.now() - i.ts <= VENTANA_MAPA_MS).length;
+    $('#repCount').textContent = ultimaHora === 1 ? '1 en la última hora' : `${ultimaHora} en la última hora`;
+    cont.innerHTML = !enLinea
+      ? `<p class="empty">${ico('cloud_off')}<br>Sin conexión con el servidor.<br><small>Las alertas se cargan desde el servidor; reintentamos en unos segundos.</small></p>`
+      : lista.length ? lista.map((i) => tarjetaAlerta(i, false)).join('')
+      : `<p class="empty">${ico('task_alt')}<br>No hay alertas en la última hora.<br><small>Si ves algo en la vía, repórtalo y avisamos a todos.</small></p>`;
+    pintarFinFeed();
     pintarListaAdmin();
   }
   async function accionAlerta(e) {
     const b = e.target.closest('button[data-accion]'); if (!b) return;
     const { accion, id } = b.dataset;
-    if (accion === 'local') { Realtime.votar(id); return; }
     b.disabled = true;
     const r = accion === 'verificar' ? await API.verificar(id)
       : accion === 'rechazar' ? await API.rechazar(id)
       : await API.votar(id, accion);
-    const mensajes = { confirma: `${ico('thumb_up')} Gracias por confirmar`, niega: `${ico('thumb_down')} Gracias, lo tendremos en cuenta`,
+    if (r && r.ok && r.data && r.data.id) actualizarEnFeed(r.data);
+    const mensajes = { confirma: `${ico('thumb_up')} Gracias: le sumaste estrellas a quien reportó`, niega: `${ico('thumb_down')} Gracias, lo tendremos en cuenta`,
       verificar: `${ico('verified')} Alerta verificada`, rechazar: `${ico('block')} Alerta rechazada` };
     toast(r && r.ok ? mensajes[accion] : detalle(r));
     await refrescarIncidentes(false); pintarPerfil();
@@ -619,26 +703,23 @@
   }
 
   // ---------- Reputación (sin cuenta): estrellas de 0 a 5 ----------
-  function estrellas(n) {
+  function estrellas(n, mini) {
     const v = Math.max(0, Math.min(5, Number(n) || 0));
+    if (mini) return `<span class="estrellas mini" title="${v} de 5 estrellas">${ico('star', 'fill')}<b>${v.toLocaleString('es-CO')}</b></span>`;
     const icono = (k) => ico(v >= k ? 'star' : v >= k - 0.5 ? 'star_half' : 'star', v >= k - 0.5 ? 'fill' : '');
     return `<span class="estrellas" role="img" aria-label="${v} de 5 estrellas">`
       + [1, 2, 3, 4, 5].map((k) => `<span class="${v >= k - 0.5 ? 'on' : ''}">${icono(k)}</span>`).join('')
       + `<b>${v.toLocaleString('es-CO')}</b></span>`;
   }
+  // Cabecera de Reportar: icono de usuario + puntuación. Nada más.
   async function pintarPerfil() {
     const el = $('#perfil');
     const p = enLinea ? await API.perfil() : null;
-    if (!p) { el.hidden = true; return; }
-    el.hidden = false;
-    if (p.rol === 'admin') {
-      el.innerHTML = ico('shield_person') + ' <strong>Administrador</strong><br><small>Tus reportes pesan 100% y quedan verificados al instante.</small>';
-      return;
-    }
-    el.innerHTML = `<div class="perfil-top"><strong>Tu reputación</strong>${estrellas(p.estrellas)}</div>
-      <small>${ico('check_circle')} ${p.aciertos} verificados · ${ico('cancel')} ${p.fallos} rechazados.
-      Empiezas con 5 estrellas: un admin las sube o baja al verificar o rechazar tus reportes.
-      Sin cuenta: te identificamos de forma anónima en este dispositivo.</small>`;
+    const admin = p && p.rol === 'admin';
+    el.innerHTML = `<span class="rep-user-ava">${ico(admin ? 'shield_person' : 'account_circle', 'fill')}</span>
+      <strong>${admin ? 'Administrador' : 'Tú'}</strong>`
+      + (admin ? '' : p ? estrellas(p.estrellas) : '<small>Sin conexión</small>');
+    if (p && !admin) el.title = `${p.likes} 👍 · ${p.dislikes} 👎 de otros vecinos en tus reportes`;
   }
 
   // ---------- Administrador (pestaña #/admin) ----------
@@ -685,7 +766,6 @@
   });
   $('#btnLimpiar').addEventListener('click', async () => {
     if (!confirm('¿Limpiar todas las alertas?')) return;
-    Realtime.limpiarTodo();
     if (enLinea && API.esAdmin) {
       const r = await API.limpiar();
       toast(r && r.ok ? `${ico('delete_sweep')} ${r.data.eliminados} alerta(s) eliminadas del servidor` : detalle(r));
@@ -693,16 +773,8 @@
     }
   });
 
-  // ---------- Reacción a incidentes en tiempo real ----------
-  // Locales (misma máquina / simulador) por el bus; los del servidor llegan por sondeo cada 5 s.
-  Realtime.suscribir((ev) => {
-    Reports.aplicarAlMotor();
-    if (ev.action === 'add' && ev.incidente) {
-      const canal = icoCanal(ev.incidente.canal) + ({ whatsapp: ' WhatsApp', telegram: ' Telegram' }[ev.incidente.canal] || ' Web');
-      toastIncidente(ev.incidente, canal);
-    }
-    pintarTodo();
-  });
+  // ---------- Tiempo real ----------
+  // Todo sale del servidor: alertas nuevas, votos y estrellas llegan por sondeo cada 5 s.
   abrirMapa();
   aplicarRuta();
   pintarTodo();

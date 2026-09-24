@@ -171,7 +171,8 @@ def test_telegram_webhook(client):
                                           "chat": {"id": 42}, "text": "hola"}}
     r = client.post("/webhooks/telegram", json=update)
     assert r.status_code == 200
-    assert r.json()["respuesta"]["texto"].startswith("¡Hola Ana!")
+    assert r.json()["method"] == "sendMessage" and r.json()["chat_id"] == 42
+    assert r.json()["text"].startswith("¡Hola Ana!")
     assert client.post("/webhooks/telegram", json={"update_id": 2}).json() == {"ok": True}
 
 

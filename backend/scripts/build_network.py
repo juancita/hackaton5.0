@@ -24,6 +24,7 @@ Ojo: la capa Zonal/consulta_paraderos_zonales trae nombres y coordenadas cruzado
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -32,6 +33,8 @@ import urllib.request
 from pathlib import Path
 
 ARCGIS = "https://gis.transmilenio.gov.co/arcgis/rest/services"
+# OSRM sobre OpenStreetMap (servidor público de FOSSGIS): pega los trazados a las calles.
+OSRM = {"carro": "https://routing.openstreetmap.de/routed-car", "pie": "https://routing.openstreetmap.de/routed-foot"}
 BBOX_CB = "-74.215,4.47,-74.105,4.605"  # lngMin,latMin,lngMax,latMax (Ciudad Bolívar + borde)
 BACKEND = Path(__file__).resolve().parents[1]
 NETWORK_JSON = BACKEND / "data" / "network.json"
@@ -42,10 +45,12 @@ FUENTE_CABLE = "ArcGIS TransMilenio · BRT/ConsultaEstacionesCable"
 FUENTE_TRONCAL = "ArcGIS TransMilenio · Troncal/consulta_estaciones_troncales"
 FUENTE_OSM = "OpenStreetMap (Nominatim) / IDECA"
 FUENTE_COMUNIDAD = "Conocimiento comunitario (por validar con reporte ciudadano)"
+FUENTE_CALLES = "trazado por las calles: OSRM / OpenStreetMap"
 
 VEL_SITP_KMH = 14      # bus zonal en ladera, con paradas
 VEL_ALIM_KMH = 16      # alimentador
 VEL_PIE_M_MIN = 60     # a pie, con pendiente
+VEL_INFORMAL_KMH = {"jeep": 14, "colectivo": 15, "veredal": 20}  # ladera y destapado, con paradas a pedido
 TARIFA = 2950          # tarifa usada en todo el prototipo
 
 MODOS = {
@@ -97,6 +102,19 @@ LUGARES = [
          ancla=("fijo", 4.57926, -74.15794), direccion="Av. Villavicencio - Av. Jorge Gaitán Cortés", fuente=FUENTE_OSM),
     dict(id="plaza", nombre="Plaza de mercado Los Luceros", tipo="comercio", zona="alta",
          ancla=("fijo", 4.54934, -74.13966), direccion="CL 69B Sur, La Alameda (Lucero)", fuente=FUENTE_OSM),
+    # Barrios altos y veredas que viven del transporte informal (centro del barrio en OpenStreetMap/Nominatim)
+    dict(id="bellaflor", nombre="Bella Flor", tipo="barrio", zona="alta", ancla=("fijo", 4.54437, -74.16162),
+         fuente=FUENTE_OSM),
+    dict(id="caracoli", nombre="Caracolí", tipo="barrio", zona="alta", ancla=("fijo", 4.57307, -74.17121),
+         fuente=FUENTE_OSM),
+    dict(id="santodomingo", nombre="Santo Domingo", tipo="barrio", zona="alta", ancla=("fijo", 4.57951, -74.17842),
+         fuente=FUENTE_OSM),
+    dict(id="tesoro", nombre="El Tesoro (Arabia)", tipo="barrio", zona="alta", ancla=("fijo", 4.53898, -74.14628),
+         fuente=FUENTE_OSM),
+    dict(id="quibaalta", nombre="Quiba Alta (rural)", tipo="vereda", zona="rural", ancla=("fijo", 4.51446, -74.16445),
+         fuente=FUENTE_OSM),
+    dict(id="mochueloalto", nombre="Mochuelo Alto (rural)", tipo="vereda", zona="rural",
+         ancla=("fijo", 4.48836, -74.14834), direccion="Vía Mochuelo - Pasquilla", fuente=FUENTE_OSM),
 ]
 
 # --- Tramos formales derivados del orden oficial de paradas -------------------
@@ -156,6 +174,15 @@ INFORMAL = [
     dict(de="mochuelo", a="quiba", modo="veredal", min=25, cop=2500, freqMin=60, ruta="Veredal Quiba"),
     dict(de="mochuelo", a="pasquilla", modo="veredal", min=35, cop=2500, freqMin=90, ruta="Veredal Pasquilla"),
     dict(de="manitas", a="quiba", modo="jeep", min=15, cop=3500, freqMin=60, ruta="Jeep Quiba"),
+    # Barrios altos y veredas sin SITP: el tiempo sale del recorrido real por las calles (min=None)
+    dict(de="mirador", a="bellaflor", modo="jeep", min=None, cop=2000, freqMin=15, ruta="Jeep Bella Flor"),
+    dict(de="quiba", a="quibaalta", modo="jeep", min=None, cop=3000, freqMin=60, ruta="Jeep Quiba Alta"),
+    dict(de="candelaria", a="caracoli", modo="colectivo", min=None, cop=2000, freqMin=15, ruta="Colectivo Caracolí"),
+    dict(de="perdomo", a="santodomingo", modo="colectivo", min=None, cop=2000, freqMin=15,
+         ruta="Colectivo Santo Domingo"),
+    dict(de="plaza", a="tesoro", modo="colectivo", min=None, cop=2000, freqMin=15, ruta="Colectivo El Tesoro"),
+    dict(de="tunal", a="lucero", modo="colectivo", min=None, cop=2000, freqMin=10, ruta="Colectivo Tunal - Lucero"),
+    dict(de="mochuelo", a="mochueloalto", modo="veredal", min=None, cop=2500, freqMin=45, ruta="Veredal Mochuelo Alto"),
 ]
 # Cámaras de fotodetección: referencia visual sobre avenidas reales (sin dataset oficial abierto).
 CAMARAS = [
@@ -182,6 +209,9 @@ ALIAS = {
     "tecnologica": "udtecno", "sede tecnologica": "udtecno",
     "plaza": "plaza", "mercado": "plaza", "los luceros": "plaza",
     "manitas": "manitas", "juan pablo": "juanpablo", "juan pablo ii": "juanpablo",
+    "bella flor": "bellaflor", "caracoli": "caracoli", "santo domingo": "santodomingo",
+    "el tesoro": "tesoro", "tesoro": "tesoro", "arabia": "tesoro", "tesorito": "tesoro",
+    "quiba alta": "quibaalta", "mochuelo alto": "mochueloalto",
 }
 
 # --- Utilidades ----------------------------------------------------------------
@@ -230,6 +260,88 @@ def consultar(servicio: str, cache: Path | None, **params) -> list[dict]:
         cache.mkdir(parents=True, exist_ok=True)
         (cache / nombre).write_text(json.dumps(filas, ensure_ascii=False), encoding="utf-8")
     return filas
+
+
+def simplificar(puntos: list[list[float]], tol_m: float = 6) -> list[list[float]]:
+    """Douglas-Peucker en metros: menos vértices, misma forma (data.js viaja al celular)."""
+    if len(puntos) < 3:
+        return puntos
+    la0 = math.radians(puntos[0][0])
+    xy = [(p[1] * 111320 * math.cos(la0), p[0] * 110540) for p in puntos]
+
+    def dist(p, a, b):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        if dx == dy == 0:
+            return math.hypot(p[0] - a[0], p[1] - a[1])
+        t = max(0, min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)))
+        return math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)
+
+    guardar = [False] * len(puntos)
+    guardar[0] = guardar[-1] = True
+    pila = [(0, len(puntos) - 1)]
+    while pila:
+        i, j = pila.pop()
+        k, dmax = i, 0.0
+        for m in range(i + 1, j):
+            d = dist(xy[m], xy[i], xy[j])
+            if d > dmax:
+                k, dmax = m, d
+        if dmax > tol_m:
+            guardar[k] = True
+            pila += [(i, k), (k, j)]
+    return [p for p, g in zip(puntos, guardar) if g]
+
+
+def largo(geom) -> float:
+    return sum(hav(a, b) for a, b in zip(geom, geom[1:]))
+
+
+def osrm(puntos: list[list[float]], perfil: str, cache: Path | None) -> list[list[float]] | None:
+    """Ruta por las calles que pasa por `puntos` ([lat, lng]); None si OSRM no responde."""
+    coords = ";".join(f"{lng:.5f},{lat:.5f}" for lat, lng in puntos)
+    url = f"{OSRM[perfil]}/route/v1/driving/{coords}?overview=full&geometries=geojson"
+    nombre = f"osrm_{perfil}_{hashlib.sha1(coords.encode()).hexdigest()[:16]}.json"
+    archivo = cache / nombre if cache else None
+    if archivo and archivo.exists():
+        d = json.loads(archivo.read_text(encoding="utf-8"))
+    else:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "MueveteCB-hackaton/1.0"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                d = json.load(r)
+        except Exception as e:  # sin red: se queda el trazado por paradas
+            print(f"  OSRM no respondió ({e}); se deja el trazado por paradas")
+            return None
+        if archivo:
+            archivo.parent.mkdir(parents=True, exist_ok=True)
+            archivo.write_text(json.dumps(d), encoding="utf-8")
+    if d.get("code") != "Ok":
+        return None
+    return [[round(y, 5), round(x, 5)] for x, y in d["routes"][0]["geometry"]["coordinates"]]
+
+
+def por_calles(t: dict, pos: dict, cache: Path | None) -> None:
+    """Reemplaza la geom del tramo por su recorrido real por las calles (el cable va por el aire: no se toca).
+
+    Pasa por las paradas oficiales (máx. 25). Si al forzar las paradas OSRM da vueltas raras
+    (p. ej. retornos en avenidas de doble calzada), usa solo los extremos.
+    """
+    if t["modo"] == "cable":
+        return
+    base = t.get("geom") or [list(pos[t["de"]]), list(pos[t["a"]])]
+    if len(base) > 25:
+        paso = (len(base) - 1) / 24
+        base = [base[round(i * paso)] for i in range(25)]
+    perfil = "pie" if t["modo"] == "caminando" else "carro"
+    candidatos = [g for g in (osrm(base, perfil, cache),
+                              osrm([base[0], base[-1]], perfil, cache) if len(base) > 2 else None) if g]
+    if not candidatos:
+        return
+    g = candidatos[0]
+    if len(candidatos) > 1 and largo(g) > 1.4 * largo(candidatos[1]):
+        g = candidatos[1]
+    t["geom"] = simplificar(g)
+    t["fuente"] = f"{t['fuente']}; {FUENTE_CALLES}"
 
 
 def en_bbox() -> dict:
@@ -322,6 +434,13 @@ def construir(cache: Path | None) -> dict:
                            ruta="a pie", fuente=f"Distancia real {m:.0f} m"))
     tramos += [dict(t, fuente=FUENTE_COMUNIDAD) for t in INFORMAL]
 
+    osrm_cache = cache / "osrm" if cache else None
+    for t in tramos:
+        por_calles(t, pos, osrm_cache)
+        if t["min"] is None:  # informal nuevo: tiempo por la distancia real recorrida
+            metros = largo(t.get("geom") or [pos[t["de"]], pos[t["a"]]]) * (1 if t.get("geom") else 1.3)
+            t["min"] = max(3, round(metros / 1000 / VEL_INFORMAL_KMH[t["modo"]] * 60))
+
     ids = set(pos)
     for t in tramos:
         assert t["de"] in ids and t["a"] in ids, t
@@ -373,7 +492,8 @@ def escribir_data_js(red: dict, destino: Path) -> None:
  *  - Conocimiento comunitario para lo informal (se valida con reporte ciudadano).
  *
  * lat/lng reales. x,y: lienzo esquemático 0..100 para el mapa OFFLINE.
- * geom: trazado [lat, lng] por las paradas reales de la ruta.
+ * geom: trazado [lat, lng] por las calles (OSRM/OpenStreetMap), pasando por las paradas
+ *       reales de la ruta. El cable va por el aire: usa su trazado oficial.
  */
 
 const MODOS = {{

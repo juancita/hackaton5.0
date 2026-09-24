@@ -12,7 +12,9 @@ class PlanTripUseCase:
         self._routing = routing
         self._reports = reports
 
-    def ejecutar(self, origen_id: str, destino_id: str, prioridad: Prioridad | None = None) -> TripPlan:
+    def ejecutar(
+        self, origen_id: str, destino_id: str, prioridad: Prioridad | None = None, modos: list[str] | None = None
+    ) -> TripPlan:
         origen_id, destino_id = origen_id.strip().lower(), destino_id.strip().lower()
         origen, destino = self._net.lugar(origen_id), self._net.lugar(destino_id)
         if not origen:
@@ -23,9 +25,15 @@ class PlanTripUseCase:
             raise InvalidInput("El origen y el destino son el mismo lugar")
         if prioridad is not None and prioridad not in PRIORIDADES:
             raise InvalidInput(f"Prioridad inválida: {prioridad}")
+        if modos is not None:
+            desconocidos = [m for m in modos if m not in self._net.modos]
+            if desconocidos:
+                raise InvalidInput(f"Medio de transporte desconocido: {', '.join(desconocidos)}")
 
         pen = self._reports.penalizaciones()
-        opciones = self._routing.opciones(origen_id, destino_id, pen, preferida=prioridad)
+        opciones = self._routing.opciones(
+            origen_id, destino_id, pen, preferida=prioridad, modos=None if modos is None else frozenset(modos)
+        )
         recomendada = next((i for i, o in enumerate(opciones) if o.prioridad == (prioridad or "rapido")), 0)
 
         # Incidentes que tocan alguno de los tramos usados por las opciones

@@ -89,3 +89,42 @@ def test_network_incluye_camaras(client):
     data = client.get("/network").json()
     assert len(data["camaras"]) == 4
     assert {"modos", "paraderos", "tramos"} <= data.keys()
+
+
+def test_filtro_de_modos(container):
+    """Si la persona no quiere el cable, la ruta sale sin cable (caminar siempre se permite)."""
+    con_cable = container.routing.mejor_ruta("tunal", "juanpablo")
+    assert [t.modo for t in con_cable.tramos] == ["cable"]
+    solo_bus = container.routing.mejor_ruta("tunal", "juanpablo", modos=frozenset({"sitp", "alimentador"}))
+    assert solo_bus and {t.modo for t in solo_bus.tramos} <= {"sitp", "alimentador", "caminando"}
+
+
+def test_opciones_incluyen_alternativa_sin_el_medio_principal(container):
+    ops = container.routing.opciones("tunal", "juanpablo")
+    sin_cable = next(o for o in ops if o.etiqueta == "Sin TransMiCable")
+    assert "cable" not in {t.modo for t in sin_cable.tramos}
+
+
+def test_endpoint_routes_con_modos(client):
+    r = client.post("/routes", json={"origen_id": "tunal", "destino_id": "juanpablo", "modos": ["sitp", "alimentador"]})
+    assert r.status_code == 200
+    for op in r.json()["opciones"]:
+        assert {t["modo"] for t in op["tramos"]} <= {"sitp", "alimentador", "caminando"}
+    assert client.post("/routes", json={"origen_id": "tunal", "destino_id": "juanpablo", "modos": ["ovni"]}).status_code == 422
+
+
+@pytest.mark.parametrize("destino,ruta", [
+    ("bellaflor", "Jeep Bella Flor"), ("caracoli", "Colectivo Caracolí"), ("santodomingo", "Colectivo Santo Domingo"),
+    ("tesoro", "Colectivo El Tesoro"), ("quibaalta", "Jeep Quiba Alta"), ("mochueloalto", "Veredal Mochuelo Alto"),
+])
+def test_barrios_altos_y_veredas_llegan_en_informal(container, destino, ruta):
+    r = container.routing.mejor_ruta("tunal", destino)
+    assert r and ruta in [t.ruta for t in r.tramos]
+
+
+def test_opcion_con_transporte_informal(container):
+    """Si ninguna opción usa informal, igual aparece una alternativa con jeep/colectivo/veredal."""
+    ops = container.routing.opciones("tunal", "paraiso")
+    assert any(o.usaInformal for o in ops)
+    con = [o for o in ops if o.etiqueta == "Con transporte informal"]
+    assert all(o.usaInformal for o in con)

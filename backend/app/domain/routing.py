@@ -14,6 +14,7 @@ ETIQUETAS: dict[Prioridad, str] = {
 }
 
 Penalties = dict[str, Penalty]
+Modos = frozenset[str] | None  # medios permitidos; None = todos. Caminar siempre se permite.
 
 
 def clave_tramo(de: str, a: str, modo: str) -> str:
@@ -36,9 +37,11 @@ class RoutingService:
     def __init__(self, network: Network):
         self._net = network
 
-    def _grafo(self, pen: Penalties) -> dict[str, list[_Arista]]:
+    def _grafo(self, pen: Penalties, modos: Modos = None) -> dict[str, list[_Arista]]:
         adj: dict[str, list[_Arista]] = {p.id: [] for p in self._net.paraderos}
         for t in self._net.tramos:
+            if modos is not None and t.modo != "caminando" and t.modo not in modos:
+                continue  # medio que la persona no quiere usar
             p = pen.get(clave_tramo(t.de, t.a, t.modo)) or pen.get(clave_tramo(t.a, t.de, t.modo))
             if p and p.bloqueado:
                 continue  # tramo caído por reporte ciudadano
@@ -49,21 +52,26 @@ class RoutingService:
             adj[t.a].append(replace(base, de=t.a, a=t.de))
         return adj
 
-    @staticmethod
-    def _costo(ar: _Arista, prioridad: Prioridad) -> float:
+    def _costo(self, ar: _Arista, prioridad: Prioridad, informal: bool = False) -> float:
         tiempo = ar.min + ar.espera
         if prioridad == "barato":
-            return ar.cop + tiempo * 5
-        if prioridad == "transbordos":
-            return tiempo + 100
-        return tiempo
+            c = ar.cop + tiempo * 5
+        elif prioridad == "transbordos":
+            c = tiempo + 100
+        else:
+            c = tiempo
+        # Para la opción "Con transporte informal": el informal pesa la mitad y así entra a la ruta
+        if informal and not self._net.modos[ar.modo].formal:
+            c /= 2
+        return c
 
     def mejor_ruta(
-        self, origen: str, destino: str, prioridad: Prioridad = "rapido", pen: Penalties | None = None
+        self, origen: str, destino: str, prioridad: Prioridad = "rapido", pen: Penalties | None = None,
+        modos: Modos = None, informal: bool = False,
     ) -> RouteOption | None:
         if origen == destino:
             return None
-        adj = self._grafo(pen or {})
+        adj = self._grafo(pen or {}, modos)
         dist = {pid: float("inf") for pid in adj}
         prev: dict[str, _Arista] = {}
         dist[origen] = 0
@@ -77,7 +85,7 @@ class RoutingService:
             if d > dist[u]:
                 continue
             for ar in adj[u]:
-                nd = d + self._costo(ar, prioridad)
+                nd = d + self._costo(ar, prioridad, informal)
                 if nd < dist[ar.a]:
                     dist[ar.a] = nd
                     prev[ar.a] = ar
@@ -121,17 +129,21 @@ class RoutingService:
         )
 
     def opciones(
-        self, origen: str, destino: str, pen: Penalties | None = None, preferida: Prioridad | None = None
+        self, origen: str, destino: str, pen: Penalties | None = None, preferida: Prioridad | None = None,
+        modos: Modos = None,
     ) -> list[RouteOption]:
         """Rápida, económica y con menos transbordos, sin repetir la misma secuencia de rutas.
 
         Si dos prioridades dan la misma ruta, se queda con la etiqueta de `preferida`
-        (la que pidió el usuario); el orden de salida no cambia.
+        (la que pidió el usuario); el orden de salida no cambia. Después agrega, por cada
+        medio que usa la primera opción, la mejor ruta "Sin <medio>" para poder escoger otra,
+        y una "Con transporte informal" si ninguna lo usa.
+        `modos` limita los medios permitidos (caminar siempre vale).
         """
         vistos: set[str] = set()
         elegidas: dict[str, RouteOption] = {}
         for prio in sorted(ETIQUETAS, key=lambda p: p != preferida):
-            r = self.mejor_ruta(origen, destino, prio, pen)
+            r = self.mejor_ruta(origen, destino, prio, pen, modos)
             if not r:
                 continue
             firma = ">".join(t.ruta for t in r.tramos)
@@ -139,4 +151,26 @@ class RoutingService:
                 continue
             vistos.add(firma)
             elegidas[prio] = r.model_copy(update={"etiqueta": ETIQUETAS[prio], "prioridad": prio})
-        return [elegidas[p] for p in ETIQUETAS if p in elegidas]
+        res = [elegidas[p] for p in ETIQUETAS if p in elegidas]
+        if not res:
+            return res
+
+        prio = preferida or "rapido"
+        todos = frozenset(self._net.modos) if modos is None else modos
+        usados = dict.fromkeys(t.modo for t in res[0].tramos if t.modo != "caminando")
+        for modo in usados:
+            r = self.mejor_ruta(origen, destino, prio, pen, todos - {modo})
+            if not r:
+                continue
+            firma = ">".join(t.ruta for t in r.tramos)
+            if firma in vistos:
+                continue
+            vistos.add(firma)
+            res.append(r.model_copy(update={"etiqueta": f"Sin {self._net.modos[modo].nombre}", "prioridad": prio}))
+
+        # Que el transporte informal (jeeps, colectivos, veredales) también salga como alternativa
+        if not any(o.usaInformal for o in res):
+            r = self.mejor_ruta(origen, destino, prio, pen, modos, informal=True)
+            if r and r.usaInformal and ">".join(t.ruta for t in r.tramos) not in vistos:
+                res.append(r.model_copy(update={"etiqueta": "Con transporte informal", "prioridad": prio}))
+        return res

@@ -56,11 +56,13 @@ class RouteRequest(BaseModel):
     origen_id: str = Field(min_length=1)
     destino_id: str = Field(min_length=1)
     prioridad: Prioridad | None = None
+    # Medios permitidos (claves de /network modos). Vacío/None = todos; caminar siempre vale.
+    modos: list[str] | None = None
 
 
 @router.post("/routes", response_model=TripPlan, tags=["rutas"])
 def routes(body: RouteRequest, c: Container = Depends(get_container)) -> TripPlan:
-    return c.trip.ejecutar(body.origen_id, body.destino_id, body.prioridad)
+    return c.trip.ejecutar(body.origen_id, body.destino_id, body.prioridad, body.modos or None)
 
 
 # --- Reportes ------------------------------------------------------------------

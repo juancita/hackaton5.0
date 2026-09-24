@@ -96,9 +96,9 @@ const AI = (() => {
     // ¿Es un reporte ciudadano?
     const rep = detectarReporte(t);
     if (rep) {
-      Reports.reportar({ tipo: rep.tipo, deId: rep.tramo.de, aId: rep.tramo.a, modo: rep.tramo.modo, nota: texto, canal, autor });
+      // Los reportes solo se guardan en el servidor: sin conexión no hay dónde registrarlo
       const tt = Reports.TIPOS[rep.tipo];
-      return { tipo: 'reporte', texto: `¡Gracias! ${tt.icono} Registré *${tt.label}* en ${Engine.nodoPorId[rep.tramo.de].nombre} → ${Engine.nodoPorId[rep.tramo.a].nombre}. Ya avisé a los demás usuarios y recalculé las rutas. 🙌` };
+      return { tipo: 'texto', texto: `Entendí que reportas *${tt.label}*, pero ahora no hay conexión con el servidor y no puedo guardarlo 😕. Inténtalo en un momento o usa la pestaña Reportar.` };
     }
 
     if (intent.origen && intent.destino) {

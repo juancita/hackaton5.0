@@ -1,11 +1,9 @@
 /*
  * reports.js — Reporte ciudadano en tiempo real (tipo Waze)
  * ===========================================================================
- * Un reporte se convierte en un INCIDENTE geolocalizado que:
- *   1) se propaga a todos vía Realtime (mapa vivo + notificaciones), y
- *   2) PENALIZA o BLOQUEA tramos del grafo → el motor recalcula rutas.
- *
- * El mismo modelo sirve para reportes de WhatsApp, Telegram y web.
+ * Catálogo de tipos de novedad y cálculo del tramo más cercano a una ubicación.
+ * Crear, listar y calificar reportes lo hace SIEMPRE el backend (FastAPI + Postgres,
+ * ver api.js): de ahí salen el feed, el mapa y las penalizaciones de las rutas.
  */
 
 const Reports = (() => {
@@ -19,42 +17,6 @@ const Reports = (() => {
   };
 
   function nodo(id) { return Engine.nodoPorId[id]; }
-
-  // Punto medio del tramo para ubicar el incidente en el mapa
-  function geoDeTramo(deId, aId) {
-    const a = nodo(deId), b = nodo(aId);
-    return { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
-  }
-
-  // Crea y publica un incidente a partir de un tramo (de un reporte o cámara)
-  // lat/lng: dónde está quien reporta (como Waze); si no llega, el punto medio del tramo.
-  function reportar({ tipo, deId, aId, modo, nota, canal, autor, lat, lng }) {
-    const t = TIPOS[tipo] || TIPOS.novedad;
-    const geo = lat != null && lng != null ? { lat, lng } : geoDeTramo(deId, aId);
-    return Realtime.publicar({
-      tipo, deId, aId, modo,
-      nota: nota || '',
-      canal: canal || 'web',       // 'whatsapp' | 'telegram' | 'web'
-      autor: autor || 'Ciudadano',
-      lat: geo.lat, lng: geo.lng,
-      vidaMin: t.vidaMin,
-      sev: t.sev,
-    });
-  }
-
-  // Traduce incidentes vigentes en penalizaciones para el motor de rutas
-  function aplicarAlMotor() {
-    const pen = {};
-    Realtime.vigentes().forEach((i) => {
-      const t = TIPOS[i.tipo]; if (!t) return;
-      pen[`${i.deId}|${i.aId}|${i.modo}`] = {
-        bloqueado: t.bloquea, factor: t.factor || 1,
-        motivo: `${t.icono} ${t.label}${i.nota ? ': ' + i.nota : ''}`,
-      };
-    });
-    Engine.setPenalizaciones(pen);
-    return pen;
-  }
 
   // Tramo más cercano a un punto y su distancia en metros (mismo cálculo que el backend)
   function tramoCercano(lat, lng) {
@@ -77,10 +39,7 @@ const Reports = (() => {
     return mejor;
   }
 
-  // Recalcula penalizaciones automáticamente ante cualquier cambio en tiempo real
-  Realtime.suscribir(() => aplicarAlMotor());
-
-  return { TIPOS, RADIO_M: 1500, reportar, aplicarAlMotor, geoDeTramo, tramoCercano };
+  return { TIPOS, RADIO_M: 1500, tramoCercano };
 })();
 
 window.Reports = Reports;

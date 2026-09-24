@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0..1,0&display=block" />
-  <link rel="stylesheet" href="css/styles.css?v=13" />
+  <link rel="stylesheet" href="css/styles.css?v=17" />
 </head>
 <body>
   <header class="topbar">
@@ -47,6 +47,13 @@
                 <option value="transbordos">Menos transbordos</option>
               </select>
             </label>
+            <fieldset id="medios" class="medios">
+              <legend>Quiero ir en <small>(marca uno o combínalos)</small></legend>
+              <label class="medio"><input type="checkbox" value="cable" checked /><span class="ms" aria-hidden="true">gondola_lift</span>TransMiCable</label>
+              <label class="medio"><input type="checkbox" value="troncal" checked /><span class="ms" aria-hidden="true">directions_bus</span>TransMilenio</label>
+              <label class="medio"><input type="checkbox" value="sitp,alimentador" checked /><span class="ms" aria-hidden="true">directions_bus</span>Bus SITP / alimentador</label>
+              <label class="medio"><input type="checkbox" value="jeep,colectivo,veredal" checked /><span class="ms" aria-hidden="true">airport_shuttle</span>Informal (jeep, colectivo)</label>
+            </fieldset>
             <button id="btnBuscar" class="primary">Buscar rutas</button>
           </div>
         </div>
@@ -80,36 +87,47 @@
     <!-- VISTA: REPORTES -->
     <section id="view-report" class="view">
       <div class="rep-panel">
-        <div class="card rep-form">
-          <div class="rep-top">
-            <h2>Reportar aquí</h2>
-            <button id="repGps" class="gps-pill" type="button" title="Reintentar ubicación"><span class="ms" aria-hidden="true">my_location</span>Ubicando…</button>
-          </div>
-          <p class="hint">Como en Waze: el reporte queda donde estás. Avisa a todos y recalcula las rutas al instante.</p>
-          <div class="rep-mapa-wrap">
-            <div id="repMapa" class="rep-mapa" role="img" aria-label="Mapa con tu ubicación para el reporte"></div>
-            <span class="rep-mapa-hint">El reporte queda en tu ubicación actual (GPS)</span>
-          </div>
-          <p id="repDonde" class="rep-donde" aria-live="polite">Buscando tu ubicación…</p>
-          <div class="campo">
-            <span class="campo-label" id="repTipoLabel">¿Qué está pasando?</span>
-            <div id="repTipos" class="tipo-grid" role="radiogroup" aria-labelledby="repTipoLabel"></div>
-            <select id="repTipo" hidden></select>
-          </div>
-          <label>Detalle (opcional) <input id="repNota" maxlength="280" placeholder="Ej: frente a la tienda, carril bajando…" /></label>
-          <button id="btnReportar" class="primary" disabled>Enviar reporte</button>
+        <!-- Arriba: tu usuario y tu puntuación, nada más -->
+        <div id="perfil" class="rep-user" aria-live="polite">
+          <span class="rep-user-ava"><span class="ms fill" aria-hidden="true">account_circle</span></span>
+          <strong>Tú</strong>
         </div>
-        <div id="perfil" class="card perfil" hidden></div>
-        <a class="linkbtn ghost sala-link" href="simulador.html"><span class="ms" aria-hidden="true">groups</span>Sala en vivo (multiusuario)</a>
+        <div class="rep-mapa-wrap">
+          <div id="repMapa" class="rep-mapa" role="img" aria-label="Mapa con tu ubicación actual"></div>
+          <button id="repGps" class="gps-pill" type="button" title="Reintentar ubicación"><span class="ms" aria-hidden="true">my_location</span>Ubicando…</button>
+          <button id="repCentrar" class="rep-centrar" type="button" aria-label="Centrar en mi ubicación"><span class="ms" aria-hidden="true">my_location</span></button>
+        </div>
+        <button id="btnAbrirReporte" class="primary rep-cta" type="button" aria-haspopup="dialog"><span class="ms fill" aria-hidden="true">campaign</span>Reportar incidente</button>
       </div>
       <div class="rep-feed">
         <div class="feed-head">
-          <h3><span class="live-dot" aria-hidden="true"></span>Alertas activas en tiempo real</h3>
+          <h3><span class="live-dot" aria-hidden="true"></span>Alertas en vivo</h3>
           <span id="repCount" class="pill">0</span>
         </div>
         <div id="listaReportes" class="reportes"></div>
+        <p id="feedMas" class="feed-mas" aria-live="polite" hidden></p>
+        <a class="linkbtn ghost sala-link" href="simulador.html"><span class="ms" aria-hidden="true">groups</span>Sala en vivo (multiusuario)</a>
       </div>
     </section>
+
+    <!-- Panel inferior: crear reporte -->
+    <dialog id="repSheet" class="sheet" aria-labelledby="repSheetTit">
+      <div class="sheet-in">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-head">
+          <h2 id="repSheetTit">Reportar incidente</h2>
+          <button id="repCerrar" class="icon-btn" type="button" aria-label="Cerrar"><span class="ms" aria-hidden="true">close</span></button>
+        </div>
+        <p id="repDondeSheet" class="rep-donde" aria-live="polite"></p>
+        <div class="campo">
+          <span class="campo-label" id="repTipoLabel">¿Qué está pasando?</span>
+          <div id="repTipos" class="tipo-grid" role="radiogroup" aria-labelledby="repTipoLabel"></div>
+          <select id="repTipo" hidden></select>
+        </div>
+        <label>Detalle (opcional) <input id="repNota" maxlength="280" placeholder="Ej: frente a la tienda, carril bajando…" /></label>
+        <button id="btnReportar" class="primary" disabled>Enviar reporte</button>
+      </div>
+    </dialog>
 
     <!-- VISTA: ADMIN -->
     <section id="view-admin" class="view">
@@ -154,7 +172,6 @@
   <script src="js/icons.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/datasources.js"></script>
-  <script src="js/realtime.js"></script>
   <script src="js/reports.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ai.js"></script>
