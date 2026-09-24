@@ -120,11 +120,17 @@ class RoutingService:
             alertas=[t.motivo for t in tramos if t.motivo],
         )
 
-    def opciones(self, origen: str, destino: str, pen: Penalties | None = None) -> list[RouteOption]:
-        """Rápida, económica y con menos transbordos, sin repetir la misma secuencia de rutas."""
+    def opciones(
+        self, origen: str, destino: str, pen: Penalties | None = None, preferida: Prioridad | None = None
+    ) -> list[RouteOption]:
+        """Rápida, económica y con menos transbordos, sin repetir la misma secuencia de rutas.
+
+        Si dos prioridades dan la misma ruta, se queda con la etiqueta de `preferida`
+        (la que pidió el usuario); el orden de salida no cambia.
+        """
         vistos: set[str] = set()
-        res: list[RouteOption] = []
-        for prio, etiqueta in ETIQUETAS.items():
+        elegidas: dict[str, RouteOption] = {}
+        for prio in sorted(ETIQUETAS, key=lambda p: p != preferida):
             r = self.mejor_ruta(origen, destino, prio, pen)
             if not r:
                 continue
@@ -132,5 +138,5 @@ class RoutingService:
             if firma in vistos:
                 continue
             vistos.add(firma)
-            res.append(r.model_copy(update={"etiqueta": etiqueta, "prioridad": prio}))
-        return res
+            elegidas[prio] = r.model_copy(update={"etiqueta": ETIQUETAS[prio], "prioridad": prio})
+        return [elegidas[p] for p in ETIQUETAS if p in elegidas]

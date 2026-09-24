@@ -25,7 +25,7 @@ class PlanTripUseCase:
             raise InvalidInput(f"Prioridad inválida: {prioridad}")
 
         pen = self._reports.penalizaciones()
-        opciones = self._routing.opciones(origen_id, destino_id, pen)
+        opciones = self._routing.opciones(origen_id, destino_id, pen, preferida=prioridad)
         recomendada = next((i for i, o in enumerate(opciones) if o.prioridad == (prioridad or "rapido")), 0)
 
         # Incidentes que tocan alguno de los tramos usados por las opciones

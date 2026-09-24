@@ -3,7 +3,7 @@
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.adapters.inbound.deps import get_actor, get_container, require_admin
 from app.container import Container
@@ -65,11 +65,20 @@ def routes(body: RouteRequest, c: Container = Depends(get_container)) -> TripPla
 # --- Reportes ------------------------------------------------------------------
 
 class IncidentRequest(BaseModel):
+    """Por ubicación (lat/lng, como Waze) o, para integraciones, por tramo explícito (de_id/a_id)."""
     tipo: str
-    de_id: str
-    a_id: str
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
+    de_id: str | None = None
+    a_id: str | None = None
     modo: str | None = None
     nota: str = Field(default="", max_length=280)
+
+    @model_validator(mode="after")
+    def _ubicacion_o_tramo(self) -> "IncidentRequest":
+        if (self.lat is None or self.lng is None) and not (self.de_id and self.a_id):
+            raise ValueError("Envía tu ubicación (lat, lng) o el tramo (de_id, a_id)")
+        return self
 
 
 class VoteRequest(BaseModel):
@@ -90,7 +99,11 @@ def incidents(c: Container = Depends(get_container)) -> list[IncidentView]:
 def create_incident(
     body: IncidentRequest, actor: Actor = Depends(get_actor), c: Container = Depends(get_container)
 ) -> IncidentView:
-    inc = c.reports.reportar(actor, body.tipo, body.de_id, body.a_id, body.modo, body.nota)
+    if body.de_id and body.a_id:
+        pos = (body.lat, body.lng) if body.lat is not None and body.lng is not None else None
+        inc = c.reports.reportar(actor, body.tipo, body.de_id, body.a_id, body.modo, body.nota, posicion=pos)
+    else:
+        inc = c.reports.reportar_aqui(actor, body.tipo, body.lat, body.lng, body.nota)
     return c.reports.vista(inc)
 
 

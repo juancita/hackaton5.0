@@ -7,12 +7,14 @@
   --card: #ffffff;
   --wa-bg: #e5ddd5;
   --wa-me: #dcf8c6;
+  --topbar-h: 64px;   /* app.js lo ajusta a la altura real */
+  --tabbar-h: 60px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: var(--bg); color: var(--oscuro);
-  padding-bottom: 68px; max-width: 520px; margin: 0 auto; min-height: 100vh;
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); min-height: 100vh;
 }
 
 /* Topbar */
@@ -151,3 +153,262 @@ button.primary:active { transform: scale(.98); }
 .chips:empty { display: none; }
 .chip { border: 1px solid #7B2FF7; color: #7B2FF7; background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer; }
 .chip:hover { background: #7B2FF7; color: #fff; }
+
+/* Servidor, rutas recomendadas y reportes con confianza */
+.pill.on { background: rgba(20,233,86,.35); }
+.ruta-card.recomendada { box-shadow: 0 0 0 2px #7B2FF7; }
+.ruta-badge.reco { background: #7B2FF7; color: #fff; }
+.hint.fuente { text-align: center; font-size: 12px; }
+.conf { height: 6px; background: #eee; border-radius: 4px; overflow: hidden; margin: 6px 0 4px; }
+.conf span { display: block; height: 100%; }
+.estado { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #fdebd0; color: #a04000; margin-left: 4px; }
+.estado.ok { background: #e8f8ee; color: #1e8449; }
+.estado.bajo { background: #eee; color: #666; }
+.rep-acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.rep-item .rep-acciones .voto { position: static; float: none; }
+.voto.admin { background: #222; color: #fff; }
+.perfil small { color: #666; }
+.admin summary { cursor: pointer; font-weight: 600; }
+.admin-form { display: flex; gap: 8px; align-items: center; }
+.admin-form input { margin: 0; }
+.inc-pin.tenue { opacity: .5; }
+.msg.escribiendo { opacity: .6; }
+
+/* Mapa vivo en el inicio + ruta elegida */
+#mapa.home-map, #mapaSvg.home-map { height: 45vh; min-height: 260px; margin-bottom: 8px; }
+.ruta-card { cursor: pointer; }
+.ruta-card.seleccionada { outline: 3px solid #14b8a6; outline-offset: 2px; }
+.ruta-pin { width: 26px; height: 26px; border-radius: 50%; color: #fff; font: 700 13px/26px sans-serif;
+  text-align: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+
+/* ==========================================================
+   Layout responsive — mobile first
+   ========================================================== */
+.view { max-width: 560px; margin: 0 auto; }
+.tabbar { padding-bottom: env(safe-area-inset-bottom); }
+.topbar { gap: 10px; }
+.brand { min-width: 0; }
+.topright .pill { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+.tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 340px) { .tag { display: none; } }
+
+/* Vista Rutas (móvil): formulario → mapa (queda fijo bajo la barra) → resultados */
+#view-plan.active { display: flex; flex-direction: column; }
+#view-plan .plan-panel { display: contents; }
+#view-plan .plan-form { order: 1; position: relative; z-index: 6; }
+#view-plan .plan-map {
+  order: 2; position: sticky; top: var(--topbar-h); z-index: 5;
+  background: var(--bg); margin: 0 -14px; padding: 8px 14px 4px;
+}
+#view-plan .resultados { order: 3; margin-top: 10px; }
+#view-plan #mapa.home-map, #view-plan #mapaSvg.home-map { height: 36vh; min-height: 200px; margin-bottom: 6px; }
+#view-plan .map-toolbar { margin-bottom: 6px; }
+#view-plan .map-legend { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 4px; }
+#view-plan .map-legend::-webkit-scrollbar { display: none; }
+#view-plan .leg { white-space: nowrap; flex: none; }
+.resultados .empty:only-child { padding: 12px; }
+
+/* Formulario compacto: origen/destino con botón para intercambiar */
+.plan-form h2 { margin-bottom: 10px; }
+.od { display: flex; align-items: center; gap: 8px; }
+.od-campos { flex: 1; min-width: 0; }
+.swap {
+  flex: none; width: 40px; height: 40px; margin-top: 8px; border-radius: 50%;
+  border: 1.5px solid #e5e0f0; background: #fff; color: var(--morado);
+  font-size: 20px; font-weight: 700; cursor: pointer;
+}
+.swap:hover { border-color: var(--morado); background: #f6f1ff; }
+.swap:active { transform: rotate(180deg); transition: transform .2s; }
+.plan-acciones label { margin-bottom: 12px; }
+input, select, button.primary { min-height: 46px; }
+
+/* Tablet / desktop: panel lateral con scroll propio + mapa a pantalla completa */
+@media (min-width: 860px) {
+  :root { --tabbar-h: 0px; }
+  body { padding-bottom: 88px; }
+  .topbar { padding: 12px 24px; }
+  .topright { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
+  .topright .pill { max-width: 300px; }
+
+  .tabbar {
+    bottom: 14px; left: 50%; right: auto; transform: translateX(-50%);
+    width: 360px; border: none; border-radius: 18px; overflow: hidden;
+    box-shadow: 0 8px 28px rgba(26,16,48,.18);
+  }
+  .tabbar button { flex-direction: row; justify-content: center; gap: 6px; padding: 12px 0; font-size: 18px; }
+  .tabbar button span { font-size: 13px; }
+  .tabbar button:hover { background: #f6f1ff; }
+  .tabbar button.active { background: #f0e8ff; }
+
+  #view-chat { height: calc(100vh - var(--topbar-h) - 88px); }
+  .toasts { left: auto; right: 16px; max-width: 380px; margin: 0; }
+
+  #view-plan.active {
+    display: grid; grid-template-columns: minmax(340px, 400px) 1fr; gap: 18px;
+    max-width: 1440px; padding: 18px 24px;
+    height: calc(100vh - var(--topbar-h) - 88px); min-height: 520px;
+  }
+  #view-plan .plan-panel {
+    display: block; overflow-y: auto; min-height: 0;
+    padding: 6px 8px 12px 6px; margin: -6px 0 0 -6px; scrollbar-width: thin;
+  }
+  #view-plan .plan-map {
+    position: relative; top: auto; margin: 0; padding: 0;
+    display: flex; flex-direction: column; min-height: 0; background: none;
+  }
+  #view-plan #mapa.home-map, #view-plan #mapaSvg.home-map { flex: 1; height: auto; min-height: 0; margin-bottom: 8px; }
+  #view-plan .map-legend { flex-wrap: wrap; overflow: visible; margin-bottom: 0; }
+  #view-plan .resultados { margin-top: 0; }
+  .ruta-card { transition: box-shadow .15s, transform .15s; }
+  .ruta-card:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(123,47,247,.14); }
+}
+@media (min-width: 1200px) {
+  #view-plan.active { grid-template-columns: 420px 1fr; }
+}
+.tambien { font-size: 12px; color: var(--gris); margin-top: 4px; }
+
+/* ==========================================================
+   Vista Reportar — mobile first
+   ========================================================== */
+.rep-form h2 { margin-bottom: 4px; }
+.rep-form .hint { margin: 0 0 12px; }
+.campo { margin-bottom: 12px; }
+.campo-label { display: block; font-size: 12px; color: var(--gris); font-weight: 600; margin-bottom: 6px; }
+
+/* Tipo de novedad: botones grandes de un toque */
+.tipo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tipo {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 74px; padding: 8px 4px; border-radius: 12px; cursor: pointer;
+  border: 1.5px solid #e5e0f0; background: #fafafe; color: var(--oscuro);
+  font-size: 11px; font-weight: 600; line-height: 1.2; text-align: center;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.tipo span { font-size: 22px; }
+.tipo:hover { border-color: var(--c); }
+.tipo[aria-checked="true"] {
+  border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, #fff);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 35%, transparent);
+}
+.tipo:focus-visible { outline: 2px solid var(--morado); outline-offset: 2px; }
+
+/* Feed de alertas */
+.feed-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 18px 0 10px; }
+.feed-head h3 { font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.feed-head .pill { background: #eee2ff; color: var(--morado); font-weight: 700; font-size: 11px; }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; background: #e74c3c; flex: none;
+  box-shadow: 0 0 0 0 rgba(231,76,60,.6); animation: latido 1.8s infinite; }
+@keyframes latido { 70% { box-shadow: 0 0 0 8px rgba(231,76,60,0); } 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); } }
+.reportes .empty { background: var(--card); border-radius: 16px; padding: 28px 16px; line-height: 1.6; }
+
+.rep-item {
+  background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+  border-left: 4px solid var(--c, #f39c12); box-shadow: 0 2px 10px rgba(26,16,48,.06);
+}
+.rep-head { display: flex; align-items: flex-start; gap: 10px; }
+.rep-ico { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 20px;
+  background: color-mix(in srgb, var(--c, #f39c12) 14%, #fff); }
+.rep-tit { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.rep-ruta { font-size: 12px; color: var(--gris); }
+.rep-head .estado { flex: none; margin: 0; white-space: nowrap; }
+.rep-nota { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: #f7f5fc; font-size: 13px; font-style: italic; }
+.rep-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.rep-pie .voto { float: none; }
+.rep-item .conf { margin-top: 10px; }
+.rep-item .rep-acciones { margin-top: 8px; }
+.rep-item .voto { padding: 6px 12px; }
+.rep-item .voto:hover { filter: brightness(.95); }
+
+#view-report .acciones { margin: 0 0 14px; }
+#view-report .admin-form input { min-height: 44px; }
+
+/* Desktop: panel de reporte fijo a la izquierda + feed en cuadrícula a la derecha */
+@media (min-width: 860px) {
+  #view-report.active {
+    display: grid; grid-template-columns: minmax(340px, 400px) 1fr; gap: 24px; align-items: start;
+    max-width: 1440px; padding: 18px 24px;
+  }
+  #view-report .rep-panel {
+    position: sticky; top: calc(var(--topbar-h) + 18px);
+    max-height: calc(100vh - var(--topbar-h) - 18px - 88px); overflow-y: auto;
+    padding: 6px; margin: -6px; scrollbar-width: thin;
+  }
+  #view-report .acciones { flex-direction: column; }
+  #view-report .feed-head { margin-top: 0; padding: 4px 2px; }
+  #view-report .feed-head h3 { font-size: 17px; }
+  .reportes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
+  .reportes .rep-item { margin: 0; transition: transform .15s, box-shadow .15s; }
+  .reportes .rep-item:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(123,47,247,.12); }
+  .reportes .empty { grid-column: 1 / -1; padding: 60px 16px; }
+}
+
+/* ==========================================================
+   Reportar por ubicación (pin tipo Waze) + vista Admin
+   ========================================================== */
+.rep-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.rep-top h2 { margin: 0; }
+.gps-pill {
+  flex: none; border: none; cursor: pointer; font-size: 11px; font-weight: 700;
+  padding: 5px 10px; border-radius: 999px; background: #e3f0fb; color: #1B75BB;
+}
+.gps-pill.off { background: #f3f0f8; color: var(--gris); }
+.gps-pill:hover { filter: brightness(.96); }
+.rep-mapa-wrap { position: relative; margin: 4px 0 8px; border-radius: 14px; overflow: hidden; box-shadow: inset 0 0 0 1px #e5e0f0; }
+.rep-mapa { height: 190px; background: linear-gradient(#f8f5ff, #efe9ff); cursor: crosshair; }
+.rep-mapa-hint {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 500; pointer-events: none;
+  font-size: 11px; font-weight: 600; white-space: nowrap; padding: 4px 10px; border-radius: 999px;
+  background: rgba(26,16,48,.72); color: #fff;
+}
+.rep-pin { background: none; border: none; }
+.rep-pin-in {
+  width: 40px; height: 40px; display: grid; place-items: center; font-size: 19px;
+  background: var(--morado); border: 3px solid #fff; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg);
+  box-shadow: 0 4px 10px rgba(26,16,48,.35);
+}
+.rep-pin-in span { transform: rotate(45deg); }
+.rep-donde {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+  padding: 10px 12px; border-radius: 12px; background: #f7f5fc; font-size: 13px; line-height: 1.35;
+}
+.rep-donde small { color: var(--gris); }
+.rep-donde.fuera { background: #fff4e5; color: #8a4b00; }
+.rep-donde-ico {
+  flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: 17px;
+  background: color-mix(in srgb, var(--c) 16%, #fff);
+}
+.rep-donde > span:not(.rep-donde-ico) { flex: 1; min-width: 0; }
+.rep-donde-aviso { flex-basis: 100%; color: #a04000 !important; font-weight: 600; }
+#btnReportar:disabled { background: #d9d2ea; color: #fff; cursor: not-allowed; transform: none; }
+.sala-link { display: block; margin-bottom: 14px; }
+
+/* Admin */
+#view-admin { max-width: 560px; }
+.admin-login { text-align: center; padding: 24px 18px; }
+.admin-escudo {
+  width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 20px; display: grid; place-items: center;
+  font-size: 32px; background: #f0e8ff;
+}
+.admin-login h2 { margin-bottom: 4px; }
+.admin-login .hint { margin-bottom: 16px; }
+#view-admin .admin-form { flex-direction: column; align-items: stretch; gap: 10px; }
+#view-admin .admin-form input { margin: 0; }
+.aviso { margin-top: 12px; font-size: 12px; padding: 10px 12px; border-radius: 10px; background: #f3f0f8; color: var(--gris); text-align: left; }
+.admin-sesion { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.admin-sesion small { color: var(--gris); }
+.admin-sesion .linkbtn { flex: none; padding: 10px 16px; }
+.admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+.stat { background: var(--card); border-radius: 14px; padding: 12px 8px; text-align: center; box-shadow: 0 2px 10px rgba(26,16,48,.06); }
+.stat b { display: block; font-size: 22px; color: var(--morado); }
+.stat span { font-size: 11px; color: var(--gris); font-weight: 600; }
+.voto.admin.peligro, .linkbtn.peligro { background: #fdecea; color: #c0392b; }
+#btnLimpiar { display: block; width: 100%; margin-top: 12px; }
+#btnLimpiar[hidden] { display: none; }
+#view-admin .reportes { display: block; }
+#view-admin .reportes .rep-item { margin-bottom: 10px; }
+
+@media (min-width: 860px) {
+  .tabbar { width: 460px; }
+  .rep-mapa { height: 220px; }
+  #view-admin.active { padding: 24px; }
+}

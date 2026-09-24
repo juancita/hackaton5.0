@@ -3,7 +3,16 @@
 from datetime import datetime
 from typing import Protocol
 
-from app.domain.models import Conversation, Incident, Network, RefineContext, Reporter, Role
+from app.domain.models import (
+    Conversation,
+    Incident,
+    InterpretContext,
+    Interpretation,
+    Network,
+    RefineContext,
+    Reporter,
+    Role,
+)
 
 
 class NetworkCatalog(Protocol):
@@ -39,3 +48,9 @@ class ResponseRefiner(Protocol):
     """Puerto universal de LLM: recibe el texto del dominio y devuelve una versión más natural."""
 
     async def refine(self, ctx: RefineContext) -> str: ...
+
+
+class MessageInterpreter(Protocol):
+    """Puerto de LLM para entender texto libre. `None` = no hay LLM o no entendió."""
+
+    async def interpret(self, ctx: InterpretContext) -> Interpretation | None: ...

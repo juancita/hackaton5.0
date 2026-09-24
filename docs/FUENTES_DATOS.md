@@ -74,6 +74,31 @@ Referencia de **interoperabilidad**: ambos consumen el **GTFS** oficial del SITP
 hoja de ruta es ingerir el GTFS (`nysb-4689`) para horarios exactos, manteniendo la capa
 informal encima.
 
+## Red semilla (fuente de verdad): `backend/scripts/build_network.py`
+La red que usan el motor de rutas, el backend y el mapa offline se **genera** desde las
+fuentes oficiales. No se edita a mano:
+```
+cd backend && python -m scripts.build_network   # escribe data/network.json y web/js/data.js
+```
+Cada paradero y tramo guarda su `fuente` (y los paraderos, una `direccion` de referencia):
+
+| Dato | Fuente | Capa / origen |
+|------|--------|---------------|
+| 4 estaciones TransMiCable + trazado | ArcGIS TransMilenio | `BRT/ConsultaEstacionesCable`, `BRT/consulta_trazados_cable` |
+| Portal Tunal, Estación Perdomo | ArcGIS TransMilenio | `Troncal/consulta_estaciones_troncales` |
+| Barrios (Perdomo, Meissen, Candelaria, Sierra Morena, Arborizadora, Jerusalén, Paraíso, Quiba) | ArcGIS TransMilenio | centro de sus paraderos SITP oficiales (`Zonal/consulta_paraderos_rutas`) |
+| Tramos SITP y alimentadores (H602, H622, T04, A618, 624, 796A, 6-18…) | ArcGIS TransMilenio | orden oficial de paradas de cada ruta → distancia, tiempo (14 km/h) y trazado |
+| Lucero Alto, Mochuelo Bajo, Pasquilla, Hospital Meissen, SENA, Plaza de mercado Los Luceros | OpenStreetMap / IDECA | sin paradero SITP propio o equipamiento puntual |
+| Jeeps, colectivos, veredales | Comunidad | no existen en ninguna fuente oficial |
+
+Hallazgos al cruzar las fuentes (útiles para el pitch):
+- **Pasquilla no tiene ningún paradero SITP**: solo se llega por ruta veredal/informal.
+- El SITP sí llega a **Vereda Quiba (ruta 624)** y a **Mochuelo (796A y alimentador 6-18)**.
+- La capa `Zonal/consulta_paraderos_zonales` tiene **nombres y coordenadas cruzados**
+  (p. ej. "Br. Juan Pablo II" aparece en el norte de Bogotá). Por eso se usa
+  `consulta_paraderos_rutas`, que además trae el orden de paradas por ruta.
+- Frecuencias y tarifas siguen siendo estimadas: el siguiente paso es el GTFS (`nysb-4689`).
+
 ## Cómo agregar/otra fuente
 1. Añade la entrada en `FUENTES` dentro de [`datasources.js`](../web/js/datasources.js).
 2. Si es ArcGIS FeatureServer → reutiliza `fetchArcgis` (ya filtra por bbox de CB).

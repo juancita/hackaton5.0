@@ -13,7 +13,7 @@ def test_sugiere_por_alias(container):
     res = container.places.suggest("mercado")
     plaza = next(s for s in res if s.id == "plaza")
     assert plaza.via == "nombre"  # "Plaza de mercado Perdomo" contiene una palabra que empieza por "mercado"
-    assert next(s for s in container.places.suggest("univer") if s.id == "sena").via == "alias"
+    assert next(s for s in container.places.suggest("univer") if s.id == "udtecno").via == "alias"
 
 
 def test_texto_corto_devuelve_populares(container):

@@ -37,6 +37,7 @@ UMBRAL_BLOQUEO = 0.7      # desde aquí un tipo que bloquea, bloquea
 FACTOR_BLOQUEO_PARCIAL = 2.5
 PESO_ADMIN = 1.0
 VENTANA_ANTISPAM = timedelta(minutes=10)
+RADIO_REPORTE_M = 1500    # un reporte por ubicación se asigna al tramo más cercano dentro de este radio
 
 
 def reporter_id_para(canal: str, id_externo: str, salt: str) -> str:
@@ -106,7 +107,18 @@ class ReportService:
 
     # --- Reportar y votar ----------------------------------------------------
 
-    def reportar(self, actor: Actor, tipo: str, de_id: str, a_id: str, modo: str | None = None, nota: str = "") -> Incident:
+    def reportar_aqui(self, actor: Actor, tipo: str, lat: float, lng: float, nota: str = "") -> Incident:
+        """Como Waze: el reporte se ubica donde está quien reporta y se asigna al tramo más cercano."""
+        cercano = self._net.tramo_cercano(lat, lng)
+        if not cercano or cercano[1] > RADIO_REPORTE_M:
+            raise InvalidInput("Estás lejos de las rutas de Ciudad Bolívar. Acércate a una vía o ajusta el pin en el mapa.")
+        tramo = cercano[0]
+        return self.reportar(actor, tipo, tramo.de, tramo.a, tramo.modo, nota, posicion=(lat, lng))
+
+    def reportar(
+        self, actor: Actor, tipo: str, de_id: str, a_id: str, modo: str | None = None, nota: str = "",
+        posicion: tuple[float, float] | None = None,
+    ) -> Incident:
         if tipo not in TIPOS:
             raise InvalidInput(f"Tipo de incidente desconocido: {tipo}")
         tramo = self._net.tramo_entre(de_id, a_id, modo)
@@ -122,9 +134,10 @@ class ReportService:
         inc = self._incidents.find_open(de_id, a_id, tipo, now)
         if inc is None:
             de, a = self._net.lugar(tramo.de), self._net.lugar(tramo.a)
+            lat, lng = posicion or ((de.lat + a.lat) / 2, (de.lng + a.lng) / 2)
             inc = Incident(
                 id=str(uuid.uuid4()), tipo=tipo, de_id=tramo.de, a_id=tramo.a, modo=tramo.modo,
-                lat=(de.lat + a.lat) / 2, lng=(de.lng + a.lng) / 2, nota=nota or "",
+                lat=lat, lng=lng, nota=nota or "",
                 creado_en=now, expira_en=now + timedelta(minutes=TIPOS[tipo].vidaMin),
             )
         if any(r.reporter_id == actor.reporter_id for r in inc.reports):

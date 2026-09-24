@@ -126,10 +126,35 @@ def test_api_admin_requiere_clave(client):
 
 def test_api_incidente_afecta_ruta(client):
     antes = client.post("/routes", json={"origen_id": "meissen", "destino_id": "paraiso"}).json()
-    client.post("/incidents", json={"tipo": "derrumbe", "de_id": "mirador", "a_id": "paraiso"},
+    client.post("/incidents", json={"tipo": "derrumbe", "de_id": "lucero", "a_id": "paraiso"},
                 headers={"X-Admin-Key": ADMIN_KEY})
     despues = client.post("/routes", json={"origen_id": "meissen", "destino_id": "paraiso"}).json()
     rutas = [t["ruta"] for o in despues["opciones"] for t in o["tramos"]]
-    assert "Jeep Paraíso" not in rutas
+    assert "Jeep Alto" not in rutas
     assert despues["opciones"][0]["totalMin"] > antes["opciones"][0]["totalMin"]
     assert len(despues["incidentes_aplicados"]) == 0  # el tramo bloqueado ya no está en ninguna opción
+
+
+# --- Reporte por ubicación (tipo Waze) ------------------------------------------
+
+def test_reporte_por_ubicacion_se_asigna_al_tramo_cercano(container):
+    net = container.network
+    t = net.tramos[0]
+    de, a = net.lugar(t.de), net.lugar(t.a)
+    punto = t.geom[len(t.geom) // 2] if t.geom else ((de.lat + a.lat) / 2, (de.lng + a.lng) / 2)
+    inc = container.reports.reportar_aqui(usuario(container, 1), "trancon", punto[0], punto[1])
+    cercano, dist = net.tramo_cercano(*punto)
+    assert dist < 1 and {inc.de_id, inc.a_id} == {cercano.de, cercano.a}
+    assert (inc.lat, inc.lng) == pytest.approx(punto)  # el pin queda donde se reportó
+
+
+def test_reporte_lejos_de_la_red_se_rechaza(container):
+    with pytest.raises(InvalidInput):
+        container.reports.reportar_aqui(usuario(container, 1), "trancon", 4.711, -74.0721)  # centro de Bogotá
+
+
+def test_api_reporte_por_ubicacion(client, container):
+    p = container.network.lugar("perdomo")
+    r = client.post("/incidents", json={"tipo": "trancon", "lat": p.lat, "lng": p.lng}, headers={"X-Client-Id": "abc"})
+    assert r.status_code == 201 and (r.json()["lat"], r.json()["lng"]) == pytest.approx((p.lat, p.lng))
+    assert client.post("/incidents", json={"tipo": "trancon"}, headers={"X-Client-Id": "abc"}).status_code == 422

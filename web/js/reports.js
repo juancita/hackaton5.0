@@ -27,9 +27,10 @@ const Reports = (() => {
   }
 
   // Crea y publica un incidente a partir de un tramo (de un reporte o cámara)
-  function reportar({ tipo, deId, aId, modo, nota, canal, autor }) {
+  // lat/lng: dónde está quien reporta (como Waze); si no llega, el punto medio del tramo.
+  function reportar({ tipo, deId, aId, modo, nota, canal, autor, lat, lng }) {
     const t = TIPOS[tipo] || TIPOS.novedad;
-    const geo = geoDeTramo(deId, aId);
+    const geo = lat != null && lng != null ? { lat, lng } : geoDeTramo(deId, aId);
     return Realtime.publicar({
       tipo, deId, aId, modo,
       nota: nota || '',
@@ -55,10 +56,31 @@ const Reports = (() => {
     return pen;
   }
 
+  // Tramo más cercano a un punto y su distancia en metros (mismo cálculo que el backend)
+  function tramoCercano(lat, lng) {
+    const k = 111320, kx = k * Math.cos(lat * Math.PI / 180);
+    const xy = ([la, ln]) => [(ln - lng) * kx, (la - lat) * k];
+    const distSeg = (p, q) => {
+      const [ax, ay] = xy(p), [bx, by] = xy(q), dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+      const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0;
+      return Math.hypot(ax + t * dx, ay + t * dy);
+    };
+    let mejor = null;
+    DB.TRAMOS.forEach((tr) => {
+      const a = nodo(tr.de), b = nodo(tr.a); if (!a || !b) return;
+      const pts = tr.geom || [[a.lat, a.lng], [b.lat, b.lng]];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const d = distSeg(pts[i], pts[i + 1]);
+        if (!mejor || d < mejor.dist) mejor = { tramo: tr, dist: d };
+      }
+    });
+    return mejor;
+  }
+
   // Recalcula penalizaciones automáticamente ante cualquier cambio en tiempo real
   Realtime.suscribir(() => aplicarAlMotor());
 
-  return { TIPOS, reportar, aplicarAlMotor, geoDeTramo };
+  return { TIPOS, RADIO_M: 1500, reportar, aplicarAlMotor, geoDeTramo, tramoCercano };
 })();
 
 window.Reports = Reports;

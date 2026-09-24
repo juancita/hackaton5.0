@@ -1,6 +1,6 @@
 /* Service Worker — funciona OFFLINE (clave en zonas altas sin señal) */
-const CACHE = 'muevecb-v3';
-const RUNTIME = 'muevecb-rt-v3';
+const CACHE = 'muevecb-v9';
+const RUNTIME = 'muevecb-rt-v9';
 const ASSETS = [
   './', './index.html', './simulador.html',
   './css/styles.css',
@@ -22,6 +22,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   const esExterno = url.origin !== self.location.origin;
+  // La API (otro puerto/host) nunca se cachea: alertas, votos y admin deben ir siempre a la red
+  const esEstatico = /(^|\.)(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|tile\.openstreetmap\.org|arcgis\.com|arcgisonline\.com|gis\.transmilenio\.gov\.co|datos\.gov\.co|ideca\.gov\.co)$/.test(url.hostname);
+  if (e.request.method !== 'GET' || (esExterno && !esEstatico)) return;
   if (esExterno) {
     // Librerías (cdnjs, jsdelivr), tiles de OSM, ArcGIS → cachear al vuelo
     e.respondWith(

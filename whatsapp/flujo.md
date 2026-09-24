@@ -26,10 +26,9 @@ Servicio Muévete CB (Node/Python)  ──► mismo engine.js + ai.js
 >
 > **Usuario:** de meissen a paraiso lo más barato
 > **Muévete CB:**
-> 🚀 La más económica: ~38 min · $4.450 · 2 transbordos
-> 1. 🚌 SITP (C15): Meissen → Portal Tunal · 10 min · $2.950
-> 2. 🚡 TransMiCable (Cable L1): Portal Tunal → Mirador · 14 min
-> 3. 🚙 Jeep Paraíso: Mirador → Paraíso Alto · 8 min · $1.500
+> 🚀 La más económica: ~35 min · $2.000 · 1 transbordo
+> 1. 🚶 A pie: Meissen → Lucero Alto · 8 min
+> 2. 🚙 Jeep Alto: Lucero Alto → Paraíso Alto · 27 min (con espera) · $2.000
 > 💡 Esta ruta usa transporte comunitario (jeep) que no aparece en las apps tradicionales.
 >
 > **Usuario:** reporto que el jeep de paraíso no está subiendo

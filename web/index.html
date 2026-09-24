@@ -19,6 +19,7 @@
       </div>
     </div>
     <div class="topright">
+      <span id="srvStatus" class="pill" title="Conexión con el servidor de Muévete CB">◍ servidor…</span>
       <span id="dataStatus" class="pill" title="Fuente de datos">◍ datos…</span>
       <span id="netStatus" class="pill net">● offline-ready</span>
     </div>
@@ -29,17 +30,42 @@
   <main>
     <!-- VISTA: PLANEADOR -->
     <section id="view-plan" class="view active">
-      <div class="card">
-        <h2>¿A dónde vas?</h2>
-        <label>Origen
-          <span class="ac"><input id="origen" placeholder="Ej: Meissen, Sierra Morena..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" /></span>
-        </label>
-        <label>Destino
-          <span class="ac"><input id="destino" placeholder="Ej: Paraíso, Quiba, Hospital..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" /></span>
-        </label>
-        <button id="btnBuscar" class="primary">Buscar rutas</button>
+      <div class="plan-panel">
+        <div class="card plan-form">
+          <h2>¿A dónde vas?</h2>
+          <div class="od">
+            <div class="od-campos">
+              <label>Origen
+                <span class="ac"><input id="origen" placeholder="Ej: Meissen, Sierra Morena..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" /></span>
+              </label>
+              <label>Destino
+                <span class="ac"><input id="destino" placeholder="Ej: Paraíso, Quiba, Hospital..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" /></span>
+              </label>
+            </div>
+            <button id="btnInvertir" class="swap" type="button" title="Intercambiar origen y destino" aria-label="Intercambiar origen y destino">⇅</button>
+          </div>
+          <div class="plan-acciones">
+            <label>Prefiero
+              <select id="prioridad">
+                <option value="rapido">⚡ La más rápida</option>
+                <option value="barato">💵 La más económica</option>
+                <option value="transbordos">🔁 Menos transbordos</option>
+              </select>
+            </label>
+            <button id="btnBuscar" class="primary">Buscar rutas</button>
+          </div>
+        </div>
+        <div id="resultados" class="resultados"></div>
       </div>
-      <div id="resultados" class="resultados"></div>
+      <div class="plan-map">
+        <div class="map-toolbar">
+          <span class="map-title">🗺️ Mapa vivo</span>
+          <span id="incCount" class="pill">0 alertas activas</span>
+        </div>
+        <div id="mapa" class="leaflet-map home-map"></div>
+        <svg id="mapaSvg" class="home-map" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style="display:none"></svg>
+        <div class="map-legend" id="mapLegend"></div>
+      </div>
     </section>
 
     <!-- VISTA: CHAT (modo WhatsApp) -->
@@ -56,33 +82,64 @@
       </div>
     </section>
 
-    <!-- VISTA: MAPA VIVO (tipo Waze) -->
-    <section id="view-map" class="view">
-      <div class="map-toolbar">
-        <span class="map-title">🗺️ Mapa vivo</span>
-        <span id="incCount" class="pill">0 alertas activas</span>
-      </div>
-      <div id="mapa" class="leaflet-map"></div>
-      <svg id="mapaSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style="display:none"></svg>
-      <div class="map-legend" id="mapLegend"></div>
-    </section>
-
     <!-- VISTA: REPORTES -->
     <section id="view-report" class="view">
-      <div class="card">
-        <h2>Reportar novedad 📣</h2>
-        <p class="hint">Como Waze, pero para Ciudad Bolívar. Tu reporte avisa a todos y recalcula las rutas al instante.</p>
-        <label>Tipo <select id="repTipo"></select></label>
-        <label>En la ruta / tramo <select id="repTramo"></select></label>
-        <label>Nota (opcional) <input id="repNota" placeholder="Ej: derrumbe a la altura de..." /></label>
-        <button id="btnReportar" class="primary">Enviar reporte</button>
+      <div class="rep-panel">
+        <div class="card rep-form">
+          <div class="rep-top">
+            <h2>Reportar aquí 📣</h2>
+            <button id="repGps" class="gps-pill" type="button" title="Volver a tomar mi ubicación">📍 Ubicando…</button>
+          </div>
+          <p class="hint">Como en Waze: el reporte queda donde estás. Avisa a todos y recalcula las rutas al instante.</p>
+          <div class="rep-mapa-wrap">
+            <div id="repMapa" class="rep-mapa" role="img" aria-label="Mapa con tu ubicación para el reporte"></div>
+            <span class="rep-mapa-hint">Toca el mapa o arrastra el pin para ajustarlo</span>
+          </div>
+          <p id="repDonde" class="rep-donde" aria-live="polite">Buscando la vía más cercana…</p>
+          <div class="campo">
+            <span class="campo-label" id="repTipoLabel">¿Qué está pasando?</span>
+            <div id="repTipos" class="tipo-grid" role="radiogroup" aria-labelledby="repTipoLabel"></div>
+            <select id="repTipo" hidden></select>
+          </div>
+          <label>Detalle (opcional) <input id="repNota" maxlength="280" placeholder="Ej: frente a la tienda, carril bajando…" /></label>
+          <button id="btnReportar" class="primary" disabled>Enviar reporte</button>
+        </div>
+        <div id="perfil" class="card perfil" hidden></div>
+        <a class="linkbtn ghost sala-link" href="simulador.html">👥 Sala en vivo (multiusuario)</a>
       </div>
-      <h3>Alertas activas en tiempo real</h3>
-      <div id="listaReportes" class="reportes"></div>
-      <div class="acciones">
-        <a class="linkbtn" href="simulador.html">👥 Abrir Sala en vivo (multiusuario)</a>
-        <button id="btnLimpiar" class="linkbtn ghost">🗑️ Limpiar alertas (demo)</button>
+      <div class="rep-feed">
+        <div class="feed-head">
+          <h3><span class="live-dot" aria-hidden="true"></span>Alertas activas en tiempo real</h3>
+          <span id="repCount" class="pill">0</span>
+        </div>
+        <div id="listaReportes" class="reportes"></div>
       </div>
+    </section>
+
+    <!-- VISTA: ADMIN -->
+    <section id="view-admin" class="view">
+      <div id="adminLogin" class="card admin-login">
+        <div class="admin-escudo" aria-hidden="true">🛡️</div>
+        <h2>Ingreso de administrador</h2>
+        <p class="hint">Verifica o rechaza alertas y limpia el mapa. Tus reportes pesan 100% y quedan verificados al instante.</p>
+        <form id="adminForm" class="admin-form">
+          <input id="adminKey" type="password" placeholder="Clave de administrador" autocomplete="current-password" required />
+          <button id="btnAdmin" class="primary" type="submit">Entrar</button>
+        </form>
+        <p id="adminOffline" class="aviso" hidden>⚪ Sin conexión con el servidor: el modo administrador no está disponible. Solo puedes limpiar las alertas de este dispositivo.</p>
+      </div>
+
+      <div id="adminPanel" hidden>
+        <div class="card admin-sesion">
+          <div><strong>🛡️ Sesión de administrador</strong><br><small>Activa solo en esta pestaña</small></div>
+          <button id="btnSalirAdmin" class="linkbtn ghost" type="button">Salir</button>
+        </div>
+        <div id="adminStats" class="admin-stats"></div>
+        <div class="feed-head"><h3>Moderar alertas</h3></div>
+        <div id="adminLista" class="reportes"></div>
+      </div>
+
+      <button id="btnLimpiar" class="linkbtn peligro" type="button">🗑️ Limpiar todas las alertas</button>
     </section>
 
   </main>
@@ -90,8 +147,8 @@
   <nav class="tabbar">
     <button data-view="plan" class="active">🔎<span>Rutas</span></button>
     <button data-view="chat">💬<span>Asistente</span></button>
-    <button data-view="map">🗺️<span>Mapa</span></button>
     <button data-view="report">📣<span>Reportar</span></button>
+    <button data-view="admin">🛡️<span>Admin</span></button>
   </nav>
 
   <!-- Librerías (CDN permitido). Se cachean por el service worker para offline. -->

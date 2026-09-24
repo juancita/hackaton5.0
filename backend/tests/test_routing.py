@@ -52,11 +52,20 @@ def test_tramo_bloqueado_se_excluye(container):
 
 
 def test_penalizacion_en_sentido_inverso(container):
-    base = container.routing.mejor_ruta("meissen", "hospital")
-    pen = {clave_tramo("hospital", "meissen", "sitp"): Penalty(factor=3, motivo="trancón")}
-    r = container.routing.mejor_ruta("meissen", "hospital", "rapido", pen)
+    base = container.routing.mejor_ruta("perdomo", "sierramorena")
+    pen = {clave_tramo("sierramorena", "perdomo", "sitp"): Penalty(factor=3, motivo="trancón")}
+    r = container.routing.mejor_ruta("perdomo", "sierramorena", "rapido", pen)
     assert r.totalMin > base.totalMin
     assert r.alertas == ["trancón"]
+
+
+def test_empate_de_prioridades_conserva_la_pedida(container):
+    """Si la más barata es la misma que la más rápida, el usuario que pidió 'barato' la ve así."""
+    rapida = container.routing.mejor_ruta("meissen", "paraiso", "rapido")
+    barata = container.routing.mejor_ruta("meissen", "paraiso", "barato")
+    assert [t.ruta for t in rapida.tramos] == [t.ruta for t in barata.tramos]
+    prios = [o.prioridad for o in container.routing.opciones("meissen", "paraiso", preferida="barato")]
+    assert "barato" in prios and "rapido" not in prios
 
 
 def test_endpoint_routes(client):
