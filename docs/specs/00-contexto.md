@@ -36,6 +36,9 @@ Problemas:
 - Cada canal traduce su payload a `InboundMessage` y muestra el `OutboundMessage` como pueda.
 - El puerto de dominio central es `PlanTripUseCase(origen, destino, prioridad) -> TripPlan`: se entra con un punto de entrada y un punto de salida, y se recibe toda la información.
 
+## Infraestructura
+Tres contenedores orquestados por `docker-compose.yml`: `web` (nginx: PWA + proxy de la API), `backend` (FastAPI, aplica migraciones al arrancar) y `db` (PostgreSQL 16 con volumen persistente). Guía en [../DESPLIEGUE.md](../DESPLIEGUE.md).
+
 ## Glosario
 - **Paradero / lugar:** un nodo del grafo, como un barrio, una estación o un punto de interés.
 - **Tramo:** una arista entre dos paraderos con un modo de transporte (formal o informal).

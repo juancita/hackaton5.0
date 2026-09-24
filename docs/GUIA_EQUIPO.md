@@ -13,6 +13,14 @@ No hay que instalar nada más. Todo es HTML/CSS/JS.
 - **App principal:** http://localhost:8000/index.html
 - **Sala en vivo (demo multiusuario):** http://localhost:8000/simulador.html
 
+**Con backend (reportes guardados, asistente con IA):** solo necesitas Docker.
+```bash
+cd hackaton5.0
+cp .env.example .env               # opcional
+docker compose up -d --build       # web http://localhost · API http://localhost:8080/docs
+```
+Detalle y problemas típicos (puerto ocupado, etc.) en [DESPLIEGUE.md](DESPLIEGUE.md).
+
 > Probar en el celular: corre el server en tu portátil y entra desde el celular a
 > `http://IP-DEL-PORTATIL:8000` (misma red wifi).
 
@@ -26,6 +34,7 @@ No hay que instalar nada más. Todo es HTML/CSS/JS.
 | `web/js/realtime.js` | Dev tiempo real | Bus de sincronización |
 | `web/js/reports.js` | Dev | Reportes/incidentes |
 | `backend/` | Dev backend | API FastAPI: rutas, asistente, reportes (ver `docs/specs/`) |
+| `docker-compose.yml`, `*/Dockerfile`, `db/` | Dev backend / infra | Contenedores de los 3 servicios (ver `docs/DESPLIEGUE.md`) |
 | `web/js/app.js` | Dev frontend | UI de la app |
 | `web/js/sim.js` + `simulador.html` | Dev frontend | Sala en vivo |
 | `web/css/styles.css` | Diseño | Estilos |
@@ -56,7 +65,7 @@ Ver [../CONTRIBUTING.md](../CONTRIBUTING.md) para el detalle. Resumen:
 - [ ] `main` corre sin errores en un portátil limpio.
 - [ ] Demo probado en **modo avión** (offline).
 - [ ] Sala en vivo probada con 3–6 "usuarios".
-- [ ] Backend + Postgres arriba (`docker compose up -d db`) y `GEMINI_API_KEY` probada.
+- [ ] `docker compose up -d --build` en un portátil limpio: los 3 servicios `healthy` y `GEMINI_API_KEY` probada.
 - [ ] Datos oficiales cargando (badge 🟢) al menos una vez para llenar caché.
 - [ ] Guion de 5 min cronometrado, todos hablan.
 - [ ] Respuestas a preguntas trampa repasadas ([PITCH.md](PITCH.md)).
