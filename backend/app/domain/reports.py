@@ -254,13 +254,13 @@ class ReportService:
         desde = self._now() - timedelta(hours=horas) if horas else None
         return self._incidents.list_recent(limite, since=desde, before=antes)
 
-    def vistas(self, incidentes: list[Incident]) -> list[IncidentView]:
+    def vistas(self, incidentes: list[Incident], viewer_id: str | None = None) -> list[IncidentView]:
         """Vistas con las estrellas de quien reportó, en una sola consulta."""
         autores = sorted({i.reports[0].reporter_id for i in incidentes if i.reports})
         cal = self._incidents.ratings([a for a in autores if not a.startswith("admin:")])
         out = []
         for inc in incidentes:
-            v = self.vista(inc)
+            v = self.vista(inc, viewer_id)
             autor = inc.reports[0].reporter_id if inc.reports else None
             v.estrellas_autor = None if not autor or autor.startswith("admin:") else estrellas(*cal.get(autor, (0, 0)))
             out.append(v)
@@ -298,8 +298,10 @@ class ReportService:
                 pen[key] = Penalty(bloqueado=bloqueado, factor=factor, motivo=motivo, incident_ids=[inc.id])
         return pen
 
-    def vista(self, inc: Incident) -> IncidentView:
+    def vista(self, inc: Incident, viewer_id: str | None = None) -> IncidentView:
+        """`viewer_id`: quien consulta, para marcar si el reporte es suyo y cuál fue su voto."""
         t = TIPOS[inc.tipo]
+        mi_voto = next((v.valor for v in inc.votes if viewer_id and v.reporter_id == viewer_id), None)
         return IncidentView(
             id=inc.id, tipo=inc.tipo, label=t.label, icono=t.icono, de_id=inc.de_id, a_id=inc.a_id,
             modo=inc.modo, lat=inc.lat, lng=inc.lng, nota=inc.nota, estado=inc.estado,
@@ -308,5 +310,7 @@ class ReportService:
             n_niega=sum(v.valor == "niega" for v in inc.votes),
             afecta_rutas=self.afecta_rutas(inc) and inc.expira_en > self._now(),
             vigente=inc.expira_en > self._now() and inc.estado != IncidentState.rechazado,
+            es_mio=bool(viewer_id) and any(r.reporter_id == viewer_id for r in inc.reports),
+            mi_voto=mi_voto,
             creado_en=inc.creado_en, expira_en=inc.expira_en,
         )

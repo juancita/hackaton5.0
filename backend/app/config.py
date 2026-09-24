@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     llm_timeout_s: float = 12.0
 
     conversation_ttl_min: int = 30
+    # URL pública del backend (para que Telegram/WhatsApp descarguen el mapa). Vacía = la del request.
+    public_base_url: str = ""
+    # Teselas del mapa de rutas. Vacía = sin fondo (solo la ruta).
+    map_tile_url: str = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     cors_origins: str = "*"
 
     telegram_token: str = ""

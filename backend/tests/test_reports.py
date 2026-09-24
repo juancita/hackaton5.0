@@ -213,3 +213,19 @@ def test_recientes_pagina_hacia_atras(container, reloj):
     assert [i.id for i in primera] == [ids[2], ids[1]]
     mas = container.reports.recientes(horas=None, antes=primera[-1].creado_en)
     assert [i.id for i in mas] == [ids[0]]
+
+
+def test_vistas_marcan_mis_reportes_y_mi_voto(client):
+    inc = client.post("/incidents", json={"tipo": "trancon", "de_id": TRAMO[0], "a_id": TRAMO[1]},
+                      headers={"X-Client-Id": "autor"}).json()
+    assert inc["es_mio"] and inc["mi_voto"] is None
+    votado = client.post(f"/incidents/{inc['id']}/votos", json={"valor": "niega"}, headers={"X-Client-Id": "otro"}).json()
+    assert votado["mi_voto"] == "niega" and not votado["es_mio"]
+
+    def vista(cliente):
+        headers = {"X-Client-Id": cliente} if cliente else {}
+        return next(v for v in client.get("/incidents/recent", headers=headers).json() if v["id"] == inc["id"])
+
+    assert vista("autor")["es_mio"] and vista("autor")["mi_voto"] is None
+    assert vista("otro")["mi_voto"] == "niega" and not vista("otro")["es_mio"]
+    assert not vista(None)["es_mio"] and vista(None)["mi_voto"] is None  # sin identidad: nada marcado

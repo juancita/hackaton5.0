@@ -72,7 +72,10 @@ const API = (() => {
     suggest: async (q) => ok(await llamar('GET', `/places/suggest?q=${encodeURIComponent(q)}&limit=8`, null, 1500)),
     rutas: (origen_id, destino_id, prioridad, modos) => llamar('POST', '/routes', { origen_id, destino_id, prioridad, modos }),
     // El asistente puede tardar más: el LLM interpreta el mensaje y pule la respuesta
-    chat: async (texto) => ok(await llamar('POST', '/chat/web', { texto }, 30000)),
+    chat: async (texto, ubicacion) => ok(await llamar('POST', '/chat/web', { texto, ...(ubicacion || {}) }, 30000)),
+    // Imagen de la ruta que arma el backend (trazado, A/B y ubicación)
+    urlMapa: (mapa) => `${base}/mapas/ruta.jpg?${new URLSearchParams({
+      r: mapa.ruta, ...(mapa.ubicacion ? { u: mapa.ubicacion.map((v) => v.toFixed(5)).join(',') } : {}) })}`,
     incidentes: async () => ok(await llamar('GET', '/incidents')),
     // { horas } = solo las últimas N horas; { antes } = creados antes de esa fecha ISO (scroll infinito)
     recientes: async ({ horas, antes, limit = 30 } = {}) => ok(await llamar('GET', '/incidents/recent?' + new URLSearchParams({

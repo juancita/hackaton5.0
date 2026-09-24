@@ -1,14 +1,19 @@
-"""Integración con PostgreSQL. Requiere: docker compose up -d db && alembic upgrade head.
+"""Integración con PostgreSQL. Requiere: docker compose up -d db.
 
 Se ejecutan con `pytest -m pg`; si la BD no responde se omiten.
+Usan su PROPIA base (`muevete_test`, o TEST_DATABASE_URL): la crean y migran solas y la vacían
+entre pruebas. Nunca tocan la base de la app (`muevete`), donde viven los reportes reales.
 """
 
 import os
+import subprocess
+import sys
 import uuid
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import create_engine, make_url, text
 
 from app.adapters.outbound.pg.db import make_session_factory
 from app.adapters.outbound.pg.repos import PgIncidentRepository, PgReporterRepository
@@ -19,18 +24,32 @@ from tests.conftest import ADMIN_KEY, make_settings
 
 pytestmark = pytest.mark.pg
 
-DB_URL = os.environ.get("TEST_DATABASE_URL", "postgresql+psycopg://muevete:muevete@localhost:5432/muevete")
+DB_URL = os.environ.get("TEST_DATABASE_URL", "postgresql+psycopg://muevete:muevete@localhost:5432/muevete_test")
+BACKEND = Path(__file__).resolve().parents[1]
+
+
+def _preparar_bd_de_pruebas() -> None:
+    """Crea la base de pruebas si no existe y le aplica las migraciones."""
+    url = make_url(DB_URL)
+    admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
+    with admin.connect() as c:
+        if not c.execute(text("select 1 from pg_database where datname = :n"), {"n": url.database}).scalar():
+            c.execute(text(f'create database "{url.database}"'))
+    admin.dispose()
+    subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=BACKEND, check=True,
+                   env={**os.environ, "DATABASE_URL": DB_URL}, capture_output=True)
 
 
 @pytest.fixture(scope="module")
 def sessions():
-    factory = make_session_factory(DB_URL)
+    if not (make_url(DB_URL).database or "").endswith("_test"):
+        # Estas pruebas hacen TRUNCATE: jamás contra la base de la app
+        pytest.exit(f"TEST_DATABASE_URL debe apuntar a una base *_test, no a {make_url(DB_URL).database!r}", returncode=2)
     try:
-        with factory() as s:
-            s.execute(text("select 1 from reporters limit 1"))
+        _preparar_bd_de_pruebas()
     except Exception as e:  # noqa: BLE001
-        pytest.skip(f"PostgreSQL no disponible o sin migrar: {e}")
-    return factory
+        pytest.skip(f"PostgreSQL no disponible: {e}")
+    return make_session_factory(DB_URL)
 
 
 def _truncar(sessions) -> None:
@@ -40,7 +59,7 @@ def _truncar(sessions) -> None:
 
 @pytest.fixture
 def limpio(sessions):
-    """Deja las tablas vacías antes y después (usa TEST_DATABASE_URL para no tocar la BD de desarrollo)."""
+    """Deja las tablas vacías antes y después (solo en la base de pruebas)."""
     _truncar(sessions)
     yield sessions
     _truncar(sessions)
