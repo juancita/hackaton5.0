@@ -1,9 +1,10 @@
 """API REST: lugares, rutas, red de transporte y reportes."""
 
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.adapters.inbound.deps import get_actor, get_container, require_admin
 from app.container import Container
@@ -55,21 +56,32 @@ class RouteRequest(BaseModel):
     origen_id: str = Field(min_length=1)
     destino_id: str = Field(min_length=1)
     prioridad: Prioridad | None = None
+    # Medios permitidos (claves de /network modos). Vacío/None = todos; caminar siempre vale.
+    modos: list[str] | None = None
 
 
 @router.post("/routes", response_model=TripPlan, tags=["rutas"])
 def routes(body: RouteRequest, c: Container = Depends(get_container)) -> TripPlan:
-    return c.trip.ejecutar(body.origen_id, body.destino_id, body.prioridad)
+    return c.trip.ejecutar(body.origen_id, body.destino_id, body.prioridad, body.modos or None)
 
 
 # --- Reportes ------------------------------------------------------------------
 
 class IncidentRequest(BaseModel):
+    """Por ubicación (lat/lng, como Waze) o, para integraciones, por tramo explícito (de_id/a_id)."""
     tipo: str
-    de_id: str
-    a_id: str
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
+    de_id: str | None = None
+    a_id: str | None = None
     modo: str | None = None
     nota: str = Field(default="", max_length=280)
+
+    @model_validator(mode="after")
+    def _ubicacion_o_tramo(self) -> "IncidentRequest":
+        if (self.lat is None or self.lng is None) and not (self.de_id and self.a_id):
+            raise ValueError("Envía tu ubicación (lat, lng) o el tramo (de_id, a_id)")
+        return self
 
 
 class VoteRequest(BaseModel):
@@ -83,14 +95,30 @@ def incident_types() -> dict[str, IncidentType]:
 
 @router.get("/incidents", response_model=list[IncidentView], tags=["reportes"])
 def incidents(c: Container = Depends(get_container)) -> list[IncidentView]:
-    return [c.reports.vista(i) for i in c.reports.vigentes()]
+    return c.reports.vistas(c.reports.vigentes())
+
+
+@router.get("/incidents/recent", response_model=list[IncidentView], tags=["reportes"])
+def recent_incidents(
+    horas: int | None = Query(None, ge=1, le=168),
+    antes: datetime | None = None,
+    limit: int = Query(30, ge=1, le=100),
+    c: Container = Depends(get_container),
+) -> list[IncidentView]:
+    """Últimos reportes guardados (vigentes y vencidos), más nuevos primero.
+    `horas`: solo los de las últimas N horas. `antes`: los creados antes de esa fecha (scroll infinito)."""
+    return c.reports.vistas(c.reports.recientes(horas, limit, antes))
 
 
 @router.post("/incidents", response_model=IncidentView, status_code=201, tags=["reportes"])
 def create_incident(
     body: IncidentRequest, actor: Actor = Depends(get_actor), c: Container = Depends(get_container)
 ) -> IncidentView:
-    inc = c.reports.reportar(actor, body.tipo, body.de_id, body.a_id, body.modo, body.nota)
+    if body.de_id and body.a_id:
+        pos = (body.lat, body.lng) if body.lat is not None and body.lng is not None else None
+        inc = c.reports.reportar(actor, body.tipo, body.de_id, body.a_id, body.modo, body.nota, posicion=pos)
+    else:
+        inc = c.reports.reportar_aqui(actor, body.tipo, body.lat, body.lng, body.nota)
     return c.reports.vista(inc)
 
 

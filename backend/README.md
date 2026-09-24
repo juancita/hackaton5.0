@@ -41,7 +41,7 @@ app/
     inbound/       http_api.py (REST), chat_channels.py (web, Telegram, WhatsApp)
     outbound/      pg/ (PostgreSQL), memory_repos.py, refiners.py (Gemini / Noop), json_catalog.py
   container.py   conecta los adaptadores según .env
-data/network.json  red semilla exportada de web/js/data.js
+data/network.json  red semilla (fuente de verdad), generada por scripts/build_network.py
 alembic/           migraciones
 ```
 
@@ -55,7 +55,7 @@ alembic/           migraciones
 | POST | `/chat/web` | Asistente para la web (header `X-Client-Id`) |
 | POST | `/webhooks/telegram` | Webhook del bot de Telegram |
 | GET/POST | `/webhooks/whatsapp` | Verificación y mensajes de WhatsApp Cloud API |
-| GET/POST | `/incidents` | Incidentes vigentes / reportar |
+| GET/POST | `/incidents` | Incidentes vigentes / reportar. Body: `{tipo, lat, lng, nota?}` (como Waze: se asigna al tramo más cercano, ≤1.5 km) o `{tipo, de_id, a_id, modo?, nota?}` |
 | POST | `/incidents/{id}/votos` | Confirmar o negar un incidente |
 | GET | `/reporters/me` | Reputación y peso de quien consulta |
 | POST | `/admin/incidents/{id}/verificar` \| `/rechazar` | Moderación (`X-Admin-Key`) |
@@ -67,13 +67,16 @@ alembic/           migraciones
 - **Reputación:** `(aciertos+1)/(aciertos+fallos+2)`. El peso de un usuario es `0.1 + 0.6·rep`. La confianza de un incidente es `1 − Π(1 − w)`. Detalle en el [spec 05](../docs/specs/05-reportes-roles.md).
 
 ## LLM (Gemini Flash)
-Con `LLM_PROVIDER=gemini` y `GEMINI_API_KEY`, las respuestas de ruta y de reporte se pulen con el modelo de `GEMINI_MODEL`.
-- Si el LLM falla, tarda más de `LLM_TIMEOUT_S` o **cambia alguna cifra**, se envía el texto original del dominio.
-- Otro proveedor se integra con una clase que implemente `refine(ctx) -> str` (ver `adapters/outbound/refiners.py`).
+Con `LLM_PROVIDER=gemini` y `GEMINI_API_KEY`, el asistente usa el modelo de `GEMINI_MODEL` (por defecto `gemini-3.5-flash`) para dos cosas:
+- **Entender** (`MessageInterpreter`): cuando las reglas no entienden un mensaje («ando por el hospital y voy donde mi tía en el mirador», «nada que baja el carro en Paraíso»), el LLM devuelve en JSON la intención (ruta, reporte, saludo, ayuda, otro), el origen, el destino, la prioridad y el tipo de reporte. El dominio resuelve esos lugares contra el catálogo y calcula la ruta; el LLM nunca inventa rutas ni tiempos.
+- **Pulir** (`ResponseRefiner`): las respuestas de ruta y de reporte se reescriben con un tono más natural.
+- Si el LLM falla, tarda más de `LLM_TIMEOUT_S` o **cambia alguna cifra**, se sigue con las reglas y el texto original del dominio.
+- `GEMINI_THINKING` (`minimal`/`low`/`medium`/`high`) ajusta cuánto razona el modelo; más bajo = más rápido.
+- Otro proveedor se integra con clases que implementen `refine(ctx) -> str` e `interpret(ctx) -> Interpretation | None` (ver `adapters/outbound/refiners.py`).
 
 ## Canales
 - **Telegram:**
-  - Registrar el webhook: `https://api.telegram.org/bot<TOKEN>/setWebhook?url=<URL_PUBLICA>/webhooks/telegram&secret_token=<TELEGRAM_WEBHOOK_SECRET>`.
+  - Registrar el webhook: con `ngrok http 8000` corriendo, `python -m scripts.set_telegram_webhook` (toma la URL de ngrok y usa `TELEGRAM_TOKEN`/`TELEGRAM_WEBHOOK_SECRET` del `.env`). También acepta la URL como argumento, y `--info` / `--delete`.
   - Las opciones rápidas se muestran como teclado.
 - **WhatsApp (Meta Cloud API):**
   - URL de callback: `<URL_PUBLICA>/webhooks/whatsapp`, con el verify token `WHATSAPP_VERIFY_TOKEN`.

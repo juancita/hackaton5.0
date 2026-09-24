@@ -14,8 +14,12 @@ class Settings(BaseSettings):
 
     llm_provider: Literal["gemini", "none"] = "none"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-flash-latest"
-    llm_timeout_s: float = 4.0
+    gemini_model: str = "gemini-3.5-flash"
+    # Si el principal no responde en gemini_primary_timeout_s (o falla), se usa el de respaldo
+    gemini_fallback_model: str = "gemini-3.5-flash-lite"
+    gemini_primary_timeout_s: float = 6.0
+    gemini_thinking: str = "minimal"  # minimal | low | medium | high; vacío = el del modelo
+    llm_timeout_s: float = 12.0
 
     conversation_ttl_min: int = 30
     cors_origins: str = "*"

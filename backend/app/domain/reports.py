@@ -37,6 +37,12 @@ UMBRAL_BLOQUEO = 0.7      # desde aquí un tipo que bloquea, bloquea
 FACTOR_BLOQUEO_PARCIAL = 2.5
 PESO_ADMIN = 1.0
 VENTANA_ANTISPAM = timedelta(minutes=10)
+RADIO_REPORTE_M = 1500    # un reporte por ubicación se asigna al tramo más cercano dentro de este radio
+
+# Reputación en estrellas (0 a 5) calificada por la comunidad: cada 👍 ("sigue ahí") que otra
+# persona da a uno de tus reportes vale 5 y cada 👎 ("ya no está") vale 0. Se promedia con un 5
+# inicial, así que todos empiezan con 5 estrellas y un solo 👎 no te deja en cero.
+ESTRELLAS_MAX = 5.0
 
 
 def reporter_id_para(canal: str, id_externo: str, salt: str) -> str:
@@ -44,14 +50,15 @@ def reporter_id_para(canal: str, id_externo: str, salt: str) -> str:
     return hashlib.sha256(f"{salt}{canal}:{id_externo}".encode()).hexdigest()
 
 
-def reputacion(r: Reporter) -> float:
-    return (r.aciertos + 1) / (r.aciertos + r.fallos + 2)
+def estrellas(likes: int, dislikes: int) -> float:
+    return round(ESTRELLAS_MAX * (1 + likes) / (1 + likes + dislikes), 1)
 
 
-def peso(r: Reporter) -> float:
+def peso(r: Reporter, estrellas_r: float = ESTRELLAS_MAX) -> float:
+    """5 estrellas pesan 0.4 (un solo reporte afecta rutas pero no bloquea); 0 estrellas, 0.1."""
     if r.rol == Role.admin:
         return PESO_ADMIN
-    return 0.1 + 0.6 * reputacion(r)
+    return 0.1 + 0.3 * estrellas_r / ESTRELLAS_MAX
 
 
 def calcular_confianza(inc: Incident) -> float:
@@ -100,13 +107,35 @@ class ReportService:
     def _reporter(self, actor: Actor) -> Reporter:
         return self._reporters.get_or_create(actor.reporter_id, actor.canal, actor.rol, self._now())
 
+    def calificacion(self, reporter_id: str) -> tuple[int, int, float]:
+        likes, dislikes = self._incidents.ratings([reporter_id]).get(reporter_id, (0, 0))
+        return likes, dislikes, estrellas(likes, dislikes)
+
+    def _peso(self, r: Reporter) -> float:
+        return peso(r) if r.rol == Role.admin else peso(r, self.calificacion(r.id)[2])
+
     def perfil(self, actor: Actor) -> ReporterProfile:
         r = self._reporters.get(actor.reporter_id) or Reporter(id=actor.reporter_id, canal=actor.canal, rol=actor.rol)
-        return ReporterProfile(rol=r.rol, aciertos=r.aciertos, fallos=r.fallos, reputacion=round(reputacion(r), 4), peso=round(peso(r), 4))
+        likes, dislikes, est = self.calificacion(r.id)
+        return ReporterProfile(
+            rol=r.rol, aciertos=r.aciertos, fallos=r.fallos, estrellas=est, likes=likes, dislikes=dislikes,
+            reputacion=round(est / ESTRELLAS_MAX, 4), peso=round(self._peso(r), 4),
+        )
 
     # --- Reportar y votar ----------------------------------------------------
 
-    def reportar(self, actor: Actor, tipo: str, de_id: str, a_id: str, modo: str | None = None, nota: str = "") -> Incident:
+    def reportar_aqui(self, actor: Actor, tipo: str, lat: float, lng: float, nota: str = "") -> Incident:
+        """Como Waze: el reporte se ubica donde está quien reporta y se asigna al tramo más cercano."""
+        cercano = self._net.tramo_cercano(lat, lng)
+        if not cercano or cercano[1] > RADIO_REPORTE_M:
+            raise InvalidInput("Estás lejos de las rutas de Ciudad Bolívar. Acércate a una vía o ajusta el pin en el mapa.")
+        tramo = cercano[0]
+        return self.reportar(actor, tipo, tramo.de, tramo.a, tramo.modo, nota, posicion=(lat, lng))
+
+    def reportar(
+        self, actor: Actor, tipo: str, de_id: str, a_id: str, modo: str | None = None, nota: str = "",
+        posicion: tuple[float, float] | None = None,
+    ) -> Incident:
         if tipo not in TIPOS:
             raise InvalidInput(f"Tipo de incidente desconocido: {tipo}")
         tramo = self._net.tramo_entre(de_id, a_id, modo)
@@ -122,14 +151,15 @@ class ReportService:
         inc = self._incidents.find_open(de_id, a_id, tipo, now)
         if inc is None:
             de, a = self._net.lugar(tramo.de), self._net.lugar(tramo.a)
+            lat, lng = posicion or ((de.lat + a.lat) / 2, (de.lng + a.lng) / 2)
             inc = Incident(
                 id=str(uuid.uuid4()), tipo=tipo, de_id=tramo.de, a_id=tramo.a, modo=tramo.modo,
-                lat=(de.lat + a.lat) / 2, lng=(de.lng + a.lng) / 2, nota=nota or "",
+                lat=lat, lng=lng, nota=nota or "",
                 creado_en=now, expira_en=now + timedelta(minutes=TIPOS[tipo].vidaMin),
             )
         if any(r.reporter_id == actor.reporter_id for r in inc.reports):
             return inc  # el mismo reportero no suma dos veces
-        inc.reports.append(ReportEntry(reporter_id=actor.reporter_id, peso=peso(reporter), nota=nota or "", canal=actor.canal, creado_en=now))
+        inc.reports.append(ReportEntry(reporter_id=actor.reporter_id, peso=self._peso(reporter), nota=nota or "", canal=actor.canal, creado_en=now))
         if nota and not inc.nota:
             inc.nota = nota
         if actor.rol == Role.admin:
@@ -142,7 +172,9 @@ class ReportService:
             raise InvalidInput("valor debe ser 'confirma' o 'niega'")
         inc = self._abierto(incident_id)
         reporter = self._reporter(actor)
-        voto = VoteEntry(reporter_id=actor.reporter_id, valor=valor, peso=peso(reporter), creado_en=self._now())
+        if any(r.reporter_id == actor.reporter_id for r in inc.reports):
+            raise Conflict("No puedes calificar tu propio reporte")
+        voto = VoteEntry(reporter_id=actor.reporter_id, valor=valor, peso=self._peso(reporter), creado_en=self._now())
         previo = next((v for v in inc.votes if v.reporter_id == actor.reporter_id), None)
         if previo:
             previo.valor, previo.peso, previo.creado_en = voto.valor, voto.peso, voto.creado_en
@@ -216,6 +248,24 @@ class ReportService:
         self._liquidar_vencidos()
         return self._incidents.list_current(self._now())
 
+    def recientes(self, horas: int | None = 24, limite: int = 30, antes: datetime | None = None) -> list[Incident]:
+        """Últimos reportes (incluye los ya vencidos, como historial). `antes` pagina hacia atrás."""
+        self._liquidar_vencidos()
+        desde = self._now() - timedelta(hours=horas) if horas else None
+        return self._incidents.list_recent(limite, since=desde, before=antes)
+
+    def vistas(self, incidentes: list[Incident]) -> list[IncidentView]:
+        """Vistas con las estrellas de quien reportó, en una sola consulta."""
+        autores = sorted({i.reports[0].reporter_id for i in incidentes if i.reports})
+        cal = self._incidents.ratings([a for a in autores if not a.startswith("admin:")])
+        out = []
+        for inc in incidentes:
+            v = self.vista(inc)
+            autor = inc.reports[0].reporter_id if inc.reports else None
+            v.estrellas_autor = None if not autor or autor.startswith("admin:") else estrellas(*cal.get(autor, (0, 0)))
+            out.append(v)
+        return out
+
     @staticmethod
     def afecta_rutas(inc: Incident) -> bool:
         return inc.estado == IncidentState.verificado or (
@@ -256,5 +306,7 @@ class ReportService:
             confianza=inc.confianza, n_reportes=len(inc.reports),
             n_confirma=sum(v.valor == "confirma" for v in inc.votes),
             n_niega=sum(v.valor == "niega" for v in inc.votes),
-            afecta_rutas=self.afecta_rutas(inc), creado_en=inc.creado_en, expira_en=inc.expira_en,
+            afecta_rutas=self.afecta_rutas(inc) and inc.expira_en > self._now(),
+            vigente=inc.expira_en > self._now() and inc.estado != IncidentState.rechazado,
+            creado_en=inc.creado_en, expira_en=inc.expira_en,
         )

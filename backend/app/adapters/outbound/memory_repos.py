@@ -52,6 +52,26 @@ class MemoryIncidentRepository:
         ]
         return [i.model_copy(deep=True) for i in sorted(vigentes, key=lambda i: i.creado_en, reverse=True)]
 
+    def list_recent(self, limit: int, since: datetime | None = None, before: datetime | None = None) -> list[Incident]:
+        recientes = [
+            i for i in self._data.values()
+            if i.estado != IncidentState.rechazado
+            and (since is None or i.creado_en >= since)
+            and (before is None or i.creado_en < before)
+        ]
+        return [i.model_copy(deep=True) for i in sorted(recientes, key=lambda i: i.creado_en, reverse=True)[:limit]]
+
+    def ratings(self, reporter_ids: list[str]) -> dict[str, tuple[int, int]]:
+        out: dict[str, tuple[int, int]] = {}
+        for rid in reporter_ids:
+            votos = [
+                v.valor for i in self._data.values() if any(r.reporter_id == rid for r in i.reports)
+                for v in i.votes if v.reporter_id != rid
+            ]
+            if votos:
+                out[rid] = (votos.count("confirma"), votos.count("niega"))
+        return out
+
     def list_expired_unresolved(self, now: datetime) -> list[Incident]:
         return [i.model_copy(deep=True) for i in self._data.values() if i.expira_en <= now and not i.resuelto]
 

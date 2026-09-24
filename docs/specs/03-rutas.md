@@ -27,7 +27,7 @@ Respuesta `200` (valores ilustrativos):
 ```json
 {"origen":{"id":"meissen","nombre":"Meissen"},"destino":{"id":"paraiso","nombre":"Paraíso Alto"},
  "opciones":[{"etiqueta":"La más rápida","prioridad":"rapido","totalMin":43,"totalCop":4450,"transbordos":2,
-   "usaInformal":true,"alertas":[],"tramos":[{"modo":"sitp","ruta":"C15","desde":"meissen","hasta":"tunal",
+   "usaInformal":true,"alertas":[],"tramos":[{"modo":"sitp","ruta":"H602","desde":"meissen","hasta":"tunal",
    "min":16,"cop":2950,"espera":6,"motivo":null,"paradas":["meissen","tunal"]}]}],
  "recomendada":0,"incidentes_aplicados":[]}
 ```

@@ -52,11 +52,20 @@ def test_tramo_bloqueado_se_excluye(container):
 
 
 def test_penalizacion_en_sentido_inverso(container):
-    base = container.routing.mejor_ruta("meissen", "hospital")
-    pen = {clave_tramo("hospital", "meissen", "sitp"): Penalty(factor=3, motivo="trancón")}
-    r = container.routing.mejor_ruta("meissen", "hospital", "rapido", pen)
+    base = container.routing.mejor_ruta("perdomo", "sierramorena")
+    pen = {clave_tramo("sierramorena", "perdomo", "sitp"): Penalty(factor=3, motivo="trancón")}
+    r = container.routing.mejor_ruta("perdomo", "sierramorena", "rapido", pen)
     assert r.totalMin > base.totalMin
     assert r.alertas == ["trancón"]
+
+
+def test_empate_de_prioridades_conserva_la_pedida(container):
+    """Si la más barata es la misma que la más rápida, el usuario que pidió 'barato' la ve así."""
+    rapida = container.routing.mejor_ruta("meissen", "paraiso", "rapido")
+    barata = container.routing.mejor_ruta("meissen", "paraiso", "barato")
+    assert [t.ruta for t in rapida.tramos] == [t.ruta for t in barata.tramos]
+    prios = [o.prioridad for o in container.routing.opciones("meissen", "paraiso", preferida="barato")]
+    assert "barato" in prios and "rapido" not in prios
 
 
 def test_endpoint_routes(client):
@@ -80,3 +89,42 @@ def test_network_incluye_camaras(client):
     data = client.get("/network").json()
     assert len(data["camaras"]) == 4
     assert {"modos", "paraderos", "tramos"} <= data.keys()
+
+
+def test_filtro_de_modos(container):
+    """Si la persona no quiere el cable, la ruta sale sin cable (caminar siempre se permite)."""
+    con_cable = container.routing.mejor_ruta("tunal", "juanpablo")
+    assert [t.modo for t in con_cable.tramos] == ["cable"]
+    solo_bus = container.routing.mejor_ruta("tunal", "juanpablo", modos=frozenset({"sitp", "alimentador"}))
+    assert solo_bus and {t.modo for t in solo_bus.tramos} <= {"sitp", "alimentador", "caminando"}
+
+
+def test_opciones_incluyen_alternativa_sin_el_medio_principal(container):
+    ops = container.routing.opciones("tunal", "juanpablo")
+    sin_cable = next(o for o in ops if o.etiqueta == "Sin TransMiCable")
+    assert "cable" not in {t.modo for t in sin_cable.tramos}
+
+
+def test_endpoint_routes_con_modos(client):
+    r = client.post("/routes", json={"origen_id": "tunal", "destino_id": "juanpablo", "modos": ["sitp", "alimentador"]})
+    assert r.status_code == 200
+    for op in r.json()["opciones"]:
+        assert {t["modo"] for t in op["tramos"]} <= {"sitp", "alimentador", "caminando"}
+    assert client.post("/routes", json={"origen_id": "tunal", "destino_id": "juanpablo", "modos": ["ovni"]}).status_code == 422
+
+
+@pytest.mark.parametrize("destino,ruta", [
+    ("bellaflor", "Jeep Bella Flor"), ("caracoli", "Colectivo Caracolí"), ("santodomingo", "Colectivo Santo Domingo"),
+    ("tesoro", "Colectivo El Tesoro"), ("quibaalta", "Jeep Quiba Alta"), ("mochueloalto", "Veredal Mochuelo Alto"),
+])
+def test_barrios_altos_y_veredas_llegan_en_informal(container, destino, ruta):
+    r = container.routing.mejor_ruta("tunal", destino)
+    assert r and ruta in [t.ruta for t in r.tramos]
+
+
+def test_opcion_con_transporte_informal(container):
+    """Si ninguna opción usa informal, igual aparece una alternativa con jeep/colectivo/veredal."""
+    ops = container.routing.opciones("tunal", "paraiso")
+    assert any(o.usaInformal for o in ops)
+    con = [o for o in ops if o.etiqueta == "Con transporte informal"]
+    assert all(o.usaInformal for o in con)

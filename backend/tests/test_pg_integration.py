@@ -73,7 +73,7 @@ def test_reputacion_persiste_tras_reinicio(limpio):
         api.post(f"/admin/incidents/{inc['id']}/verificar", headers={"X-Admin-Key": ADMIN_KEY})
     with nuevo_cliente(limpio) as api:
         me = api.get("/reporters/me", headers={"X-Client-Id": "vecino"}).json()
-        assert me["aciertos"] == 1 and me["peso"] > 0.4
+        assert me["aciertos"] == 1 and me["estrellas"] == 5
         assert api.get("/incidents").json()[0]["estado"] == "verificado"
 
 
@@ -100,3 +100,14 @@ def test_unique_de_votos_en_bd(limpio):
         with limpio.begin() as s:
             s.execute(insert, {"i": inc["id"], "r": rid})
             s.execute(insert, {"i": inc["id"], "r": rid})
+
+
+def test_estrellas_por_votos_de_la_comunidad(limpio):
+    with nuevo_cliente(limpio) as api:
+        inc = api.post("/incidents", json={"tipo": "trancon", "de_id": "tunal", "a_id": "meissen"},
+                       headers={"X-Client-Id": "autor"}).json()
+        api.post(f"/incidents/{inc['id']}/votos", json={"valor": "confirma"}, headers={"X-Client-Id": "b"})
+        api.post(f"/incidents/{inc['id']}/votos", json={"valor": "niega"}, headers={"X-Client-Id": "c"})
+        me = api.get("/reporters/me", headers={"X-Client-Id": "autor"}).json()
+        assert (me["likes"], me["dislikes"], me["estrellas"]) == (1, 1, 3.3)
+        assert api.get("/incidents/recent?horas=1").json()[0]["estrellas_autor"] == 3.3

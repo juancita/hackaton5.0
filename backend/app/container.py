@@ -10,7 +10,7 @@ from app.adapters.outbound.memory_repos import (
     MemoryIncidentRepository,
     MemoryReporterRepository,
 )
-from app.adapters.outbound.refiners import GeminiRefiner, NoopRefiner
+from app.adapters.outbound.refiners import GeminiInterpreter, GeminiRefiner, NoopInterpreter, NoopRefiner
 from app.config import Settings
 from app.domain.assistant import AssistantService
 from app.domain.models import Network
@@ -18,7 +18,7 @@ from app.domain.places import PlaceService
 from app.domain.reports import ReportService, utcnow
 from app.domain.routing import RoutingService
 from app.domain.trip import PlanTripUseCase
-from app.ports.outbound import IncidentRepository, ReporterRepository, ResponseRefiner
+from app.ports.outbound import IncidentRepository, MessageInterpreter, ReporterRepository, ResponseRefiner
 
 
 @dataclass
@@ -38,6 +38,7 @@ def build_container(
     incidents: IncidentRepository | None = None,
     reporters: ReporterRepository | None = None,
     refiner: ResponseRefiner | None = None,
+    interpreter: MessageInterpreter | None = None,
     clock: Callable[[], datetime] = utcnow,
 ) -> Container:
     network = JsonCatalog().load()
@@ -52,11 +53,19 @@ def build_container(
         else:
             incidents, reporters = MemoryIncidentRepository(), MemoryReporterRepository()
 
+    gemini = settings.llm_provider == "gemini" and settings.gemini_api_key
+    opciones_gemini = dict(
+        fallback_model=settings.gemini_fallback_model,
+        primary_timeout_s=settings.gemini_primary_timeout_s,
+        thinking=settings.gemini_thinking,
+    )
     if refiner is None:
-        if settings.llm_provider == "gemini" and settings.gemini_api_key:
-            refiner = GeminiRefiner(settings.gemini_api_key, settings.gemini_model)
-        else:
-            refiner = NoopRefiner()
+        refiner = GeminiRefiner(settings.gemini_api_key, settings.gemini_model, **opciones_gemini) if gemini else NoopRefiner()
+    if interpreter is None:
+        interpreter = (
+            GeminiInterpreter(settings.gemini_api_key, settings.gemini_model, **opciones_gemini)
+            if gemini else NoopInterpreter()
+        )
 
     places = PlaceService(network)
     routing = RoutingService(network)
@@ -64,6 +73,7 @@ def build_container(
     trip = PlanTripUseCase(network, routing, reports)
     assistant = AssistantService(
         network, places, trip, reports, MemoryConversationStore(), refiner,
+        interpreter=interpreter,
         ttl=timedelta(minutes=settings.conversation_ttl_min),
         refine_timeout_s=settings.llm_timeout_s,
         clock=clock,

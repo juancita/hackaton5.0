@@ -81,17 +81,9 @@ async def telegram_webhook(
         nombre=remitente.get("first_name"),
     )
     out = await c.assistant.handle(msg)
-    payload = {"chat_id": message["chat"]["id"], **render_telegram(out)}
-
-    if c.settings.telegram_token:
-        try:
-            r = await _http(request).post(
-                f"https://api.telegram.org/bot{c.settings.telegram_token}/sendMessage", json=payload
-            )
-            r.raise_for_status()
-        except httpx.HTTPError:
-            log.exception("No se pudo enviar la respuesta a Telegram")
-    return {"ok": True, "respuesta": out.model_dump(mode="json")}
+    # Se responde en el cuerpo del webhook: Telegram ejecuta el sendMessage por nosotros,
+    # sin que el backend tenga que abrir una conexión saliente a api.telegram.org.
+    return {"method": "sendMessage", "chat_id": message["chat"]["id"], **render_telegram(out)}
 
 
 # --- WhatsApp (Meta Cloud API) -------------------------------------------------

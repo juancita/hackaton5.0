@@ -19,7 +19,7 @@ No hay que instalar nada más. Todo es HTML/CSS/JS.
 ## Mapa de archivos (quién toca qué)
 | Archivo | Responsable sugerido | Qué es |
 |---------|----------------------|--------|
-| `web/js/data.js` | Producto/Territorio | Datos semilla: paraderos, rutas, informal, cámaras. **Fácil de editar.** |
+| `backend/scripts/build_network.py` | Producto/Territorio | Fuente de verdad: paraderos, rutas, informal, cámaras. Genera `web/js/data.js` y `backend/data/network.json` desde las fuentes oficiales (ver `docs/FUENTES_DATOS.md`). |
 | `web/js/datasources.js` | Dev backend/datos | Conexión a fuentes oficiales en vivo |
 | `web/js/engine.js` | Dev algoritmos | Motor de rutas (Dijkstra) |
 | `web/js/ai.js` | Dev IA | Asistente en lenguaje natural + LLM |

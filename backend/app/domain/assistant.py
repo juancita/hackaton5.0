@@ -16,6 +16,8 @@ from app.domain.errors import DomainError, RateLimited
 from app.domain.models import (
     Conversation,
     InboundMessage,
+    InterpretContext,
+    Interpretation,
     Network,
     OutboundMessage,
     Place,
@@ -30,7 +32,7 @@ from app.domain.places import PlaceService
 from app.domain.reports import TIPOS, ReportService, utcnow
 from app.domain.text import formato_cop, normalize, redondear
 from app.domain.trip import PlanTripUseCase
-from app.ports.outbound import ConversationStore, ResponseRefiner
+from app.ports.outbound import ConversationStore, MessageInterpreter, ResponseRefiner
 
 log = logging.getLogger(__name__)
 
@@ -154,6 +156,7 @@ class AssistantService:
         reports: ReportService,
         store: ConversationStore,
         refiner: ResponseRefiner,
+        interpreter: MessageInterpreter | None = None,
         ttl: timedelta = timedelta(minutes=30),
         refine_timeout_s: float = 4.0,
         clock: Callable[[], datetime] = utcnow,
@@ -164,6 +167,8 @@ class AssistantService:
         self._reports = reports
         self._store = store
         self._refiner = refiner
+        self._interpreter = interpreter
+        self._lecturas: dict[int, Interpretation | None] = {}  # lectura del LLM por mensaje en curso
         self._ttl = ttl
         self._timeout = refine_timeout_s
         self._now = clock
@@ -175,7 +180,10 @@ class AssistantService:
         conv = self._store.get(key)
         if conv is None or (conv.updated_at and self._now() - conv.updated_at > self._ttl):
             conv = Conversation(key=key)
-        out = await self._procesar(conv, msg)
+        try:
+            out = await self._procesar(conv, msg)
+        finally:
+            self._lecturas.pop(id(msg), None)
         conv.updated_at = self._now()
         self._store.save(conv)
         return out
@@ -218,6 +226,8 @@ class AssistantService:
                     return self._iniciar_manual(conv)
                 if directo := await self._consulta_directa(conv, msg, n):
                     return directo
+                if llm := await self._con_llm(conv, msg, n):
+                    return llm
                 return self._saludo(conv, msg)
             case "origen" | "destino":
                 return await self._paso_lugar(conv, msg, n)
@@ -304,6 +314,15 @@ class AssistantService:
 
     async def _paso_lugar(self, conv: Conversation, msg: InboundMessage, n: str) -> OutboundMessage:
         res = self._elegir_lugar(conv, msg.texto)
+        if (res.estado == "ninguno" or self._es_frase(n)) and (it := await self._entender(conv, msg)):
+            if it.intencion == "reporte":
+                return await self._reporte(conv, msg, n, it)
+            if texto := getattr(it, conv.paso) or next(iter(it.lugares), None):
+                if (leido := self._places.resolve(texto)).estado != "ninguno":
+                    res = leido
+            elif res.estado == "ninguno" and it.respuesta:
+                pregunta, opciones = self._pendiente(conv)
+                return self._resp(conv, f"{it.respuesta.strip()}\n\n{pregunta}", opciones)
         if res.estado != "exacto":
             return self._no_resuelto(conv, msg.texto.strip(), res)
         lugar = res.lugar
@@ -322,10 +341,17 @@ class AssistantService:
 
     # --- Modo manual -----------------------------------------------------------
 
-    async def _manual(self, conv: Conversation, msg: InboundMessage, n: str) -> OutboundMessage:
+    async def _manual(
+        self, conv: Conversation, msg: InboundMessage, n: str, it: Interpretation | None = None
+    ) -> OutboundMessage:
+        """Modo libre. `it` es la lectura del LLM; sin ella se interpreta con reglas."""
         conv.modo = conv.modo or "manual"
         conv.paso = "manual"
-        origen_txt, destino_txt, prioridad = interpretar(n)
+        origen_txt, destino_txt, prioridad = (it.origen, it.destino, it.prioridad) if it else interpretar(n)
+
+        # Una frase sin «de X a Y» puede ser un reporte o una charla, no un lugar: que la lea el LLM
+        if not (it or origen_txt or destino_txt) and self._es_frase(n) and (llm := await self._con_llm(conv, msg, n)):
+            return llm
 
         # Respuesta directa a lo que se preguntó (un lugar o el número de un candidato)
         if not origen_txt and not destino_txt:
@@ -339,6 +365,9 @@ class AssistantService:
             if not texto:
                 continue
             res = self._elegir_lugar(conv, texto) if campo == conv.pendiente else self._places.resolve(texto)
+            # Las reglas no reconocen el lugar: que el LLM lea el mensaje completo
+            if res.estado == "ninguno" and it is None and (llm := await self._con_llm(conv, msg, n)):
+                return llm
             if res.estado != "exacto":
                 conv.pendiente = campo
                 return self._no_resuelto(conv, texto.strip(), res)
@@ -395,18 +424,32 @@ class AssistantService:
             return self._resp(conv, INSTRUCCION_REPORTE, OPC_RESULTADO)
         # Una consulta nueva escrita libremente
         origen, destino, _ = interpretar(n)
-        if origen or destino or self._places.menciones(n):
+        menciones = self._places.menciones(n)
+        if not (origen or destino) and (self._es_frase(n) or not menciones) and (llm := await self._con_llm(conv, msg, n)):
+            return llm
+        if origen or destino or menciones:
             conv.origen_id = conv.destino_id = conv.prioridad = None
             return await self._manual(conv, msg, n)
         return self._resp(conv, PREGUNTA_RESULTADO, OPC_RESULTADO)
 
     # --- Reportes --------------------------------------------------------------
 
-    async def _reporte(self, conv: Conversation, msg: InboundMessage, n: str) -> OutboundMessage:
+    async def _reporte(
+        self, conv: Conversation, msg: InboundMessage, n: str, it: Interpretation | None = None
+    ) -> OutboundMessage:
         texto_pend, opciones_pend = self._pendiente(conv)
         recordatorio = f"\n\nSigamos: {texto_pend}" if conv.paso not in ("inicio",) else ""
-        tipo = next((k for k, palabras in PALABRAS_TIPO.items() if any(w in n for w in palabras)), "novedad")
+        tipo = next((k for k, palabras in PALABRAS_TIPO.items() if any(w in n for w in palabras)), None)
         lugares = self._places.menciones(n)
+        if not lugares or not tipo:
+            it = it or await self._entender(conv, msg)
+        if it:
+            tipo = tipo or it.tipo_reporte
+            if not lugares:
+                textos = [*it.lugares, it.origen, it.destino]
+                lugares = [r.lugar for t in textos if t and (r := self._places.resolve(t)).estado == "exacto"]
+                lugares = list({p.id: p for p in lugares}.values())
+        tipo = tipo or "novedad"
         if not lugares:
             return self._resp(conv, INSTRUCCION_REPORTE + recordatorio, opciones_pend)
 
@@ -440,13 +483,53 @@ class AssistantService:
 
     # --- LLM -------------------------------------------------------------------
 
+    async def _entender(self, conv: Conversation, msg: InboundMessage) -> Interpretation | None:
+        """Lee el mensaje con el LLM. Sin LLM, ante fallas o demoras: None (el flujo sigue con reglas)."""
+        if self._interpreter is None:
+            return None
+        if id(msg) in self._lecturas:  # una sola llamada por mensaje
+            return self._lecturas[id(msg)]
+        ctx = InterpretContext(
+            texto=msg.texto, canal=msg.canal, paso=conv.paso, pendiente=conv.pendiente,
+            lugares=[p.nombre for p in self._net.paraderos],
+        )
+        try:
+            it = await asyncio.wait_for(self._interpreter.interpret(ctx), self._timeout)
+        except Exception as e:  # noqa: BLE001 — el LLM nunca debe tumbar la respuesta
+            log.warning("El intérprete LLM falló (%s); se sigue con las reglas", type(e).__name__,
+                        exc_info=log.isEnabledFor(logging.DEBUG))
+            it = None
+        self._lecturas[id(msg)] = it
+        return it
+
+    def _es_frase(self, n: str) -> bool:
+        """Más que un nombre de lugar: vale la pena que el LLM lea la intención."""
+        return self._interpreter is not None and len(n.split()) >= 4
+
+    async def _con_llm(self, conv: Conversation, msg: InboundMessage, n: str) -> OutboundMessage | None:
+        """Último recurso cuando las reglas no entienden: actuar según la intención que lea el LLM."""
+        it = await self._entender(conv, msg)
+        if it is None:
+            return None
+        if it.intencion == "reporte":
+            return await self._reporte(conv, msg, n, it)
+        if it.origen or it.destino:
+            if conv.paso in ("inicio", "resultado"):  # consulta nueva
+                conv.origen_id = conv.destino_id = conv.prioridad = conv.pendiente = None
+            return await self._manual(conv, msg, n, it)
+        if it.respuesta:
+            pregunta, opciones = self._pendiente(conv)
+            return self._resp(conv, f"{it.respuesta.strip()}\n\n{pregunta}", opciones)
+        return None
+
     async def _pulir(self, mensaje: str, base: str, hechos: dict, canal: str) -> str:
         """Pule con el LLM. Ante cualquier falla, o si cambia alguna cifra, se queda el texto del dominio."""
         try:
             ctx = RefineContext(mensaje_usuario=mensaje, texto_base=base, hechos=hechos, canal=canal)
             out = (await asyncio.wait_for(self._refiner.refine(ctx), self._timeout) or "").strip()
-        except Exception:  # noqa: BLE001 — el LLM nunca debe tumbar la respuesta
-            log.warning("El refinador de respuestas falló; se usa el texto base", exc_info=True)
+        except Exception as e:  # noqa: BLE001 — el LLM nunca debe tumbar la respuesta
+            log.warning("El refinador de respuestas falló (%s); se usa el texto base", type(e).__name__,
+                        exc_info=log.isEnabledFor(logging.DEBUG))
             return base
         if not out or not _cifras(base) <= _cifras(out):
             return base

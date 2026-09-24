@@ -37,7 +37,7 @@ Cuando alguien escribe un origen o un destino (en el formulario o en el chat), s
 
 ## Reglas de dominio
 - `normalize()`: minúsculas, NFD sin marcas diacríticas, espacios colapsados y trim.
-- `via = "alias"` cuando el lugar entró solo por un alias (por ejemplo, `mercado` → Plaza de mercado Perdomo).
+- `via = "alias"` cuando el lugar entró solo por un alias (por ejemplo, `mercado` → Plaza de mercado Los Luceros).
 
 ## Casos borde
 - Una cadena vacía o solo espacios devuelve los lugares populares.
