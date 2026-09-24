@@ -73,7 +73,7 @@ def test_reputacion_persiste_tras_reinicio(limpio):
         api.post(f"/admin/incidents/{inc['id']}/verificar", headers={"X-Admin-Key": ADMIN_KEY})
     with nuevo_cliente(limpio) as api:
         me = api.get("/reporters/me", headers={"X-Client-Id": "vecino"}).json()
-        assert me["aciertos"] == 1 and me["peso"] > 0.4
+        assert me["aciertos"] == 1 and me["estrellas"] == 5
         assert api.get("/incidents").json()[0]["estado"] == "verificado"
 
 

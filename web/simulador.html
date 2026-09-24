@@ -4,49 +4,52 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Muévete CB — Sala en vivo (multiusuario)</title>
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0..1,0&display=block" />
+  <link rel="stylesheet" href="css/styles.css?v=13" />
   <style>
     body { max-width: 1200px; }
-    .sim-top { background: linear-gradient(120deg,var(--morado),#b06bff); color:#fff; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+    .sim-top { background: var(--morado); border-bottom: 4px solid var(--verde); color:#fff; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
     .sim-top h1 { font-size:18px; } .sim-top p { font-size:12px; opacity:.9; }
     .sim-controls { display:flex; gap:8px; flex-wrap:wrap; }
-    .sim-controls button { background:#fff; color:var(--morado); border:none; padding:8px 14px; border-radius:20px; font-weight:700; font-size:12px; cursor:pointer; }
+    .sim-controls button { display:inline-flex; align-items:center; gap:4px; background:#fff; color:var(--morado); border:none; padding:8px 14px; border-radius:20px; font-weight:700; font-size:12px; cursor:pointer; }
     .sim-controls button.alt { background:#ffffff33; color:#fff; }
     .sim-grid { display:grid; grid-template-columns: 1.4fr 1fr; gap:14px; padding:14px; }
     @media (max-width:820px){ .sim-grid{ grid-template-columns:1fr; } }
-    .sim-map { background:#fff; border-radius:16px; padding:10px; box-shadow:0 3px 10px rgba(0,0,0,.06); position:sticky; top:10px; height:fit-content; }
-    .sim-map svg { width:100%; height:52vh; background:linear-gradient(#f8f5ff,#efe9ff); border-radius:12px; }
+    .sim-map { background:#fff; border-radius:var(--r-lg); padding:10px; box-shadow:var(--sombra); position:sticky; top:10px; height:fit-content; }
+    .sim-map svg { width:100%; height:52vh; background:var(--morado-50); border-radius:var(--r); }
     .feed { max-height:14vh; overflow-y:auto; margin-top:8px; font-size:12px; }
-    .feed div { padding:3px 0; border-bottom:1px dashed #eee; }
+    .feed div { padding:3px 0; border-bottom:1px dashed var(--borde); }
     .users { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     @media (max-width:520px){ .users{ grid-template-columns:1fr; } }
-    .user { border-radius:16px; overflow:hidden; box-shadow:0 3px 10px rgba(0,0,0,.07); background:#fff; display:flex; flex-direction:column; }
+    .user { border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--sombra); background:#fff; display:flex; flex-direction:column; }
     .user .uhead { padding:8px 12px; color:#fff; display:flex; align-items:center; gap:8px; font-size:13px; }
-    .user.wa .uhead { background:#075e54; } .user.web .uhead { background:var(--morado); }
-    .user .canal { margin-left:auto; font-size:10px; background:#ffffff33; padding:2px 8px; border-radius:12px; }
+    .user.wa .uhead { background:var(--navy); } .user.web .uhead { background:var(--morado); }
+    .user .canal { display:inline-flex; align-items:center; gap:3px; margin-left:auto; font-size:10px; background:#ffffff33; padding:2px 8px; border-radius:12px; }
     .user .ubody { padding:10px; flex:1; }
     .user .quick { display:flex; flex-wrap:wrap; gap:6px; }
-    .user .quick button { border:none; border-radius:10px; padding:7px 9px; font-size:11px; font-weight:700; cursor:pointer; color:#fff; }
+    .user .quick button { display:inline-flex; align-items:center; gap:4px; border:none; border-radius:10px; padding:7px 9px; font-size:11px; font-weight:700; cursor:pointer; color:#fff; }
     .user .last { font-size:11px; color:var(--gris); margin-top:8px; min-height:26px; }
   </style>
 </head>
 <body>
   <div class="sim-top">
     <div>
-      <h1>👥 Sala en vivo — Muévete CB</h1>
+      <h1><span class="ms fill" aria-hidden="true">groups</span> Sala en vivo — Muévete <span class="cb">CB</span></h1>
       <p>Varios vecinos reportando a la vez, por WhatsApp y web. Todo se sincroniza en tiempo real.</p>
     </div>
     <div class="sim-controls">
-      <button id="btnAuto">▶️ Simular actividad</button>
-      <button id="btnClear" class="alt">🗑️ Limpiar</button>
-      <a href="index.html" style="align-self:center;color:#fff;font-size:12px;">← Volver a la app</a>
+      <button id="btnAuto"><span class="ms fill" aria-hidden="true">play_arrow</span>Simular actividad</button>
+      <button id="btnClear" class="alt"><span class="ms" aria-hidden="true">delete_sweep</span>Limpiar</button>
+      <a href="index.html" style="display:inline-flex;align-items:center;gap:2px;color:#fff;font-size:12px;"><span class="ms" aria-hidden="true">arrow_back</span>Volver a la app</a>
     </div>
   </div>
 
   <div class="sim-grid">
     <div class="sim-map">
-      <strong style="font-size:13px">🗺️ Mapa vivo compartido</strong>
-      <span id="incCount" class="pill" style="background:#eee2ff;color:var(--morado);float:right">0 alertas</span>
+      <strong class="map-title" style="font-size:13px"><span class="ms" aria-hidden="true">map</span>Mapa vivo compartido</strong>
+      <span id="incCount" class="pill" style="background:var(--morado-100);color:var(--morado);float:right">0 alertas</span>
       <svg id="mapa" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="feed" id="feed"></div>
     </div>
@@ -56,6 +59,7 @@
   <div id="toasts" class="toasts"></div>
 
   <script src="js/data.js"></script>
+  <script src="js/icons.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/realtime.js"></script>
   <script src="js/reports.js"></script>

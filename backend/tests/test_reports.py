@@ -82,8 +82,8 @@ def test_verificar_y_rechazar_actualizan_reputacion(container):
     inc2 = container.reports.reportar(u2, "lleno", "tunal", "meissen")
     container.reports.rechazar(admin, inc2.id)
     p2 = container.reports.perfil(u2)
-    assert p2.fallos == 2 and p2.peso < 0.4
-    assert container.reports.perfil(u1).peso == pytest.approx(0.1 + 0.6 * (2 / 3))
+    assert p2.fallos == 2
+    assert container.reports.perfil(u1).estrellas == 2.5  # u2 le dio 👎: (5 + 0) / 2
     with pytest.raises(Conflict):
         container.reports.votar(u1, inc2.id, "confirma")
 
@@ -158,3 +158,58 @@ def test_api_reporte_por_ubicacion(client, container):
     r = client.post("/incidents", json={"tipo": "trancon", "lat": p.lat, "lng": p.lng}, headers={"X-Client-Id": "abc"})
     assert r.status_code == 201 and (r.json()["lat"], r.json()["lng"]) == pytest.approx((p.lat, p.lng))
     assert client.post("/incidents", json={"tipo": "trancon"}, headers={"X-Client-Id": "abc"}).status_code == 422
+
+
+def test_recientes_incluye_vencidos_y_excluye_rechazados(container, reloj):
+    viejo = container.reports.reportar(usuario(container, 1), "lleno", *TRAMO)  # vive 45 min
+    reloj.avanzar(minutes=60)
+    nuevo = container.reports.reportar(usuario(container, 2), "trancon", *TRAMO)
+    rechazado = container.reports.reportar(usuario(container, 3), "bloqueo", *TRAMO)
+    container.reports.rechazar(container.reports.actor_admin(), rechazado.id)
+    ids = [i.id for i in container.reports.recientes()]
+    assert ids == [nuevo.id, viejo.id]  # más nuevo primero, sin el rechazado
+    assert [i.id for i in container.reports.vigentes()] == [nuevo.id]
+    assert not container.reports.vista(container.reports.recientes()[1]).vigente
+
+
+def test_api_recientes(client, container):
+    p = container.network.lugar("perdomo")
+    client.post("/incidents", json={"tipo": "trancon", "lat": p.lat, "lng": p.lng}, headers={"X-Client-Id": "abc"})
+    r = client.get("/incidents/recent?limit=5")
+    assert r.status_code == 200 and len(r.json()) == 1 and r.json()[0]["vigente"]
+
+
+
+def test_estrellas_las_da_la_comunidad(container):
+    autor = usuario(container, 1)
+    assert container.reports.perfil(autor).estrellas == 5  # todos empiezan con 5
+    inc = container.reports.reportar(autor, "trancon", *TRAMO)
+    container.reports.votar(usuario(container, 2), inc.id, "confirma")
+    container.reports.votar(usuario(container, 3), inc.id, "niega")
+    p = container.reports.perfil(autor)
+    assert (p.likes, p.dislikes, p.estrellas) == (1, 1, pytest.approx(3.3))  # (5 + 5 + 0) / 3
+    container.reports.votar(usuario(container, 3), inc.id, "confirma")  # cambiar el voto recalcula
+    assert container.reports.perfil(autor).estrellas == 5
+    with pytest.raises(Conflict):
+        container.reports.votar(autor, inc.id, "confirma")  # no te calificas a ti mismo
+
+
+def test_menos_estrellas_pesan_menos(container):
+    autor = usuario(container, 1)
+    inc = container.reports.reportar(autor, "trancon", *TRAMO)
+    for n in (2, 3, 4):
+        container.reports.votar(usuario(container, n), inc.id, "niega")
+    assert container.reports.perfil(autor).estrellas == pytest.approx(1.2)  # 5 / 4
+    otro = container.reports.reportar(autor, "lleno", "tunal", "meissen")
+    assert otro.confianza == pytest.approx(0.1 + 0.3 * 1.2 / 5)
+
+
+def test_recientes_pagina_hacia_atras(container, reloj):
+    ids = []
+    for n, tipo in enumerate(("trancon", "lleno", "novedad")):
+        ids.append(container.reports.reportar(usuario(container, n), tipo, *TRAMO).id)
+        reloj.avanzar(minutes=25)
+    primera = container.reports.recientes(horas=1)
+    assert [i.id for i in primera] == [ids[2], ids[1]]
+    mas = container.reports.recientes(horas=None, antes=primera[-1].creado_en)
+    assert [i.id for i in mas] == [ids[0]]

@@ -69,6 +69,7 @@ const API = (() => {
     // El asistente puede tardar más: el LLM interpreta el mensaje y pule la respuesta
     chat: async (texto) => ok(await llamar('POST', '/chat/web', { texto }, 30000)),
     incidentes: async () => ok(await llamar('GET', '/incidents')),
+    recientes: async (horas = 24, limit = 30) => ok(await llamar('GET', `/incidents/recent?horas=${horas}&limit=${limit}`)),
     reportar: (body) => llamar('POST', '/incidents', body),
     votar: (id, valor) => llamar('POST', `/incidents/${encodeURIComponent(id)}/votos`, { valor }),
     perfil: async () => ok(await llamar('GET', '/reporters/me')),

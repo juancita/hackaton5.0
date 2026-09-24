@@ -1,5 +1,6 @@
 """API REST: lugares, rutas, red de transporte y reportes."""
 
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -92,7 +93,19 @@ def incident_types() -> dict[str, IncidentType]:
 
 @router.get("/incidents", response_model=list[IncidentView], tags=["reportes"])
 def incidents(c: Container = Depends(get_container)) -> list[IncidentView]:
-    return [c.reports.vista(i) for i in c.reports.vigentes()]
+    return c.reports.vistas(c.reports.vigentes())
+
+
+@router.get("/incidents/recent", response_model=list[IncidentView], tags=["reportes"])
+def recent_incidents(
+    horas: int | None = Query(None, ge=1, le=168),
+    antes: datetime | None = None,
+    limit: int = Query(30, ge=1, le=100),
+    c: Container = Depends(get_container),
+) -> list[IncidentView]:
+    """Últimos reportes guardados (vigentes y vencidos), más nuevos primero.
+    `horas`: solo los de las últimas N horas. `antes`: los creados antes de esa fecha (scroll infinito)."""
+    return c.reports.vistas(c.reports.recientes(horas, limit, antes))
 
 
 @router.post("/incidents", response_model=IncidentView, status_code=201, tags=["reportes"])

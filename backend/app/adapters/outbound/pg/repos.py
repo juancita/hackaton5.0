@@ -90,6 +90,32 @@ class PgIncidentRepository:
             ).all()
             return [_a_dominio(r) for r in rows]
 
+    def list_recent(self, limit: int, since: datetime | None = None, before: datetime | None = None) -> list[Incident]:
+        q = select(IncidentRow).where(IncidentRow.estado != IncidentState.rechazado.value)
+        if since is not None:
+            q = q.where(IncidentRow.creado_en >= since)
+        if before is not None:
+            q = q.where(IncidentRow.creado_en < before)
+        with self._sessions() as s:
+            rows = s.scalars(q.order_by(IncidentRow.creado_en.desc()).limit(limit)).all()
+            return [_a_dominio(r) for r in rows]
+
+    def ratings(self, reporter_ids: list[str]) -> dict[str, tuple[int, int]]:
+        if not reporter_ids:
+            return {}
+        with self._sessions() as s:
+            filas = s.execute(
+                select(
+                    ReportRow.reporter_id,
+                    func.count().filter(VoteRow.valor == "confirma"),
+                    func.count().filter(VoteRow.valor == "niega"),
+                )
+                .join(VoteRow, VoteRow.incident_id == ReportRow.incident_id)
+                .where(ReportRow.reporter_id.in_(reporter_ids), VoteRow.reporter_id != ReportRow.reporter_id)
+                .group_by(ReportRow.reporter_id)
+            ).all()
+            return {rid: (likes, dislikes) for rid, likes, dislikes in filas}
+
     def list_expired_unresolved(self, now: datetime) -> list[Incident]:
         with self._sessions() as s:
             rows = s.scalars(

@@ -1,6 +1,6 @@
 /*
  * sim.js — "Sala en vivo": simula 3–6 usuarios reportando a la vez.
- * Unos entran por WhatsApp (💬) y otros por la web (🌐). Todo se propaga por
+ * Unos entran por WhatsApp y otros por la web. Todo se propaga por
  * Realtime → el mapa compartido y los paneles se actualizan al instante.
  * Ideal para el pitch: demuestra el efecto de red en tiempo real, offline.
  */
@@ -10,12 +10,12 @@
 
   // 6 usuarios simulados (mezcla de canales y perfiles del territorio)
   const USUARIOS = [
-    { nombre: 'Doña Rosa', canal: 'whatsapp', emoji: '👵', barrio: 'Paraíso Alto' },
-    { nombre: 'Carlos (jeepero)', canal: 'whatsapp', emoji: '🧑‍✈️', barrio: 'Quiba' },
-    { nombre: 'Laura (estudiante)', canal: 'web', emoji: '👩‍🎓', barrio: 'Sierra Morena' },
-    { nombre: 'Andrés (comerciante)', canal: 'web', emoji: '🧑‍💼', barrio: 'Perdomo' },
-    { nombre: 'JAC Arborizadora', canal: 'web', emoji: '🏘️', barrio: 'Arborizadora Alta' },
-    { nombre: 'Miguel', canal: 'whatsapp', emoji: '🧑', barrio: 'Meissen' },
+    { nombre: 'Doña Rosa', canal: 'whatsapp', icono: 'elderly_woman', barrio: 'Paraíso Alto' },
+    { nombre: 'Carlos (jeepero)', canal: 'whatsapp', icono: 'person', barrio: 'Quiba' },
+    { nombre: 'Laura (estudiante)', canal: 'web', icono: 'school', barrio: 'Sierra Morena' },
+    { nombre: 'Andrés (comerciante)', canal: 'web', icono: 'storefront', barrio: 'Perdomo' },
+    { nombre: 'JAC Arborizadora', canal: 'web', icono: 'home_work', barrio: 'Arborizadora Alta' },
+    { nombre: 'Miguel', canal: 'whatsapp', icono: 'person', barrio: 'Meissen' },
   ];
 
   // Reportes rápidos disponibles en cada panel
@@ -33,13 +33,13 @@
     const div = document.createElement('div');
     div.className = 'user ' + (u.canal === 'whatsapp' ? 'wa' : 'web');
     div.innerHTML = `
-      <div class="uhead">${u.emoji} <strong>${u.nombre}</strong>
-        <span class="canal">${u.canal === 'whatsapp' ? '💬 WhatsApp' : '🌐 Web'}</span></div>
+      <div class="uhead">${ico(u.icono, 'fill')} <strong>${u.nombre}</strong>
+        <span class="canal">${icoCanal(u.canal)}${u.canal === 'whatsapp' ? 'WhatsApp' : 'Web'}</span></div>
       <div class="ubody">
-        <div style="font-size:11px;color:#888;margin-bottom:6px">📍 ${u.barrio}</div>
+        <div style="display:flex;align-items:center;gap:2px;font-size:11px;color:var(--gris);margin-bottom:6px">${ico('location_on')}${u.barrio}</div>
         <div class="quick">${RAPIDOS.map((t) => {
           const tt = Reports.TIPOS[t];
-          return `<button style="background:${tt.color}" data-u="${idx}" data-t="${t}">${tt.icono} ${tt.label.split(' ')[0]}</button>`;
+          return `<button style="background:${tt.color}" data-u="${idx}" data-t="${t}">${icoTipo(t)}${tt.label.split(' ')[0]}</button>`;
         }).join('')}</div>
         <div class="last" id="last-${idx}"></div>
       </div>`;
@@ -51,7 +51,7 @@
     const u = USUARIOS[+b.dataset.u]; const tr = tramoDe(u.barrio);
     Reports.reportar({ tipo: b.dataset.t, deId: tr.de, aId: tr.a, modo: tr.modo,
       nota: `Reportado por ${u.nombre}`, canal: u.canal, autor: u.nombre });
-    $('#last-' + b.dataset.u).textContent = `✓ Enviaste: ${Reports.TIPOS[b.dataset.t].label}`;
+    $('#last-' + b.dataset.u).innerHTML = `${ico('check')} Enviaste: ${Reports.TIPOS[b.dataset.t].label}`;
   });
 
   // ---------- Mapa vivo (SVG, siempre offline) ----------
@@ -69,7 +69,7 @@
     PARADEROS.forEach((p) => {
       const c = document.createElementNS(NS, 'circle');
       c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', 1.2);
-      c.setAttribute('fill', '#7B2FF7'); c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', '.3');
+      c.setAttribute('fill', '#770092'); c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', '.3');
       svg.appendChild(c);
     });
     Realtime.vigentes().forEach((i) => {
@@ -96,8 +96,7 @@
 
   function feed(i) {
     const t = Reports.TIPOS[i.tipo]; const d = document.createElement('div');
-    const ico = i.canal === 'whatsapp' ? '💬' : '🌐';
-    d.innerHTML = `${t.icono} <b>${i.autor}</b> ${ico}: ${t.label} en ${Engine.nodoPorId[i.deId].nombre}`;
+    d.innerHTML = `${icoTipo(i.tipo)} <b>${i.autor}</b> ${icoCanal(i.canal)}: ${t.label} en ${Engine.nodoPorId[i.deId].nombre}`;
     $('#feed').prepend(d);
   }
 
@@ -105,7 +104,7 @@
     dibujar();
     if (ev.action === 'add' && ev.incidente) {
       const t = Reports.TIPOS[ev.incidente.tipo];
-      toast(`<b>${t.icono} ${t.label}</b><br><small>${ev.incidente.autor} · ${ev.incidente.canal}</small>`, t.color);
+      toast(`<b>${icoTipo(ev.incidente.tipo)} ${t.label}</b><br><small>${ev.incidente.autor} · ${ev.incidente.canal}</small>`, t.color);
       feed(ev.incidente);
     }
   });
@@ -114,8 +113,8 @@
   // ---------- Controles ----------
   let auto = null;
   $('#btnAuto').addEventListener('click', (e) => {
-    if (auto) { clearInterval(auto); auto = null; e.target.textContent = '▶️ Simular actividad'; return; }
-    e.target.textContent = '⏸️ Pausar simulación';
+    if (auto) { clearInterval(auto); auto = null; e.currentTarget.innerHTML = ico('play_arrow', 'fill') + 'Simular actividad'; return; }
+    e.currentTarget.innerHTML = ico('pause', 'fill') + 'Pausar simulación';
     auto = setInterval(() => {
       const u = USUARIOS[Math.floor(Math.random() * USUARIOS.length)];
       const tipo = RAPIDOS[Math.floor(Math.random() * RAPIDOS.length)];

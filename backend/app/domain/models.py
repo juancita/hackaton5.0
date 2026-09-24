@@ -255,6 +255,8 @@ class IncidentView(BaseModel):
     n_confirma: int
     n_niega: int
     afecta_rutas: bool
+    vigente: bool = True
+    estrellas_autor: float | None = None  # estrellas de quien lo reportó primero (None = admin)
     creado_en: datetime
     expira_en: datetime
 
@@ -263,6 +265,9 @@ class ReporterProfile(BaseModel):
     rol: Role
     aciertos: int
     fallos: int
+    estrellas: float
+    likes: int
+    dislikes: int
     reputacion: float
     peso: float
 
