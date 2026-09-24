@@ -5,8 +5,7 @@
  *   1) se propaga a todos vía Realtime (mapa vivo + notificaciones), y
  *   2) PENALIZA o BLOQUEA tramos del grafo → el motor recalcula rutas.
  *
- * El mismo modelo sirve para reportes de personas (WhatsApp/web) y para
- * eventos automáticos de las cámaras edge (ver edge.js): todos son incidentes.
+ * El mismo modelo sirve para reportes de WhatsApp, Telegram y web.
  */
 
 const Reports = (() => {
@@ -34,7 +33,7 @@ const Reports = (() => {
     return Realtime.publicar({
       tipo, deId, aId, modo,
       nota: nota || '',
-      canal: canal || 'web',       // 'whatsapp' | 'web' | 'edge'
+      canal: canal || 'web',       // 'whatsapp' | 'telegram' | 'web'
       autor: autor || 'Ciudadano',
       lat: geo.lat, lng: geo.lng,
       vidaMin: t.vidaMin,
@@ -49,7 +48,7 @@ const Reports = (() => {
       const t = TIPOS[i.tipo]; if (!t) return;
       pen[`${i.deId}|${i.aId}|${i.modo}`] = {
         bloqueado: t.bloquea, factor: t.factor || 1,
-        motivo: `${t.icono} ${t.label}${i.nota ? ': ' + i.nota : ''}${i.canal === 'edge' ? ' (cámara fotodetección)' : ''}`,
+        motivo: `${t.icono} ${t.label}${i.nota ? ': ' + i.nota : ''}`,
       };
     });
     Engine.setPenalizaciones(pen);

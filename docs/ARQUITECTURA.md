@@ -4,13 +4,13 @@
 > el flujo de datos y por qué cada decisión ayuda a ganar la rúbrica.
 
 ## Visión de 30 segundos
-Una **PWA sin backend** (HTML/CSS/JS vainilla) que:
+Una **PWA offline-first** (HTML/CSS/JS vainilla) con un **backend FastAPI opcional** que:
 1. Consume **datos abiertos oficiales en vivo** (ArcGIS TransMilenio, datos.gov.co, IDECA) y los cachea para offline.
 2. Los **cruza con transporte informal** (jeeps, colectivos, veredales) en un grafo multimodal.
 3. Recomienda rutas con un **motor local** (Dijkstra) + **capa de IA** para lenguaje natural.
 4. Tiene un **mapa vivo tipo Waze** con reportes ciudadanos en **tiempo real**.
-5. Suma **Edge AI**: cámaras que detectan congestión con visión por computador **en el dispositivo**.
-6. Funciona por **web** (perfil experto) y **WhatsApp** (perfil de baja alfabetización digital).
+5. Pondera los reportes por **reputación** (usuario / admin) y los guarda en PostgreSQL.
+6. Funciona por **web** (perfil experto), **WhatsApp** y **Telegram** (asistente guiado paso a paso).
 
 ## Principios de diseño (atados a la rúbrica)
 - **Offline-first** → viabilidad real en la ladera (zonas altas sin señal).
@@ -22,18 +22,18 @@ Una **PWA sin backend** (HTML/CSS/JS vainilla) que:
 ```
                          ┌─────────────────────────────────────────┐
                          │                index.html                │
-                         │   (Rutas · Asistente · Mapa · Reportar · │
-                         │                 Cámara)                  │
+                         │   (Rutas · Asistente · Mapa · Reportar)  │
+                         │   api.js → backend si responde           │
                          └───────────────────┬─────────────────────┘
                                              │
         ┌────────────┬──────────────┬────────┴───────┬──────────────┬─────────────┐
         ▼            ▼              ▼                ▼              ▼             ▼
-   data.js      datasources.js   engine.js        ai.js        reports.js     edge.js
-  (semilla:    (fuentes         (grafo multi-    (NLP local +  (incidentes    (cámaras
-   grafo +      OFICIALES en     modal +          LLM opcional  geo + tipos)   edge:
-   informal +   vivo + caché     Dijkstra)        → reporta y                  simuladas +
-   cámaras)     + fallback)                        rutea)        │             webcam real
-        │            │              ▲                            │             TF.js)
+   data.js      datasources.js   engine.js        ai.js        reports.js     api.js
+  (semilla:    (fuentes         (grafo multi-    (NLP local,   (incidentes    (backend:
+   grafo +      OFICIALES en     modal +          respaldo del  geo + tipos)   sugerencias,
+   informal +   vivo + caché     Dijkstra)        asistente)                   chat, reportes;
+   cámaras)     + fallback)                                      │             respaldo local)
+        │            │              ▲                            │                │
         └────────────┴──────────────┘                            │                │
                                                                  ▼                ▼
                                                             realtime.js  ◄─────────┘
@@ -72,21 +72,20 @@ El badge superior muestra 🟢 vivo / 🟡 caché / ⚪ semilla. Ver [FUENTES_DA
 - Un **incidente** = `{ id, tipo, deId, aId, modo, lat, lng, nota, canal, autor, ts, vidaMin, votos }`.
 
 ### 4) Reportes ciudadanos (`reports.js`)
-- Convierte un reporte (persona o cámara) en incidente geolocalizado y lo publica.
+- Convierte un reporte ciudadano en incidente geolocalizado y lo publica.
 - Traduce incidentes vigentes en **penalizaciones** del grafo → las rutas se recalculan solas.
 - Tipos: derrumbe, bloqueo, trancón, lleno, sin servicio, novedad (con severidad y vida útil).
 
-### 5) Edge AI sobre cámaras de fotodetección (`edge.js`)
-> **Idea clave:** Ciudad Bolívar YA tiene cámaras de **fotodetección (fotocomparendos)** de la
-> Secretaría de Movilidad en semáforos/corredores. Hoy solo multan. Las **reutilizamos** para
-> estimar congestión en tiempo real. **Cero hardware nuevo, cero costo** → viabilidad altísima.
-- **Simulado:** nodos en los puntos reales de fotodetección (Av. Villavicencio, Portal Tunal,
-  Av. Boyacá, subida a Paraíso) que emiten congestión al mapa.
-- **Real (PoC):** webcam + **TensorFlow.js COCO-SSD** detecta vehículos/personas **en el dispositivo**;
-  calcula un índice de congestión y publica incidentes automáticos. Demuestra el mismo procesamiento
-  que correría junto a la cámara del semáforo. El video **nunca sale del equipo** (solo el dato).
-- Argumento edge: privacidad (no video ni placas) + reúso de infraestructura pública + ancho de
-  banda + latencia + costo (ver comentarios del archivo).
+### 5) Backend hexagonal (`backend/`)
+- **FastAPI + dominio puro** (`app/domain`): sugerencias de lugares, motor de rutas (port fiel de
+  `engine.js`), `PlanTripUseCase` (origen + destino → toda la información), reportes con reputación
+  y el asistente con estado (modo guiado o manual).
+- **Puertos de entrada** por canal: `/chat/web`, `/webhooks/telegram`, `/webhooks/whatsapp` traducen
+  a `InboundMessage`; el dominio responde un `OutboundMessage` completo.
+- **Puertos de salida:** `ResponseRefiner` (Gemini Flash o ninguno), repositorios en PostgreSQL
+  (Docker) para el feedback, conversaciones en memoria.
+- Las cámaras de fotodetección quedan **solo como marcadores** del mapa (la detección se retiró).
+- Specs detallados en [`docs/specs/`](specs/00-contexto.md).
 
 ### 6) Asistente (`ai.js`)
 - **Local (siempre):** interpreta "de X a Y", prioridad y **reportes** en lenguaje natural.
@@ -108,4 +107,4 @@ cd web && python3 -m http.server 8000   # http://localhost:8000
 - Conectar `Realtime` a un backend real (Firebase Realtime DB es lo más rápido).
 - Enriquecer el grafo con horarios GTFS reales (dataset `nysb-4689`).
 - Validación comunitaria de rutas informales (flujo JAC).
-- Modelo de visión afinado para conteo vehicular (hoy COCO-SSD genérico).
+- Detección de congestión con las cámaras de fotodetección (hoy solo marcadores en el mapa).

@@ -57,11 +57,10 @@
    actividad"** → 6 vecinos (unos por WhatsApp, otros por web) reportan derrumbes/trancones y
    el **mapa se llena de alertas en tiempo real** con notificaciones. *"Es un Waze hecho por y
    para Ciudad Bolívar."*
-5. **Edge AI sobre fotodetección:** ve a **Cámara** y enciende la webcam → detecta vehículos/
-   personas **en el dispositivo** y calcula el índice de congestión. *"Ciudad Bolívar ya tiene
-   cámaras de fotocomparendos en los semáforos. Hoy solo multan; nosotros reutilizamos ese video
-   para detectar congestión. Cero hardware nuevo. El video nunca sale del equipo: solo el dato,
-   sin placas. Privacidad y viabilidad."*
+5. **Reportes con reputación:** reporta un trancón desde el chat → aparece con confianza 40%.
+   Un segundo vecino lo confirma y sube; un admin lo verifica y el tramo se bloquea o penaliza.
+   *"No necesitas crear cuenta: tu número de WhatsApp o tu navegador es tu identidad (anónima).
+   Quien acierta gana peso; quien inventa lo pierde."*
 6. **A prueba de fallos:** pon el portátil en **modo avión** y repite una búsqueda. *"Sin
    internet, sigue funcionando. Eso es viabilidad real en la ladera."*
 

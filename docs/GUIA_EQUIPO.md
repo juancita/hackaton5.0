@@ -25,7 +25,7 @@ No hay que instalar nada más. Todo es HTML/CSS/JS.
 | `web/js/ai.js` | Dev IA | Asistente en lenguaje natural + LLM |
 | `web/js/realtime.js` | Dev tiempo real | Bus de sincronización |
 | `web/js/reports.js` | Dev | Reportes/incidentes |
-| `web/js/edge.js` | Dev visión | Cámaras edge (webcam + TF.js) |
+| `backend/` | Dev backend | API FastAPI: rutas, asistente, reportes (ver `docs/specs/`) |
 | `web/js/app.js` | Dev frontend | UI de la app |
 | `web/js/sim.js` + `simulador.html` | Dev frontend | Sala en vivo |
 | `web/css/styles.css` | Diseño | Estilos |
@@ -47,7 +47,7 @@ Ver [../CONTRIBUTING.md](../CONTRIBUTING.md) para el detalle. Resumen:
 | **Capitán / Comunicación** | Nodo de contacto, cierre del pitch, responder al jurado | Pitch ensayado |
 | **Producto / Territorio** | Datos reales, actores locales, validar contexto | `data.js` fiel + argumentos |
 | **Dev 1 (core)** | Motor, datos oficiales, tiempo real | App estable |
-| **Dev 2 (frontend/IA)** | UI, mapa, cámara, asistente | Demo pulido |
+| **Dev 2 (frontend/IA)** | UI, mapa, asistente | Demo pulido |
 | **Diseño** | UI/UX, slides, identidad | Materiales del pitch |
 
 *(Si son 3–4, combinen roles. No hace falta que todos programen.)*
@@ -56,7 +56,7 @@ Ver [../CONTRIBUTING.md](../CONTRIBUTING.md) para el detalle. Resumen:
 - [ ] `main` corre sin errores en un portátil limpio.
 - [ ] Demo probado en **modo avión** (offline).
 - [ ] Sala en vivo probada con 3–6 "usuarios".
-- [ ] Cámara real probada en el portátil que se usará (permisos de webcam).
+- [ ] Backend + Postgres arriba (`docker compose up -d db`) y `GEMINI_API_KEY` probada.
 - [ ] Datos oficiales cargando (badge 🟢) al menos una vez para llenar caché.
 - [ ] Guion de 5 min cronometrado, todos hablan.
 - [ ] Respuestas a preguntas trampa repasadas ([PITCH.md](PITCH.md)).

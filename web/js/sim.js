@@ -96,7 +96,7 @@
 
   function feed(i) {
     const t = Reports.TIPOS[i.tipo]; const d = document.createElement('div');
-    const ico = i.canal === 'whatsapp' ? '💬' : i.canal === 'edge' ? '📹' : '🌐';
+    const ico = i.canal === 'whatsapp' ? '💬' : '🌐';
     d.innerHTML = `${t.icono} <b>${i.autor}</b> ${ico}: ${t.label} en ${Engine.nodoPorId[i.deId].nombre}`;
     $('#feed').prepend(d);
   }
@@ -122,12 +122,6 @@
       const tr = tramoDe(u.barrio);
       Reports.reportar({ tipo, deId: tr.de, aId: tr.a, modo: tr.modo, nota: `Reportado por ${u.nombre}`, canal: u.canal, autor: u.nombre });
     }, 3500);
-  });
-  let camOn = false;
-  $('#btnCam').addEventListener('click', (e) => {
-    camOn = !camOn;
-    if (camOn) { Edge.iniciarSimulacion(6000); e.target.textContent = '⏸️ Cámaras edge'; }
-    else { Edge.detenerSimulacion(); e.target.textContent = '📹 Cámaras edge'; }
   });
   $('#btnClear').addEventListener('click', () => { Realtime.limpiarTodo(); $('#feed').innerHTML = ''; });
 })();
