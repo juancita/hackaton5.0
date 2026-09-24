@@ -24,7 +24,15 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8080            # Swagger: http://localhost:8080/docs
 ```
 - **Sin Docker:** con `STORAGE=memory` en `.env` la API funciona sin base de datos, pero los reportes se pierden al reiniciar.
-- **Todo en contenedores:** `docker compose --profile api up -d --build` levanta la BD y la API (migra sola).
+- **Todo en contenedores:** `docker compose --profile api up -d --build` levanta la BD y la API (migra sola) y sirve la web en http://localhost:8080.
+
+## Despliegue en Railway
+Un solo servicio sirve la **API y la web** (la web se monta en `/`, la API conserva sus rutas y el front la llama en el mismo origen).
+- **Build:** `railway.json` (raíz del repo) indica usar el `Dockerfile` de la raíz. En el servicio, *Root Directory* debe quedar vacío (`/`).
+- **Arranque:** el contenedor aplica `alembic upgrade head` y levanta uvicorn en el `PORT` que asigna Railway. Healthcheck: `/health`.
+- **Base de datos:** agrega un servicio **PostgreSQL** al proyecto y en las variables de la API pon `DATABASE_URL=${{Postgres.DATABASE_URL}}` (la URL `postgresql://` se convierte sola al driver psycopg).
+- **Variables:** `STORAGE=postgres`, `ID_SALT`, `ADMIN_API_KEY`, y opcionalmente `LLM_PROVIDER`/`GEMINI_API_KEY`, `TELEGRAM_*`, `WHATSAPP_*` (ver `.env.example`).
+- **Dominio:** *Settings → Networking → Generate Domain*. Con él registra el webhook de Telegram: `python -m scripts.set_telegram_webhook https://<dominio>`.
 
 ## Arquitectura
 ```

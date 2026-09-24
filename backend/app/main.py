@@ -1,11 +1,13 @@
 """App FastAPI de Muévete CB. Ejecutar: uvicorn app.main:app --reload"""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.adapters.inbound import chat_channels, http_api
 from app.config import get_settings
@@ -39,6 +41,11 @@ def create_app(container: Container | None = None, http_client: httpx.AsyncClien
 
     app.include_router(http_api.router)
     app.include_router(chat_channels.router)
+
+    # La web se monta al final para que las rutas de la API tengan prioridad
+    web_dir = Path(container.settings.web_dir or Path(__file__).resolve().parents[2] / "web")
+    if (web_dir / "index.html").is_file():
+        app.mount("/", StaticFiles(directory=web_dir, html=True), name="web")
     return app
 
 

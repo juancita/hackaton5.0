@@ -20,7 +20,7 @@ services:
 
   api:
     profiles: ["api"]
-    build: ./backend
+    build: .
     env_file:
       - path: ./backend/.env
         required: false

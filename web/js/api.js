@@ -7,14 +7,17 @@
  *
  * Identidad sin cuenta: se genera un client_id una sola vez y se envía en X-Client-Id.
  * Modo admin: la clave se guarda solo en esta pestaña (sessionStorage) y va en X-Admin-Key.
- * URL del backend: localStorage 'muevecb_api', window.MUEVECB_API o, por defecto, el mismo
- * host desde el que se abrió la app en el puerto 8080 (sirve en toda la red local).
+ * URL del backend: localStorage 'muevecb_api', window.MUEVECB_API o, por defecto:
+ *  - en desarrollo (web servida en otro puerto, p. ej. 8000): el mismo host en el puerto 8080;
+ *  - en producción (Railway) o si la sirve la propia API: el mismo origen.
  */
 
 const API = (() => {
-  const porDefecto = location.protocol.startsWith('http')
-    ? `${location.protocol}//${location.hostname}:8080`
-    : 'http://localhost:8080';
+  const porDefecto = !location.protocol.startsWith('http')
+    ? 'http://localhost:8080'
+    : (location.port && location.port !== '8080')
+      ? `${location.protocol}//${location.hostname}:8080`
+      : location.origin;
   const base = (() => {
     try { return localStorage.getItem('muevecb_api') || window.MUEVECB_API || porDefecto; }
     catch (e) { return window.MUEVECB_API || porDefecto; }

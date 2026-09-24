@@ -1,0 +1,12 @@
+.git
+.idea
+.vscode
+material_reto
+docs
+whatsapp
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.cache
+**/.env
+**/node_modules

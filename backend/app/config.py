@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,6 +32,18 @@ class Settings(BaseSettings):
     whatsapp_verify_token: str = ""
     whatsapp_app_secret: str = ""
     whatsapp_api_version: str = "v21.0"
+
+    # Carpeta de la web estática; si existe se sirve en "/" (en Docker: /web)
+    web_dir: str = ""
+
+    @field_validator("database_url")
+    @classmethod
+    def _driver_psycopg(cls, v: str) -> str:
+        # Railway/Heroku entregan postgres:// o postgresql://; SQLAlchemy necesita el driver psycopg 3
+        for prefijo in ("postgres://", "postgresql://"):
+            if v.startswith(prefijo):
+                return "postgresql+psycopg://" + v[len(prefijo):]
+        return v
 
 
 @lru_cache
