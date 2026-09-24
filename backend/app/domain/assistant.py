@@ -12,12 +12,15 @@ import re
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
+from app.domain import mapas
 from app.domain.errors import DomainError, RateLimited
 from app.domain.models import (
     Conversation,
     InboundMessage,
+    IncidentState,
     InterpretContext,
     Interpretation,
+    MapaRuta,
     Network,
     OutboundMessage,
     Place,
@@ -39,25 +42,39 @@ log = logging.getLogger(__name__)
 # --- Vocabulario ---------------------------------------------------------------
 
 SALUDO = re.compile(r"^(hola|ola|buenas|buenos dias|buenas tardes|buenas noches|hey|hi)\b")
-REINICIO = {"menu", "reiniciar", "inicio", "empezar", "volver a empezar", "cancelar"}
+REINICIO = {"menu", "menu principal", "reiniciar", "inicio", "empezar", "volver a empezar"}
+CANCELAR = {"cancelar", "cancela", "cancelar busqueda", "salir"}
 AYUDA = {"ayuda", "help", "que puedes hacer"}
 
-OPC_MODO = [QuickReply(id="guiada", label="Guiada"), QuickReply(id="manual", label="Manual")]
-OPC_PRIORIDAD = [
-    QuickReply(id="rapido", label="Rápido"),
-    QuickReply(id="barato", label="Barato"),
-    QuickReply(id="transbordos", label="Menos transbordos"),
+INCIDENTES = {"incidentes", "ultimos incidentes", "ver incidentes", "novedades", "reportes"}
+
+OPC_CANCELAR = QuickReply(id="cancelar", label="✖️ Cancelar")
+OPC_UBICACION = QuickReply(id="ubicacion", label="📍 Usar mi ubicación")
+OPC_MENU = [
+    QuickReply(id="guiada", label="🧭 Ruta guiada"),
+    QuickReply(id="manual", label="✍️ Escribir mi viaje"),
+    QuickReply(id="reportar", label="⚠️ Reportar novedad"),
+    QuickReply(id="incidentes", label="📋 Últimos incidentes"),
 ]
-OPC_RESULTADO = [
-    QuickReply(id="otra", label="Otra ruta"),
-    QuickReply(id="alternativas", label="Ver alternativas"),
-    QuickReply(id="reportar", label="Reportar"),
+OPC_PRIORIDAD = [
+    QuickReply(id="rapido", label="⚡ Llegar rápido"),
+    QuickReply(id="barato", label="💰 Lo más barato"),
+    QuickReply(id="transbordos", label="🔄 Menos transbordos"),
+    OPC_CANCELAR,
 ]
 
+PREGUNTA_MENU = (
+    "¿Qué quieres hacer? Elige una opción 👇\n"
+    "• 🧭 Ruta guiada: te pregunto paso a paso de dónde sales y a dónde vas\n"
+    "• ✍️ Escribir mi viaje: me lo cuentas con tus palabras\n"
+    "• ⚠️ Reportar novedad: avisa un trancón, derrumbe o bloqueo\n"
+    "• 📋 Últimos incidentes: mira lo que han reportado los vecinos"
+)
 PREGUNTA_ORIGEN = "Paso 1 de 3 · ¿Desde dónde sales? 📍"
 PREGUNTA_DESTINO = "Paso 2 de 3 · ¿A dónde te diriges? 🏁"
-PREGUNTA_PRIORIDAD = "Paso 3 de 3 · ¿Qué prefieres?"
-PREGUNTA_RESULTADO = "¿Qué sigue?"
+PREGUNTA_PRIORIDAD = "Paso 3 de 3 · ¿Qué es lo más importante en este viaje? Elige una opción 👇"
+PREGUNTA_RESULTADO = "¿Qué quieres hacer ahora? Elige una opción 👇"
+PREGUNTA_TRAS_REPORTE = "¿Qué más quieres hacer? Elige una opción 👇"
 INSTRUCCION_MANUAL = (
     "Modo manual ✍️ Escríbeme tu viaje como quieras, por ejemplo:\n"
     "• «de Sierra Morena al Hospital Meissen»\n"
@@ -67,6 +84,13 @@ INSTRUCCION_REPORTE = (
     "Cuéntame qué pasa y dónde, por ejemplo: «reporto un trancón en Perdomo» "
     "o «no está pasando el jeep en Paraíso»."
 )
+ELIGE_OPCION = "No entendí esa respuesta 🙈 Por favor toca una de las opciones de abajo 👇"
+COMO_UBICACION = (
+    "Para usar tu ubicación toca el botón «📍 Usar mi ubicación» (en WhatsApp: 📎 › Ubicación). "
+    "También puedes escribir el barrio o paradero."
+)
+CERCANIA_MAX_M = 2_500  # más lejos que esto del paradero más cercano, no se toma como origen
+N_INCIDENTES = 10
 
 # Detección de reportes (port de detectarReporte en web/js/ai.js)
 DISPARADOR_REPORTE = re.compile(
@@ -137,14 +161,36 @@ def _cifras(texto: str) -> set[str]:
 
 
 def _reiniciar(conv: Conversation, **valores) -> None:
-    """Deja la conversación como nueva (conservando la clave) y aplica `valores`."""
+    """Deja la conversación como nueva (conservando la clave y la ubicación) y aplica `valores`."""
     for nombre, campo in Conversation.model_fields.items():
-        if nombre != "key":
+        if nombre not in ("key", "ubicacion"):
             setattr(conv, nombre, valores.get(nombre, copy.deepcopy(campo.get_default(call_default_factory=True))))
 
 
-def _opciones_lugares(lugares: list[Place]) -> list[QuickReply]:
-    return [QuickReply(id=p.id, label=p.nombre) for p in lugares]
+def _opciones_lugares(lugares: list[Place], conv: Conversation | None = None) -> list[QuickReply]:
+    """Lugares como botones. Si se está pidiendo el origen, se ofrece también usar la ubicación."""
+    pide_origen = conv is not None and (conv.paso == "origen" or (conv.paso == "manual" and conv.pendiente == "origen"))
+    return [QuickReply(id=p.id, label=p.nombre) for p in lugares] + ([OPC_UBICACION] if pide_origen else []) + [OPC_CANCELAR]
+
+
+def _hace(delta: timedelta) -> str:
+    minutos = int(delta.total_seconds() // 60)
+    if minutos < 1:
+        return "hace un momento"
+    if minutos < 60:
+        return f"hace {minutos} min"
+    if minutos < 24 * 60:
+        return f"hace {minutos // 60} h"
+    dias = minutos // (24 * 60)
+    return f"hace {dias} día{'s' if dias > 1 else ''}"
+
+
+def _opcion_elegida(conv: Conversation, n: str) -> str | None:
+    """El id de la opción mostrada que el usuario eligió: por botón (su texto), por id o por número."""
+    if n.isdigit():
+        i = int(n) - 1
+        return conv.opciones[i].id if 0 <= i < len(conv.opciones) else None
+    return next((o.id for o in conv.opciones if n in (o.id, normalize(o.label))), None)
 
 
 class AssistantService:
@@ -189,15 +235,25 @@ class AssistantService:
         return out
 
     async def _procesar(self, conv: Conversation, msg: InboundMessage) -> OutboundMessage:
+        if msg.ubicacion:
+            return await self._con_ubicacion(conv, msg)
         n = normalize(msg.texto)
         if not n:
             texto, opciones = self._pendiente(conv)
             return self._resp(conv, f"Por ahora solo entiendo mensajes de texto ✍️\n\n{texto}", opciones)
 
+        elegida = _opcion_elegida(conv, n)
+
         # Comandos globales
-        if n in REINICIO or SALUDO.match(n):
-            _reiniciar(conv)  # vuelve a INICIO
-            if SALUDO.match(n) and (directo := await self._consulta_directa(conv, msg, n)):
+        if n in CANCELAR or elegida == "cancelar":
+            _reiniciar(conv)
+            return self._menu(conv, "Listo, cancelé la búsqueda ✋\n\n")
+        if n in REINICIO or elegida == "menu":
+            _reiniciar(conv)
+            return self._menu(conv)
+        if SALUDO.match(n):
+            _reiniciar(conv)
+            if directo := await self._consulta_directa(conv, msg, n):
                 return directo
             return self._saludo(conv, msg)
         if n in AYUDA:
@@ -206,36 +262,43 @@ class AssistantService:
                 "Esto es lo que puedo hacer:\n"
                 "• Buscar rutas formales e informales en Ciudad Bolívar\n"
                 "• Recibir reportes: «reporto un derrumbe en Paraíso»\n"
-                "Escribe «menu» para empezar de nuevo, o «guiada» / «manual» para cambiar de modo."
+                "Toca «Cancelar» o escribe «menu» cuando quieras volver al inicio."
                 f"\n\n{texto}"
             ), opciones)
-        if n in ("guiada", "guiado", "paso a paso"):
+        if elegida == "guiada" or n in ("guiada", "guiado", "paso a paso"):
             return self._iniciar_guiada(conv)
-        if n in ("manual", "libre"):
+        if elegida == "manual" or n in ("manual", "libre"):
             return self._iniciar_manual(conv)
+        if elegida == "reportar" or (n in ("reportar", "reporte") and conv.paso in ("inicio", "resultado")):
+            return self._pedir_reporte(conv)
+        if elegida == "incidentes" or n in INCIDENTES:
+            return self._ultimos_incidentes(conv)
+        if elegida == "ubicacion" or n in ("ubicacion", "mi ubicacion", "usar mi ubicacion"):
+            texto, opciones = self._pendiente(conv)
+            return self._resp(conv, f"{COMO_UBICACION}\n\n{texto}", opciones)
 
         # Reporte ciudadano: se atiende en cualquier paso sin perder el hilo
-        if DISPARADOR_REPORTE.search(n):
+        if conv.paso == "reporte" or DISPARADOR_REPORTE.search(n):
             return await self._reporte(conv, msg, n)
 
         match conv.paso:
             case "inicio":
-                if n in ("1",):
-                    return self._iniciar_guiada(conv)
-                if n in ("2",):
-                    return self._iniciar_manual(conv)
                 if directo := await self._consulta_directa(conv, msg, n):
                     return directo
-                if llm := await self._con_llm(conv, msg, n):
-                    return llm
-                return self._saludo(conv, msg)
+                if accion := await self._accion_llm(conv, msg, n):
+                    return accion
+                if not conv.opciones:  # aún no ha visto el menú: se le presenta
+                    return self._saludo(conv, msg)
+                return self._elige_opcion(conv)
             case "origen" | "destino":
                 return await self._paso_lugar(conv, msg, n)
             case "prioridad":
-                conv.prioridad = self._prioridad_de_opcion(n)
+                conv.prioridad = elegida if elegida in ("rapido", "barato", "transbordos") else detectar_prioridad(n)
+                if not conv.prioridad:
+                    return self._elige_opcion(conv)
                 return await self._resultado(conv, msg)
             case "resultado":
-                return await self._tras_resultado(conv, msg, n)
+                return await self._tras_resultado(conv, msg, n, elegida)
             case _:
                 return await self._manual(conv, msg, n)
 
@@ -243,11 +306,19 @@ class AssistantService:
 
     def _saludo(self, conv: Conversation, msg: InboundMessage) -> OutboundMessage:
         nombre = f" {msg.nombre.split()[0]}" if msg.nombre else ""
-        return self._resp(conv, (
+        return self._menu(conv, (
             f"¡Hola{nombre}! Soy tu asistente de Muévete CB 🚡. Te ayudo a moverte por Ciudad Bolívar "
             "(TransMiCable, SITP, jeeps y colectivos) y a avisar novedades en la vía.\n\n"
-            "¿Cómo prefieres que te ayude?\n• Guiada: te pregunto paso a paso\n• Manual: me escribes tu viaje libremente"
-        ), OPC_MODO)
+        ))
+
+    def _menu(self, conv: Conversation, prefijo: str = "") -> OutboundMessage:
+        return self._resp(conv, prefijo + PREGUNTA_MENU, OPC_MENU)
+
+    def _elige_opcion(self, conv: Conversation) -> OutboundMessage:
+        """Respuesta a algo que no es ninguna de las opciones de una pregunta cerrada."""
+        pregunta, opciones = self._pendiente(conv)
+        salida = " Si quieres dejar la búsqueda, toca «Cancelar»." if OPC_CANCELAR in opciones else ""
+        return self._resp(conv, f"{ELIGE_OPCION}{salida}\n\n{pregunta}", opciones)
 
     async def _consulta_directa(self, conv: Conversation, msg: InboundMessage, n: str) -> OutboundMessage | None:
         """Si el primer mensaje ya trae origen o destino, se pasa a modo manual sin preguntar."""
@@ -263,19 +334,23 @@ class AssistantService:
 
     def _iniciar_manual(self, conv: Conversation) -> OutboundMessage:
         _reiniciar(conv, modo="manual", paso="manual")
-        return self._resp(conv, INSTRUCCION_MANUAL)
+        return self._resp(conv, INSTRUCCION_MANUAL, [OPC_CANCELAR])
+
+    def _pedir_reporte(self, conv: Conversation) -> OutboundMessage:
+        _reiniciar(conv, paso="reporte")
+        return self._resp(conv, INSTRUCCION_REPORTE, [OPC_CANCELAR])
 
     def _preguntar_lugar(self, conv: Conversation, pregunta: str, prefijo: str = "") -> OutboundMessage:
         populares = self._places.populares(5)
         conv.candidatos = [p.id for p in populares]
-        return self._resp(conv, f"{prefijo}{pregunta}\nEscribe el barrio o paradero, o elige uno:", _opciones_lugares(populares))
+        return self._resp(conv, f"{prefijo}{pregunta}\nEscribe el barrio o paradero, o elige uno:", _opciones_lugares(populares, conv))
 
     def _pendiente(self, conv: Conversation) -> tuple[str, list[QuickReply]]:
         """La pregunta que el usuario tiene pendiente en el paso actual."""
-        lugares = _opciones_lugares([p for p in map(self._places.get, conv.candidatos) if p])
+        lugares = _opciones_lugares([p for p in map(self._places.get, conv.candidatos) if p], conv)
         match conv.paso:
             case "inicio":
-                return "¿Prefieres la experiencia guiada o manual?", OPC_MODO
+                return PREGUNTA_MENU, OPC_MENU
             case "origen":
                 return PREGUNTA_ORIGEN, lugares
             case "destino":
@@ -283,12 +358,26 @@ class AssistantService:
             case "prioridad":
                 return PREGUNTA_PRIORIDAD, OPC_PRIORIDAD
             case "resultado":
-                return PREGUNTA_RESULTADO, OPC_RESULTADO
+                return PREGUNTA_RESULTADO, self._opc_resultado(conv)
+            case "reporte":
+                return INSTRUCCION_REPORTE, [OPC_CANCELAR]
         if conv.pendiente == "origen":
             return "¿Desde dónde sales?", lugares
         if conv.pendiente == "destino":
             return "¿A dónde te diriges?", lugares
-        return INSTRUCCION_MANUAL, []
+        return INSTRUCCION_MANUAL, [OPC_CANCELAR]
+
+    @staticmethod
+    def _opc_resultado(conv: Conversation) -> list[QuickReply]:
+        plan: TripPlan | None = conv.ultimo_plan
+        alternativas = [QuickReply(id="alternativas", label="🔀 Ver alternativas")] if plan and len(plan.opciones) > 1 else []
+        return [
+            QuickReply(id="nueva", label="🔁 Buscar otra ruta"),
+            *alternativas,
+            *([] if conv.ubicacion else [QuickReply(id="ubicacion", label="📍 Marcar mi ubicación")]),
+            QuickReply(id="reportar", label="⚠️ Reportar novedad"),
+            QuickReply(id="menu", label="🏠 Menú principal"),
+        ]
 
     # --- Modo guiado -----------------------------------------------------------
 
@@ -303,13 +392,13 @@ class AssistantService:
     def _no_resuelto(self, conv: Conversation, texto: str, res: Resolution) -> OutboundMessage:
         if res.estado == "ambiguo":
             conv.candidatos = [p.id for p in res.candidatos]
-            return self._resp(conv, f"Encontré varios lugares para «{texto}». ¿Cuál es?", _opciones_lugares(res.candidatos))
+            return self._resp(conv, f"Encontré varios lugares para «{texto}». ¿Cuál es?", _opciones_lugares(res.candidatos, conv))
         populares = self._places.populares(5)
         conv.candidatos = [p.id for p in populares]
         return self._resp(
             conv,
             f"No reconozco «{texto}» 🤔. Prueba con otro nombre de barrio o paradero, por ejemplo:",
-            _opciones_lugares(populares),
+            _opciones_lugares(populares, conv),
         )
 
     async def _paso_lugar(self, conv: Conversation, msg: InboundMessage, n: str) -> OutboundMessage:
@@ -334,10 +423,6 @@ class AssistantService:
             return self._preguntar_lugar(conv, PREGUNTA_DESTINO, "El destino no puede ser igual al origen 🙃\n\n")
         conv.destino_id, conv.paso = lugar.id, "prioridad"
         return self._resp(conv, f"✅ Destino: {lugar.nombre}\n\n{PREGUNTA_PRIORIDAD}", OPC_PRIORIDAD)
-
-    @staticmethod
-    def _prioridad_de_opcion(n: str) -> Prioridad:
-        return {"1": "rapido", "2": "barato", "3": "transbordos"}.get(n) or detectar_prioridad(n) or "rapido"
 
     # --- Modo manual -----------------------------------------------------------
 
@@ -379,20 +464,20 @@ class AssistantService:
         if conv.origen_id and conv.destino_id:
             if conv.origen_id == conv.destino_id:
                 conv.destino_id, conv.pendiente = None, "destino"
-                return self._resp(conv, "El destino no puede ser igual al origen 🙃 ¿A dónde te diriges?")
+                return self._resp(conv, "El destino no puede ser igual al origen 🙃 ¿A dónde te diriges?", [OPC_CANCELAR])
             conv.pendiente = None
             return await self._resultado(conv, msg)
         if conv.destino_id:
             conv.pendiente = "origen"
             destino = self._places.get(conv.destino_id).nombre
-            return self._resp(conv, f"¿Desde dónde sales para llegar a {destino}?")
+            return self._resp(conv, f"¿Desde dónde sales para llegar a {destino}?", [OPC_UBICACION, OPC_CANCELAR])
         conv.pendiente = "destino"
         origen = self._places.get(conv.origen_id).nombre
-        return self._resp(conv, f"¿A dónde vas desde {origen}?")
+        return self._resp(conv, f"¿A dónde vas desde {origen}?", [OPC_CANCELAR])
 
     # --- Resultado -------------------------------------------------------------
 
-    async def _resultado(self, conv: Conversation, msg: InboundMessage) -> OutboundMessage:
+    async def _resultado(self, conv: Conversation, msg: InboundMessage, prefijo: str = "") -> OutboundMessage:
         prioridad = conv.prioridad or "rapido"
         plan = self._trip.ejecutar(conv.origen_id, conv.destino_id, prioridad)
         conv.paso, conv.ultimo_plan, conv.candidatos = "resultado", plan, []
@@ -401,7 +486,7 @@ class AssistantService:
                 f"No encontré ruta entre {plan.origen.nombre} y {plan.destino.nombre} 😕. "
                 "Puede que un tramo esté bloqueado por un reporte. Prueba con un lugar cercano.\n\n"
                 f"{PREGUNTA_RESULTADO}"
-            ), OPC_RESULTADO, plan=plan)
+            ), self._opc_resultado(conv), plan=plan)
         op = plan.opciones[plan.recomendada]
         base = explicar(op, self._net)
         pulido = await self._pulir(
@@ -409,36 +494,98 @@ class AssistantService:
             base, {"ruta": op.model_dump()}, msg.canal,
         )
         cierre = f"\n\n{PREGUNTA_RESULTADO}"
-        return self._resp(conv, base + cierre, OPC_RESULTADO, texto=pulido + cierre, plan=plan)
+        return self._resp(conv, prefijo + base + cierre, self._opc_resultado(conv), texto=prefijo + pulido + cierre,
+                          plan=plan, mapa=self._mapa(op, conv))
 
-    async def _tras_resultado(self, conv: Conversation, msg: InboundMessage, n: str) -> OutboundMessage:
-        if n in ("1", "otra", "otra ruta", "nueva", "nueva ruta"):
+    def _mapa(self, op: RouteOption, conv: Conversation) -> MapaRuta | None:
+        try:
+            return mapas.mapa_de(op, self._net, conv.ubicacion)
+        except DomainError:  # una ruta sin tramos reconocibles no tiene mapa, pero sí respuesta
+            log.warning("No se pudo armar el mapa de la ruta %s → %s", op.origen, op.destino)
+            return None
+
+    # --- Ubicación -------------------------------------------------------------
+
+    def _paradero_cercano(self, punto: tuple[float, float]) -> tuple[Place, float]:
+        return min(((p, mapas.distancia_m(punto, (p.lat, p.lng))) for p in self._net.paraderos), key=lambda x: x[1])
+
+    async def _con_ubicacion(self, conv: Conversation, msg: InboundMessage) -> OutboundMessage:
+        """El usuario compartió su ubicación: sirve de origen si se está pidiendo, y siempre sale en el mapa."""
+        conv.ubicacion = msg.ubicacion
+        cerca, dist = self._paradero_cercano(msg.ubicacion)
+        distancia = f"{round(dist)} m" if dist < 1000 else f"{dist / 1000:.1f} km"
+        if conv.paso == "resultado" and conv.ultimo_plan and conv.ultimo_plan.opciones:
+            return await self._resultado(conv, msg, "📍 ¡Listo! Marqué tu ubicación en el mapa.\n\n")
+
+        pide_origen = conv.paso in ("inicio", "origen") or (conv.paso == "manual" and not conv.origen_id)
+        if pide_origen and dist <= CERCANIA_MAX_M:
+            aviso = f"📍 Estás a {distancia} de {cerca.nombre}: saldrás desde ahí.\n\n"
+            conv.candidatos = []
+            if conv.paso == "manual":
+                conv.origen_id, conv.pendiente = cerca.id, None
+                if conv.destino_id and conv.destino_id != cerca.id:
+                    return await self._resultado(conv, msg, aviso)
+                conv.pendiente = "destino"
+                return self._resp(conv, f"{aviso}¿A dónde vas?", [OPC_CANCELAR])
+            _reiniciar(conv, modo="guiada", paso="destino", origen_id=cerca.id)
+            return self._preguntar_lugar(conv, PREGUNTA_DESTINO, aviso)
+
+        texto, opciones = self._pendiente(conv)
+        if pide_origen:
+            return self._resp(conv, (
+                f"📍 Recibí tu ubicación, pero el paradero más cercano ({cerca.nombre}) está a {distancia}. "
+                f"Elige o escribe desde dónde sales.\n\n{texto}"
+            ), opciones)
+        return self._resp(conv, f"📍 Guardé tu ubicación: la marcaré en el mapa de tu ruta.\n\n{texto}", opciones)
+
+    # --- Incidentes ------------------------------------------------------------
+
+    def _ultimos_incidentes(self, conv: Conversation) -> OutboundMessage:
+        _reiniciar(conv)
+        recientes = [i for i in self._reports.recientes(horas=None, limite=N_INCIDENTES * 2)
+                     if i.estado != IncidentState.rechazado][:N_INCIDENTES]
+        if not recientes:
+            return self._resp(conv, f"No hay incidentes reportados por ahora 🙌\n\n{PREGUNTA_TRAS_REPORTE}", OPC_MENU)
+        ahora = self._now()
+        lineas = []
+        for k, v in enumerate(self._reports.vistas(recientes), 1):
+            de, a = self._places.get(v.de_id), self._places.get(v.a_id)
+            tramo = f"{de.nombre if de else v.de_id} ↔ {a.nombre if a else v.a_id}"
+            if v.estado == IncidentState.verificado and v.vigente:
+                estado = "✅ verificado"
+            elif v.vigente and v.estado == IncidentState.activo:
+                estado = f"🟠 activo · {round(v.confianza * 100)}% de confianza"
+            else:
+                estado = "⚪ ya pasó"
+            lineas.append(f"{k}. {v.icono} {v.label} · {tramo}\n    {_hace(ahora - v.creado_en)} · {estado}")
+        titulo = f"📋 Últimos {len(lineas)} incidentes reportados:" if len(lineas) > 1 else "📋 Último incidente reportado:"
+        return self._resp(conv, titulo + "\n\n" + "\n".join(lineas) + f"\n\n{PREGUNTA_TRAS_REPORTE}", OPC_MENU)
+
+    async def _tras_resultado(
+        self, conv: Conversation, msg: InboundMessage, n: str, elegida: str | None
+    ) -> OutboundMessage:
+        if elegida == "nueva" or n in ("otra", "otra ruta", "nueva", "nueva ruta"):
             return self._iniciar_guiada(conv) if conv.modo == "guiada" else self._iniciar_manual(conv)
-        if n in ("2",) or "alternativa" in n:
+        if elegida == "alternativas" or "alternativa" in n:
             plan: TripPlan | None = conv.ultimo_plan
             if not plan or not plan.opciones:
-                return self._resp(conv, f"No tengo alternativas para mostrar.\n\n{PREGUNTA_RESULTADO}", OPC_RESULTADO)
+                return self._resp(conv, f"No tengo alternativas para mostrar.\n\n{PREGUNTA_RESULTADO}", self._opc_resultado(conv))
             base = "\n\n".join(explicar(o, self._net) for o in plan.opciones)
-            return self._resp(conv, f"{base}\n\n{PREGUNTA_RESULTADO}", OPC_RESULTADO, plan=plan)
-        if n in ("3",):
-            return self._resp(conv, INSTRUCCION_REPORTE, OPC_RESULTADO)
-        # Una consulta nueva escrita libremente
+            return self._resp(conv, f"{base}\n\n{PREGUNTA_RESULTADO}", self._opc_resultado(conv), plan=plan)
+        # Una consulta nueva escrita libremente ("de Lucero a Paraíso")
         origen, destino, _ = interpretar(n)
-        menciones = self._places.menciones(n)
-        if not (origen or destino) and (self._es_frase(n) or not menciones) and (llm := await self._con_llm(conv, msg, n)):
-            return llm
-        if origen or destino or menciones:
+        if origen or destino or (self._places.menciones(n) and not self._es_frase(n)):
             conv.origen_id = conv.destino_id = conv.prioridad = None
             return await self._manual(conv, msg, n)
-        return self._resp(conv, PREGUNTA_RESULTADO, OPC_RESULTADO)
+        if accion := await self._accion_llm(conv, msg, n):
+            return accion
+        return self._elige_opcion(conv)
 
     # --- Reportes --------------------------------------------------------------
 
     async def _reporte(
         self, conv: Conversation, msg: InboundMessage, n: str, it: Interpretation | None = None
     ) -> OutboundMessage:
-        texto_pend, opciones_pend = self._pendiente(conv)
-        recordatorio = f"\n\nSigamos: {texto_pend}" if conv.paso not in ("inicio",) else ""
         tipo = next((k for k, palabras in PALABRAS_TIPO.items() if any(w in n for w in palabras)), None)
         lugares = self._places.menciones(n)
         if not lugares or not tipo:
@@ -451,7 +598,12 @@ class AssistantService:
                 lugares = list({p.id: p for p in lugares}.values())
         tipo = tipo or "novedad"
         if not lugares:
-            return self._resp(conv, INSTRUCCION_REPORTE + recordatorio, opciones_pend)
+            if conv.paso in ("inicio", "resultado", "reporte"):  # no hay un viaje en curso: se espera el reporte
+                conv.paso = "reporte"
+                return self._resp(conv, f"Me falta saber dónde 📍 {INSTRUCCION_REPORTE}", [OPC_CANCELAR])
+            texto_pend, opciones_pend = self._pendiente(conv)
+            return self._resp(conv, f"{INSTRUCCION_REPORTE}\n\nSigamos: {texto_pend}", opciones_pend)
+        recordatorio, opciones_pend = self._tras_reporte(conv)
 
         tramo = None
         if len(lugares) >= 2:
@@ -481,6 +633,15 @@ class AssistantService:
         pulido = await self._pulir(msg.texto, base, {"reporte": vista.model_dump(mode="json")}, msg.canal)
         return self._resp(conv, base + recordatorio, opciones_pend, texto=pulido + recordatorio, reporte=vista)
 
+    def _tras_reporte(self, conv: Conversation) -> tuple[str, list[QuickReply]]:
+        """Lo que se le ofrece después de reportar: retomar su viaje o, si no había uno, el menú."""
+        if conv.paso == "reporte":
+            conv.paso = "inicio"
+        if conv.paso == "inicio":
+            return f"\n\n{PREGUNTA_TRAS_REPORTE}", OPC_MENU
+        texto, opciones = self._pendiente(conv)
+        return (f"\n\n{texto}" if conv.paso == "resultado" else f"\n\nSigamos: {texto}"), opciones
+
     # --- LLM -------------------------------------------------------------------
 
     async def _entender(self, conv: Conversation, msg: InboundMessage) -> Interpretation | None:
@@ -501,6 +662,13 @@ class AssistantService:
             it = None
         self._lecturas[id(msg)] = it
         return it
+
+    async def _accion_llm(self, conv: Conversation, msg: InboundMessage, n: str) -> OutboundMessage | None:
+        """En una pregunta cerrada solo se atiende texto libre si el LLM lee un viaje o un reporte."""
+        it = await self._entender(conv, msg)
+        if it and (it.intencion == "reporte" or it.origen or it.destino):
+            return await self._con_llm(conv, msg, n)
+        return None
 
     def _es_frase(self, n: str) -> bool:
         """Más que un nombre de lugar: vale la pena que el LLM lea la intención."""
@@ -546,7 +714,9 @@ class AssistantService:
         texto: str | None = None,
         plan: TripPlan | None = None,
         reporte=None,
+        mapa: MapaRuta | None = None,
     ) -> OutboundMessage:
+        conv.opciones = list(opciones or [])
         return OutboundMessage(
             texto=texto or texto_base,
             texto_base=texto_base,
@@ -555,4 +725,5 @@ class AssistantService:
             modo=conv.modo,
             plan=plan,
             reporte=reporte,
+            mapa=mapa,
         )

@@ -3,15 +3,16 @@
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field, model_validator
 
-from app.adapters.inbound.deps import get_actor, get_container, require_admin
+from app.adapters.inbound.deps import get_actor, get_container, get_viewer_id, require_admin
 from app.container import Container
 from app.domain.models import (
     Actor,
     IncidentType,
     IncidentView,
+    MapaRuta,
     Network,
     Prioridad,
     ReporterProfile,
@@ -19,6 +20,8 @@ from app.domain.models import (
     Suggestion,
     TripPlan,
 )
+from app.domain import mapas
+from app.domain.errors import InvalidInput
 from app.domain.reports import TIPOS
 
 router = APIRouter()
@@ -65,6 +68,43 @@ def routes(body: RouteRequest, c: Container = Depends(get_container)) -> TripPla
     return c.trip.ejecutar(body.origen_id, body.destino_id, body.prioridad, body.modos or None)
 
 
+_cache_mapas: dict[tuple[str, str], bytes] = {}
+
+
+def parametros_mapa(mapa: MapaRuta) -> dict[str, str]:
+    q = {"r": mapa.ruta}
+    if mapa.ubicacion:
+        q["u"] = f"{mapa.ubicacion[0]:.5f},{mapa.ubicacion[1]:.5f}"
+    return q
+
+
+def imagen_mapa(c: Container, r: str, u: str = "") -> bytes:
+    """JPEG de la ruta, cacheado: el webhook lo genera antes de responder y Telegram luego lo descarga."""
+    clave = (r, u)
+    if clave not in _cache_mapas:
+        try:
+            lat, lng = (float(v) for v in u.split(",")) if u else (None, None)
+        except ValueError:
+            raise InvalidInput("Ubicación inválida: usa lat,lng") from None
+        ubicacion = (lat, lng) if lat is not None and -90 <= lat <= 90 and -180 <= lng <= 180 else None
+        imagen = c.mapas.render(mapas.construir(r, c.network, ubicacion))
+        if len(_cache_mapas) > 200:
+            _cache_mapas.clear()
+        _cache_mapas[clave] = imagen
+    return _cache_mapas[clave]
+
+
+@router.get("/mapas/ruta.jpg", tags=["rutas"], response_class=Response,
+            responses={200: {"content": {"image/jpeg": {}}}})
+def route_map(
+    r: str = Query(max_length=300, description="Ruta codificada (la que trae `mapa.ruta` en el chat)"),
+    u: str = Query("", max_length=40, description="Ubicación del usuario `lat,lng` (opcional)"),
+    c: Container = Depends(get_container),
+) -> Response:
+    """Imagen de la ruta: trazado por modo, A (origen), B (destino), transbordos y la ubicación."""
+    return Response(imagen_mapa(c, r, u), media_type="image/jpeg", headers={"Cache-Control": "public, max-age=3600"})
+
+
 # --- Reportes ------------------------------------------------------------------
 
 class IncidentRequest(BaseModel):
@@ -94,8 +134,8 @@ def incident_types() -> dict[str, IncidentType]:
 
 
 @router.get("/incidents", response_model=list[IncidentView], tags=["reportes"])
-def incidents(c: Container = Depends(get_container)) -> list[IncidentView]:
-    return c.reports.vistas(c.reports.vigentes())
+def incidents(viewer: str | None = Depends(get_viewer_id), c: Container = Depends(get_container)) -> list[IncidentView]:
+    return c.reports.vistas(c.reports.vigentes(), viewer)
 
 
 @router.get("/incidents/recent", response_model=list[IncidentView], tags=["reportes"])
@@ -103,11 +143,12 @@ def recent_incidents(
     horas: int | None = Query(None, ge=1, le=168),
     antes: datetime | None = None,
     limit: int = Query(30, ge=1, le=100),
+    viewer: str | None = Depends(get_viewer_id),
     c: Container = Depends(get_container),
 ) -> list[IncidentView]:
     """Últimos reportes guardados (vigentes y vencidos), más nuevos primero.
     `horas`: solo los de las últimas N horas. `antes`: los creados antes de esa fecha (scroll infinito)."""
-    return c.reports.vistas(c.reports.recientes(horas, limit, antes))
+    return c.reports.vistas(c.reports.recientes(horas, limit, antes), viewer)
 
 
 @router.post("/incidents", response_model=IncidentView, status_code=201, tags=["reportes"])
@@ -119,14 +160,14 @@ def create_incident(
         inc = c.reports.reportar(actor, body.tipo, body.de_id, body.a_id, body.modo, body.nota, posicion=pos)
     else:
         inc = c.reports.reportar_aqui(actor, body.tipo, body.lat, body.lng, body.nota)
-    return c.reports.vista(inc)
+    return c.reports.vista(inc, actor.reporter_id)
 
 
 @router.post("/incidents/{incident_id}/votos", response_model=IncidentView, tags=["reportes"])
 def vote(
     incident_id: str, body: VoteRequest, actor: Actor = Depends(get_actor), c: Container = Depends(get_container)
 ) -> IncidentView:
-    return c.reports.vista(c.reports.votar(actor, incident_id, body.valor))
+    return c.reports.vista(c.reports.votar(actor, incident_id, body.valor), actor.reporter_id)
 
 
 @router.get("/reporters/me", response_model=ReporterProfile, tags=["reportes"])

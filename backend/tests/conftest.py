@@ -38,6 +38,7 @@ class FakeRefiner:
 
 
 def make_settings(**kw) -> Settings:
+    kw.setdefault("map_tile_url", "")  # las pruebas no descargan teselas: el mapa sale sobre fondo liso
     return Settings(_env_file=None, storage="memory", admin_api_key=ADMIN_KEY, id_salt="salt-test", **kw)
 
 

@@ -30,6 +30,16 @@ del reto y es nuestro corazón:
 | 5 | Canal de bajo umbral | **PWA + WhatsApp + Telegram** (mismo backend) |
 
 ## 🚀 Cómo correr
+
+### Opción A — Todo con Docker (recomendada, cualquier máquina)
+```bash
+cp .env.example .env              # opcional: ADMIN_API_KEY, ID_SALT, GEMINI_API_KEY…
+docker compose up -d --build      # db (Postgres) + backend (API) + web (nginx)
+```
+- **App:** http://localhost · **Sala en vivo:** http://localhost/simulador.html · **API (Swagger):** http://localhost:8080/docs
+- Guía completa (variables, servidor, Railway, operación, problemas): **[docs/DESPLIEGUE.md](docs/DESPLIEGUE.md)**.
+
+### Opción B — Solo el front, sin instalar nada
 ```bash
 cd web
 python3 -m http.server 8000     # abrir http://localhost:8000
@@ -57,18 +67,37 @@ web/                 Prototipo funcional (PWA offline)
   js/app.js          Interfaz principal
   js/sim.js          Lógica de la Sala en vivo
   sw.js              Service worker (offline)
+  Dockerfile         Imagen de la web (nginx + proxy de la API)
+  nginx.conf         Configuración de nginx (estáticos + proxy)
 docs/                📚 Documentación del proyecto (empieza por aquí)
   specs/             Specs por funcionalidad (sugerencias, asistente, rutas, mapa, reportes)
   ARQUITECTURA.md    Cómo está montado todo
+  DESPLIEGUE.md      Cómo desplegarlo en cualquier máquina (Docker, servidor, Railway)
   FUENTES_DATOS.md   Fuentes oficiales consumidas y cómo extenderlas
   ESTRATEGIA.md      Estrategia atada a la rúbrica
   PITCH.md           Guion del pitch de 5 min
   GUIA_EQUIPO.md     Cómo trabaja el equipo
 backend/             API FastAPI hexagonal: rutas, asistente, reportes (Postgres), webhooks
-docker-compose.yml   PostgreSQL (+ API opcional)
+  Dockerfile         Imagen del backend (python 3.12-slim)
+  docker-entrypoint.sh  Espera la BD, migra (alembic) y arranca uvicorn
+db/                  Imagen de PostgreSQL 16 (crea también la base de pruebas)
+docker-compose.yml   Los 3 servicios en contenedores: db (Postgres), backend (API), web (nginx)
+.env.example         Variables del compose (puertos, claves); cópialo a .env
+Dockerfile           Imagen única API + web que usa Railway (no la usa compose)
+railway.json         Configuración del despliegue en Railway
 whatsapp/flujo.md    Diseño del bot de WhatsApp
 CONTRIBUTING.md      Flujo de Git para trabajar en paralelo
 ```
+
+## 🐳 Servicios en Docker
+| Servicio | Imagen | Qué hace | URL |
+|---|---|---|---|
+| web | `web/Dockerfile` | nginx sirve la PWA y reenvía la API al backend (mismo origen) | http://localhost (`WEB_PORT`, por defecto 80) |
+| backend | `backend/Dockerfile` | FastAPI; espera la BD, aplica migraciones y arranca | http://localhost:8080 · Swagger en `/docs` |
+| db | `db/Dockerfile` | PostgreSQL 16 con volumen persistente `muevete-cb-pgdata` | `localhost:5432`, usuario/clave/base `muevete` |
+
+Comandos del día a día: `docker compose ps` · `docker compose logs -f backend` · `docker compose down` (con `-v` borra los datos).
+Si el 80 o el 5432 están ocupados, cambia `WEB_PORT` / `PG_PORT` en `.env`. Todo lo demás está en **[docs/DESPLIEGUE.md](docs/DESPLIEGUE.md)**.
 
 ## 👥 Para el equipo
 Empieza por **[docs/GUIA_EQUIPO.md](docs/GUIA_EQUIPO.md)** y **[CONTRIBUTING.md](CONTRIBUTING.md)**.

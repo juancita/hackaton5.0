@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from app.adapters.outbound.json_catalog import JsonCatalog
+from app.adapters.outbound.map_renderer import TileMapRenderer
 from app.adapters.outbound.memory_repos import (
     MemoryConversationStore,
     MemoryIncidentRepository,
@@ -18,7 +19,13 @@ from app.domain.places import PlaceService
 from app.domain.reports import ReportService, utcnow
 from app.domain.routing import RoutingService
 from app.domain.trip import PlanTripUseCase
-from app.ports.outbound import IncidentRepository, MessageInterpreter, ReporterRepository, ResponseRefiner
+from app.ports.outbound import (
+    IncidentRepository,
+    MapRenderer,
+    MessageInterpreter,
+    ReporterRepository,
+    ResponseRefiner,
+)
 
 
 @dataclass
@@ -30,6 +37,7 @@ class Container:
     reports: ReportService
     trip: PlanTripUseCase
     assistant: AssistantService
+    mapas: MapRenderer
 
 
 def build_container(
@@ -39,6 +47,7 @@ def build_container(
     reporters: ReporterRepository | None = None,
     refiner: ResponseRefiner | None = None,
     interpreter: MessageInterpreter | None = None,
+    mapas: MapRenderer | None = None,
     clock: Callable[[], datetime] = utcnow,
 ) -> Container:
     network = JsonCatalog().load()
@@ -78,4 +87,5 @@ def build_container(
         refine_timeout_s=settings.llm_timeout_s,
         clock=clock,
     )
-    return Container(settings, network, places, routing, reports, trip, assistant)
+    mapas = mapas or TileMapRenderer(settings.map_tile_url)
+    return Container(settings, network, places, routing, reports, trip, assistant, mapas)

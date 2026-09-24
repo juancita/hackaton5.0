@@ -257,6 +257,9 @@ class IncidentView(BaseModel):
     afecta_rutas: bool
     vigente: bool = True
     estrellas_autor: float | None = None  # estrellas de quien lo reportó primero (None = admin)
+    # Relación con quien consulta (X-Client-Id): si lo reportó y cómo lo calificó
+    es_mio: bool = False
+    mi_voto: Literal["confirma", "niega"] | None = None
     creado_en: datetime
     expira_en: datetime
 
@@ -283,11 +286,19 @@ class InboundMessage(BaseModel):
     user_id: str
     texto: str = ""
     nombre: str | None = None
+    ubicacion: tuple[float, float] | None = None  # (lat, lng) si el usuario compartió su ubicación
 
 
 class QuickReply(BaseModel):
     id: str
     label: str
+
+
+class MapaRuta(BaseModel):
+    """Mapa de la ruta recomendada: con esto cada canal pide la imagen y enlaza Google Maps."""
+    ruta: str  # ruta codificada (ver domain/mapas.py)
+    ubicacion: tuple[float, float] | None = None
+    google_maps: str
 
 
 class OutboundMessage(BaseModel):
@@ -299,6 +310,7 @@ class OutboundMessage(BaseModel):
     modo: str | None = None
     plan: TripPlan | None = None
     reporte: IncidentView | None = None
+    mapa: MapaRuta | None = None
 
 
 class Conversation(BaseModel):
@@ -310,6 +322,8 @@ class Conversation(BaseModel):
     prioridad: Prioridad | None = None
     pendiente: Literal["origen", "destino"] | None = None
     candidatos: list[str] = []
+    opciones: list[QuickReply] = []  # las últimas que se mostraron: a ellas se refieren "2" o un botón
+    ubicacion: tuple[float, float] | None = None  # última ubicación compartida (lat, lng)
     ultimo_plan: TripPlan | None = None
     updated_at: datetime | None = None
 

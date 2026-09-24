@@ -37,8 +37,9 @@ fix: corrige penalización de tramos bloqueados
 data: agrega rutas de jeep de Quiba y Pasquilla
 ```
 
-## Antes de hacPull Request
+## Antes de hacer Pull Request
 - [ ] La app corre en `http://localhost:8000` sin errores en consola.
+- [ ] Si tocaste `backend/`, `db/` o algún `Dockerfile`: `docker compose up -d --build` levanta los 3 servicios `healthy` (ver `docs/DESPLIEGUE.md`).
 - [ ] `simulador.html` sigue funcionando.
 - [ ] No subiste claves/API keys ni archivos personales.
 
@@ -46,3 +47,5 @@ data: agrega rutas de jeep de Quiba y Pasquilla
 - JS vainilla, sin frameworks ni build (para que corra en cualquier lado, offline).
 - Comentarios en español.
 - Un archivo = una responsabilidad (ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)).
+- Scripts `.sh`, `Dockerfile` y `nginx.conf` van con finales de línea **LF** (`.gitattributes` lo fuerza); no los conviertas a CRLF desde Windows.
+- Claves y tokens solo en `.env` / `backend/.env` (ignorados por git). Lo que se comparte es `.env.example`.

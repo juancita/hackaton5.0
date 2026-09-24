@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Protocol
 
+from app.domain.mapas import RouteMap
 from app.domain.models import (
     Conversation,
     Incident,
@@ -61,3 +62,9 @@ class MessageInterpreter(Protocol):
     """Puerto de LLM para entender texto libre. `None` = no hay LLM o no entendió."""
 
     async def interpret(self, ctx: InterpretContext) -> Interpretation | None: ...
+
+
+class MapRenderer(Protocol):
+    """Dibuja el mapa de una ruta como PNG."""
+
+    def render(self, mapa: RouteMap) -> bytes: ...

@@ -96,9 +96,26 @@ El badge superior muestra 🟢 vivo / 🟡 caché / ⚪ semilla. Ver [FUENTES_DA
 - **Web/PWA** (perfil experto): mapa, cámara, más control.
 - Ambos publican y leen del **mismo bus de tiempo real** → lo que uno reporta, todos lo ven.
 
+## Despliegue: tres contenedores
+```
+  :80 (WEB_PORT)                        :8080 (API_PORT)                 :5432 (PG_PORT)
+ ┌─────────────────┐  proxy /health,   ┌─────────────────────┐          ┌──────────────────┐
+ │ web  (nginx)    │  /routes, /chat,  │ backend (FastAPI)   │ DATABASE │ db (PostgreSQL16)│
+ │ PWA estática    │ ────────────────▶ │ alembic + uvicorn   │ ───URL──▶│ volumen pgdata   │
+ │ web/Dockerfile  │ http://backend    │ backend/Dockerfile  │          │ db/Dockerfile    │
+ └─────────────────┘                   └─────────────────────┘          └──────────────────┘
+                         docker-compose.yml (raíz) · variables en .env
+```
+- **Un solo origen para el navegador:** nginx sirve la PWA y reenvía las rutas de la API al backend, así no hay CORS ni configuración de host en el front (`api.js` usa `location.origin`).
+- **Arranque ordenado por healthchecks:** `db` sano → `backend` aplica migraciones y arranca → `web`.
+- **Estado solo en Postgres** (volumen `muevete-cb-pgdata`); backend y web son efímeros y se reconstruyen con `docker compose up -d --build`.
+- **Railway** usa otra variante: el `Dockerfile` de la raíz mete API + web en una sola imagen (la API monta `web/` en `/`).
+- Guía paso a paso, variables y problemas frecuentes: [DESPLIEGUE.md](DESPLIEGUE.md).
+
 ## Cómo correr
 ```bash
-cd web && python3 -m http.server 8000   # http://localhost:8000
+docker compose up -d --build            # todo: http://localhost (web) · :8080 (API)
+cd web && python3 -m http.server 8000   # o solo el front: http://localhost:8000
 ```
 - App: `index.html` · Sala en vivo: `simulador.html`
 - Demo offline: cargar una vez con internet, luego activar **modo avión** y seguir usando.

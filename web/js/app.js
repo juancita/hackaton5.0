@@ -30,6 +30,16 @@
   // Logo → inicio (si ya estás en Rutas, el hash no cambia: solo sube al inicio)
   $('.topbar .brand').addEventListener('click', () => scrollTo({ top: 0, behavior: 'smooth' }));
 
+  // FAB de Telegram: se encoge al bajar (leyendo rutas) y vuelve a extenderse al subir
+  const tgFab = $('#tgFab');
+  let ultimoY = scrollY;
+  window.addEventListener('scroll', () => {
+    const y = scrollY;
+    if (Math.abs(y - ultimoY) < 8) return;
+    tgFab.classList.toggle('mini', y > ultimoY && y > 80);
+    ultimoY = y;
+  }, { passive: true });
+
   // ---------- Layout responsive ----------
   // El mapa de Rutas queda fijo bajo la barra superior (móvil) y ocupa la altura libre (desktop).
   const esMovil = () => !matchMedia('(min-width: 860px)').matches;
@@ -134,14 +144,9 @@
       autor: v.n_reportes > 1 ? `${v.n_reportes} vecinos` : 'Un vecino', lat: v.lat, lng: v.lng,
       vidaMin: t.vidaMin, sev: t.sev, ts: Date.parse(v.creado_en) || Date.now(), servidor: true,
       estado: v.estado, confianza: v.confianza, afecta: v.afecta_rutas, vigente: v.vigente !== false,
-      nReportes: v.n_reportes, nConfirma: v.n_confirma, nNiega: v.n_niega, estrellasAutor: v.estrellas_autor };
-  }
-  // Reportes hechos desde este dispositivo: no se califican a sí mismos (el servidor también lo impide)
-  const MIOS_KEY = 'muevecb_mios';
-  const mios = new Set((() => { try { return JSON.parse(localStorage.getItem(MIOS_KEY) || '[]'); } catch (e) { return []; } })());
-  function marcarMio(id) {
-    mios.add(id);
-    try { localStorage.setItem(MIOS_KEY, JSON.stringify([...mios].slice(-200))); } catch (e) {}
+      nReportes: v.n_reportes, nConfirma: v.n_confirma, nNiega: v.n_niega, estrellasAutor: v.estrellas_autor,
+      // El servidor marca, para quien consulta (X-Client-Id), si el reporte es suyo y cómo lo calificó
+      esMio: !!v.es_mio, miVoto: v.mi_voto || null };
   }
   // Alertas vigentes: solo las del servidor (Postgres). Sin conexión no hay alertas que mostrar.
   function vigentes() {
@@ -152,7 +157,7 @@
     // Los últimos reportes guardados de la misma ventana que muestra el mapa (1 h)
     const [lista, ultimos] = await Promise.all([API.incidentes(), API.recientes({ horas: 1, limit: 50 })]);
     if (!lista) return;
-    const firma = JSON.stringify([lista, ultimos || []].map((l) => l.map((i) => [i.id, i.confianza, i.estado, i.n_reportes, i.n_confirma, i.n_niega, i.vigente])));
+    const firma = JSON.stringify([lista, ultimos || []].map((l) => l.map((i) => [i.id, i.confianza, i.estado, i.n_reportes, i.n_confirma, i.n_niega, i.vigente, i.es_mio, i.mi_voto])));
     if (firma === firmaInc) return;
     const conocidos = new Set(incServidor.map((i) => i.id));
     if (avisar && firmaInc !== null) lista.filter((i) => !conocidos.has(i.id)).forEach((i) => toastIncidente(incidenteLocal(i), `${ico('cloud')} Servidor`));
@@ -358,21 +363,42 @@
     const d = document.createElement('div'); d.className = 'msg ' + quien; d.textContent = texto;
     chatBody.appendChild(d); chatBody.scrollTop = chatBody.scrollHeight;
   }
+  // Mapa de la ruta (imagen del backend) y enlace a Google Maps, dentro del chat
+  function addMapa(m) {
+    const d = document.createElement('div'); d.className = 'msg bot msg-mapa';
+    const img = document.createElement('img'); img.src = API.urlMapa(m); img.alt = 'Mapa de la ruta: A es el origen y B el destino';
+    img.loading = 'lazy'; img.addEventListener('load', () => { chatBody.scrollTop = chatBody.scrollHeight; });
+    const a = document.createElement('a'); a.href = m.google_maps; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = '🗺️ Abrir la ruta en Google Maps';
+    d.append(img, a); chatBody.appendChild(d); chatBody.scrollTop = chatBody.scrollHeight;
+  }
+  // El chip de ubicación pide la posición al navegador en vez de mandar el texto del botón
+  function enviarUbicacion(o) {
+    if (!navigator.geolocation) { enviarChat(o.label); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        addMsg('📍 Mi ubicación', 'me'); pintarChips([]);
+        responderChat('', { lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => enviarChat(o.label), // sin permiso: el asistente explica otras formas
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
   function pintarChips(opciones) {
     chips.innerHTML = '';
     (opciones || []).forEach((o) => {
       const b = document.createElement('button'); b.className = 'chip'; b.textContent = o.label;
-      b.addEventListener('click', () => enviarChat(o.label));
+      b.addEventListener('click', () => (o.id === 'ubicacion' ? enviarUbicacion(o) : enviarChat(o.label)));
       chips.appendChild(b);
     });
   }
-  async function responderChat(t) {
+  async function responderChat(t, ubicacion) {
     const escribiendo = document.createElement('div'); escribiendo.className = 'msg bot escribiendo'; escribiendo.textContent = '…';
     chatBody.appendChild(escribiendo); chatBody.scrollTop = chatBody.scrollHeight;
-    const r = await API.chat(t);
+    const r = await API.chat(t, ubicacion);
     escribiendo.remove();
     if (r) {
-      addMsg(r.texto, 'bot'); pintarChips(r.opciones_rapidas);
+      addMsg(r.texto, 'bot'); if (r.mapa) addMapa(r.mapa); pintarChips(r.opciones_rapidas);
       if (r.reporte) { await refrescarIncidentes(false); pintarPerfil(); }
       return;
     }
@@ -485,6 +511,17 @@
   // negado, página sin https, sin señal) o sin servidor (Postgres) no se puede enviar.
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const CENTRO_CB = [4.5800, -74.1580];
+  // Staging de desarrollo por http (IP de la red local): el navegador no entrega el GPS fuera de
+  // https, así que se usa una ubicación fija sobre una vía (Portal Tunal ↔ Perdomo) para poder probar.
+  // Se cambia con localStorage 'muevecb_ubicacion_dev' = '4.5802,-74.1574' o window.MUEVECB_UBICACION_DEV.
+  // En https (producción) nunca se usa: ahí manda el GPS real.
+  const MODO_DEV_HTTP = !window.isSecureContext;
+  const UBICACION_DEV = (() => {
+    let v = window.MUEVECB_UBICACION_DEV;
+    try { v = localStorage.getItem('muevecb_ubicacion_dev') || v; } catch (e) {}
+    const [lat, lng] = (Array.isArray(v) ? v : String(v || '').split(',')).map(Number);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : [4.5802, -74.1574];
+  })();
   const PRECISION_MAX_M = 500; // con una ubicación más imprecisa no sabemos en qué vía estás
   const repTipo = $('#repTipo');
   repTipo.innerHTML = '<option value=""></option>' + Object.entries(Reports.TIPOS)
@@ -499,7 +536,7 @@
   }
   $('#repTipos').addEventListener('click', (e) => { const b = e.target.closest('.tipo'); if (b) marcarTipo(b.dataset.tipo); });
 
-  // repError: null | 'inseguro' | 'sin-gps' | 'permiso' | 'senal'
+  // repError: null | 'sin-gps' | 'permiso' | 'senal'
   let repPos = null, repPrecision = 0, repCercano = null, repError = null, watchGps = null;
   let mapaRep = null, pinRep = null, capaTramoRep = null, circuloGps = null;
   function abrirReporte() {
@@ -526,7 +563,13 @@
   function ubicar() {
     const gps = $('#repGps');
     if (watchGps !== null) { navigator.geolocation.clearWatch(watchGps); watchGps = null; }
-    repError = !window.isSecureContext ? 'inseguro' : !navigator.geolocation ? 'sin-gps' : null;
+    if (MODO_DEV_HTTP) {
+      repError = null;
+      fijarPosicion(...UBICACION_DEV, 0);
+      gpsTexto(gps, 'Ubicación de prueba (dev)'); gps.classList.add('off');
+      return;
+    }
+    repError = !navigator.geolocation ? 'sin-gps' : null;
     if (repError) { gpsTexto(gps, 'Ubicación no disponible'); gps.classList.add('off'); pintarDonde(); return; }
     gpsTexto(gps, 'Ubicando…'); gps.classList.remove('off');
     pintarDonde();
@@ -570,7 +613,6 @@
     pintarDonde();
   }
   const MENSAJE_GPS = {
-    inseguro: 'Tu navegador solo comparte el GPS en páginas seguras (https). Abre la app con https para reportar.',
     'sin-gps': 'Este dispositivo no tiene ubicación disponible. Solo se puede reportar desde donde estás.',
     permiso: 'Activa el permiso de ubicación para reportar: el reporte queda donde estás.',
     senal: 'No pudimos obtener tu ubicación. Revisa el GPS y toca «Reintentar».',
@@ -593,6 +635,7 @@
       el.innerHTML = `<span class="rep-donde-ico" style="--c:${m.color}">${icoModo(t.modo)}</span>
         <span><b>${m.nombre} · ${esc(t.ruta)}</b><br><small>${Engine.nodoPorId[t.de].nombre} ↔ ${Engine.nodoPorId[t.a].nombre} · ${dist}</small></span>`;
     }
+    if (MODO_DEV_HTTP && repPos) el.insertAdjacentHTML('beforeend', `<small class="rep-donde-aviso">${ico('science')} Modo dev (http): ubicación fija de prueba, no es tu GPS</small>`);
   }
   function pintarEnvio() {
     const b = $('#btnReportar');
@@ -631,7 +674,6 @@
     const r = await API.reportar({ tipo, lat: repPos.lat, lng: repPos.lng, nota });
     if (r && r.ok) {
       const v = r.data;
-      marcarMio(v.id);
       toast(v.afecta_rutas
         ? `${ico('check_circle')} Reporte guardado · confianza ${Math.round(v.confianza * 100)}%. Ya afecta las rutas.`
         : `${ico('check_circle')} Reporte guardado · confianza ${Math.round(v.confianza * 100)}%. Se aplicará cuando otros lo confirmen.`);
@@ -645,31 +687,47 @@
     pintarEnvio();
   });
 
-  // Tarjeta de alerta: la pública lleva votos; la de admin, verificar / rechazar
-  function tarjetaAlerta(i, modoAdmin) {
+  // Tarjeta pública: tipo, hace cuánto, comentario y 👍/👎. Tus reportes se distinguen y no se votan.
+  function tarjetaAlerta(i) {
+    const t = Reports.TIPOS[i.tipo] || Reports.TIPOS.novedad;
+    const vencida = i.vigente === false;
+    const votable = !vencida && !i.esMio;
+    const voto = (valor, icono, n, titulo) => {
+      const activo = i.miVoto === valor;
+      const cls = `voto-btn ${valor}${activo ? ' activo' : ''}`;
+      return votable
+        ? `<button type="button" class="${cls}" data-accion="${valor}" data-id="${i.id}" aria-pressed="${activo}" title="${titulo}">${ico(icono, activo ? 'fill' : '')}<span>${n}</span></button>`
+        : `<span class="${cls}" title="${titulo}">${ico(icono)}<span>${n}</span></span>`;
+    };
+    const fecha = new Date(i.ts).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+    return `<article class="rep-item${i.esMio ? ' mio' : ''}${vencida ? ' vencida' : ''}" style="--c:${t.color}">
+      <div class="rep-head"><span class="rep-ico">${icoTipo(i.tipo)}</span>
+        <div class="rep-tit"><strong>${t.label}</strong>
+          <time datetime="${new Date(i.ts).toISOString()}" title="${fecha}">${hace(i.ts)}${vencida ? ' · vencida' : ''}</time></div>
+        ${i.esMio ? `<span class="rep-mio-badge">${ico('person', 'fill')}Tu reporte</span>` : ''}</div>
+      ${i.nota ? `<p class="rep-nota">“${esc(i.nota)}”</p>` : ''}
+      <div class="rep-votos">
+        ${voto('confirma', 'thumb_up', i.nConfirma, 'Sigue ahí')}
+        ${voto('niega', 'thumb_down', i.nNiega, 'Ya no está')}
+        ${i.esMio && !vencida ? '<small>Lo califican los demás</small>' : ''}
+      </div></article>`;
+  }
+  // Tarjeta de admin: detalle completo para moderar (verificar / rechazar)
+  function tarjetaAdmin(i) {
     const t = Reports.TIPOS[i.tipo] || Reports.TIPOS.novedad;
     const ruta = `${Engine.nodoPorId[i.deId].nombre} → ${Engine.nodoPorId[i.aId].nombre}`;
     const nota = i.nota ? `<p class="rep-nota">“${esc(i.nota)}”</p>` : '';
-    const cabeza = (estado) => `<div class="rep-head"><span class="rep-ico">${icoTipo(i.tipo)}</span>
-      <div class="rep-tit"><strong>${t.label}</strong><span class="rep-ruta">${ruta}</span></div>${estado}</div>`;
     const pct = Math.round(i.confianza * 100);
     const estado = i.estado === 'verificado' ? `<span class="estado ok">${ico('verified', 'fill')}Verificado</span>`
       : i.afecta ? '<span class="estado">Afecta rutas</span>' : '<span class="estado bajo">Por confirmar</span>';
-    const vencida = i.vigente === false;
-    const mio = mios.has(i.id);
-    const acciones = modoAdmin
-      ? (i.estado !== 'verificado' ? `<button class="voto admin" data-accion="verificar" data-id="${i.id}">${ico('verified')}Verificar</button>` : '')
-        + `<button class="voto admin peligro" data-accion="rechazar" data-id="${i.id}">${ico('block')}Rechazar</button>`
-      : vencida ? ''
-      : mio ? `<small class="rep-mio">${ico('person')} Tu reporte: lo califican los demás</small>`
-      : `<button class="voto" data-accion="confirma" data-id="${i.id}" title="Le suma estrellas a quien reportó">${ico('thumb_up')}Sigue ahí</button>
-         <button class="voto" data-accion="niega" data-id="${i.id}" title="Le resta estrellas a quien reportó">${ico('thumb_down')}Ya no está</button>`;
+    const acciones = (i.estado !== 'verificado' ? `<button class="voto admin" data-accion="verificar" data-id="${i.id}">${ico('verified')}Verificar</button>` : '')
+      + `<button class="voto admin peligro" data-accion="rechazar" data-id="${i.id}">${ico('block')}Rechazar</button>`;
     const autor = i.estrellasAutor != null ? `${esc(i.autor)} ${estrellas(i.estrellasAutor, true)}` : esc(i.autor);
-    const est = vencida ? '<span class="estado bajo">Vencida</span>' : estado;
-    return `<div class="rep-item${vencida ? ' vencida' : ''}" style="--c:${t.color}">${cabeza(est)}${nota}
-      ${vencida ? '' : `<div class="conf"><span style="width:${pct}%;background:${pct >= 70 ? '#e74c3c' : pct >= 40 ? '#f39c12' : '#bbb'}"></span></div>`}
-      <small class="rep-meta">${vencida ? '' : `Confianza ${pct}% · `}${autor} · ${hace(i.ts)} · ${ico('thumb_up')} ${i.nConfirma} · ${ico('thumb_down')} ${i.nNiega}</small>
-      ${acciones ? `<div class="rep-acciones">${acciones}</div>` : ''}</div>`;
+    return `<div class="rep-item" style="--c:${t.color}"><div class="rep-head"><span class="rep-ico">${icoTipo(i.tipo)}</span>
+      <div class="rep-tit"><strong>${t.label}</strong><span class="rep-ruta">${ruta}</span></div>${estado}</div>${nota}
+      <div class="conf"><span style="width:${pct}%;background:${pct >= 70 ? '#e74c3c' : pct >= 40 ? '#f39c12' : '#bbb'}"></span></div>
+      <small class="rep-meta">Confianza ${pct}% · ${autor} · ${hace(i.ts)} · ${ico('thumb_up')} ${i.nConfirma} · ${ico('thumb_down')} ${i.nNiega}</small>
+      <div class="rep-acciones">${acciones}</div></div>`;
   }
   function pintarReportes() {
     const lista = listaFeed(); const cont = $('#listaReportes');
@@ -677,22 +735,38 @@
     $('#repCount').textContent = ultimaHora === 1 ? '1 en la última hora' : `${ultimaHora} en la última hora`;
     cont.innerHTML = !enLinea
       ? `<p class="empty">${ico('cloud_off')}<br>Sin conexión con el servidor.<br><small>Las alertas se cargan desde el servidor; reintentamos en unos segundos.</small></p>`
-      : lista.length ? lista.map((i) => tarjetaAlerta(i, false)).join('')
+      : lista.length ? lista.map(tarjetaAlerta).join('')
       : `<p class="empty">${ico('task_alt')}<br>No hay alertas en la última hora.<br><small>Si ves algo en la vía, repórtalo y avisamos a todos.</small></p>`;
     pintarFinFeed();
     pintarListaAdmin();
   }
+  // 👍/👎 al instante: se pinta el voto antes de que responda el servidor y se revierte si falla.
+  // Tocar el voto que ya diste no hace nada; tocar el otro lo cambia.
+  const votando = new Set();
+  async function votar(b) {
+    const { accion: valor, id } = b.dataset;
+    const raw = [...incRecientes, ...feedMas].find((x) => x.id === id);
+    if (!raw || raw.mi_voto === valor || votando.has(id)) return;
+    votando.add(id);
+    const antes = { ...raw };
+    const optimista = { ...raw, mi_voto: valor,
+      n_confirma: raw.n_confirma + (valor === 'confirma') - (raw.mi_voto === 'confirma'),
+      n_niega: raw.n_niega + (valor === 'niega') - (raw.mi_voto === 'niega') };
+    actualizarEnFeed(optimista); pintarReportes();
+    const r = await API.votar(id, valor);
+    votando.delete(id);
+    if (r && r.ok && r.data && r.data.id) { actualizarEnFeed({ ...optimista, ...r.data }); pintarReportes(); pintarPerfil(); return; }
+    actualizarEnFeed(antes); pintarReportes();
+    toast(r ? detalle(r) : `${ico('cloud_off')} No se pudo enviar tu voto. Intenta de nuevo.`);
+  }
   async function accionAlerta(e) {
     const b = e.target.closest('button[data-accion]'); if (!b) return;
     const { accion, id } = b.dataset;
+    if (accion === 'confirma' || accion === 'niega') return votar(b);
     b.disabled = true;
-    const r = accion === 'verificar' ? await API.verificar(id)
-      : accion === 'rechazar' ? await API.rechazar(id)
-      : await API.votar(id, accion);
+    const r = accion === 'verificar' ? await API.verificar(id) : await API.rechazar(id);
     if (r && r.ok && r.data && r.data.id) actualizarEnFeed(r.data);
-    const mensajes = { confirma: `${ico('thumb_up')} Gracias: le sumaste estrellas a quien reportó`, niega: `${ico('thumb_down')} Gracias, lo tendremos en cuenta`,
-      verificar: `${ico('verified')} Alerta verificada`, rechazar: `${ico('block')} Alerta rechazada` };
-    toast(r && r.ok ? mensajes[accion] : detalle(r));
+    toast(r && r.ok ? (accion === 'verificar' ? `${ico('verified')} Alerta verificada` : `${ico('block')} Alerta rechazada`) : detalle(r));
     await refrescarIncidentes(false); pintarPerfil();
   }
   $('#listaReportes').addEventListener('click', accionAlerta);
@@ -745,7 +819,7 @@
     // Primero lo que necesita decisión: por confirmar, luego activas, al final verificadas
     const orden = (i) => (i.estado === 'verificado' ? 2 : i.afecta ? 1 : 0);
     $('#adminLista').innerHTML = lista.length
-      ? [...lista].sort((a, b) => orden(a) - orden(b)).map((i) => tarjetaAlerta(i, true)).join('')
+      ? [...lista].sort((a, b) => orden(a) - orden(b)).map(tarjetaAdmin).join('')
       : `<p class="empty">${ico('task_alt')}<br>No hay alertas que moderar.</p>`;
   }
   $('#adminForm').addEventListener('submit', async (e) => {
@@ -781,6 +855,7 @@
   revisarServidor();
   setInterval(() => { if (enLinea) refrescarIncidentes(); }, 5000);
   setInterval(revisarServidor, 15000);
+  setInterval(() => { if (enLinea) pintarReportes(); }, 60000); // «hace X min» al día
 
   // ---------- Service worker ----------
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

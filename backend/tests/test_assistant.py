@@ -23,13 +23,13 @@ def con_refiner(refiner, reloj):
 def test_saludo_ofrece_modos(container):
     (out,) = conversar(container, "hola")
     assert out.paso == "inicio"
-    assert [o.label for o in out.opciones_rapidas] == ["Guiada", "Manual"]
+    assert [o.id for o in out.opciones_rapidas] == ["guiada", "manual", "reportar", "incidentes"]
 
 
 def test_flujo_guiado_completo(container):
     outs = conversar(container, "hola", "1", "Mei", "1", "paraiso", "2")
     assert [o.paso for o in outs] == ["inicio", "origen", "origen", "destino", "prioridad", "resultado"]
-    assert [o.label for o in outs[2].opciones_rapidas] == ["Meissen", "Hospital Meissen"]
+    assert [o.label for o in outs[2].opciones_rapidas] == ["Meissen", "Hospital Meissen", "📍 Usar mi ubicación", "✖️ Cancelar"]
     plan = outs[-1].plan
     assert (plan.origen.id, plan.destino.id) == ("meissen", "paraiso")
     assert plan.opciones[plan.recomendada].prioridad == "barato"
@@ -155,8 +155,12 @@ def test_mismo_texto_base_en_todos_los_canales(container):
 
 def test_render_por_canal(container):
     (out,) = conversar(container, "hola")
-    assert render_telegram(out)["reply_markup"]["keyboard"] == [[{"text": "Guiada"}, {"text": "Manual"}]]
-    assert "1. Guiada\n2. Manual" in render_whatsapp(out)
+    assert render_telegram(out)["reply_markup"]["keyboard"] == [
+        [{"text": "🧭 Ruta guiada"}, {"text": "✍️ Escribir mi viaje"}],
+        [{"text": "⚠️ Reportar novedad"}, {"text": "📋 Últimos incidentes"}]]
+    assert "1. 🧭 Ruta guiada\n2. ✍️ Escribir mi viaje" in render_whatsapp(out)
+    (paso,) = conversar(container, "guiada")
+    assert render_telegram(paso)["reply_markup"]["keyboard"][-1] == [{"text": "✖️ Cancelar"}]
 
 
 def test_web_chat_endpoint(client):
@@ -193,3 +197,44 @@ def test_whatsapp_webhook_y_verificacion(client, container):
 @pytest.mark.parametrize("texto", ["menu", "reiniciar", "inicio"])
 def test_comandos_globales(container, texto):
     assert conversar(container, "manual", texto)[-1].paso == "inicio"
+
+
+# --- Opciones cerradas y cancelar ------------------------------------------------
+
+def test_los_botones_se_eligen_por_su_texto(container):
+    outs = conversar(container, "hola", "🧭 Ruta guiada", "meissen", "paraiso", "💰 Lo más barato")
+    assert outs[-1].paso == "resultado"
+    assert outs[-1].plan.opciones[outs[-1].plan.recomendada].prioridad == "barato"
+
+
+def test_prioridad_invalida_pide_elegir_opcion(container):
+    out = conversar(container, "guiada", "meissen", "paraiso", "cualquier cosa")[-1]
+    assert out.paso == "prioridad" and "toca una de las opciones" in out.texto and "Cancelar" in out.texto
+    assert [o.id for o in out.opciones_rapidas] == ["rapido", "barato", "transbordos", "cancelar"]
+
+
+def test_menu_invalido_pide_elegir_opcion(container):
+    out = conversar(container, "hola", "blablabla")[-1]
+    assert out.paso == "inicio" and "toca una de las opciones" in out.texto
+
+
+@pytest.mark.parametrize("cancelar", ["cancelar", "✖️ Cancelar", "4"])
+def test_cancelar_vuelve_al_menu(container, cancelar):
+    out = conversar(container, "guiada", "meissen", "paraiso", cancelar)[-1]
+    assert out.paso == "inicio" and out.texto.startswith("Listo, cancelé")
+    assert [o.id for o in out.opciones_rapidas] == ["guiada", "manual", "reportar", "incidentes"]
+
+
+def test_resultado_ofrece_acciones_claras(container):
+    out = conversar(container, "guiada", "meissen", "paraiso", "1")[-1]
+    assert "¿Qué quieres hacer ahora?" in out.texto and "¿Qué sigue?" not in out.texto
+    assert [o.id for o in out.opciones_rapidas] == ["nueva", "alternativas", "ubicacion", "reportar", "menu"]
+    assert out.mapa and out.mapa.ruta.startswith("meissen:")
+    assert conversar(container, "no se")[-1].paso == "resultado"
+    assert conversar(container, "🏠 Menú principal")[-1].paso == "inicio"
+
+
+def test_reportar_desde_el_menu(container):
+    outs = conversar(container, "hola", "⚠️ Reportar novedad", "se cayó un árbol en paraíso")
+    assert outs[1].paso == "reporte" and [o.id for o in outs[1].opciones_rapidas] == ["cancelar"]
+    assert outs[2].reporte and outs[2].paso == "inicio" and "¿Qué más quieres hacer?" in outs[2].texto

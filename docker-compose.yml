@@ -1,37 +1,90 @@
-# Postgres para el feedback (reportes, votos, reputación) + API opcional.
-#   Solo BD:       docker compose up -d db
-#   BD + API:      docker compose --profile api up -d --build
+# Muévete CB — los 3 servicios en contenedores (funciona en cualquier máquina con Docker):
+#   db       PostgreSQL 16            (db/Dockerfile)
+#   backend  API FastAPI              (backend/Dockerfile)  → http://localhost:${API_PORT:-8080}
+#   web      PWA estática con nginx   (web/Dockerfile)      → http://localhost:${WEB_PORT:-80}
+#
+#   cp .env.example .env            # ajusta claves (ADMIN_API_KEY, ID_SALT, GEMINI_API_KEY…)
+#   docker compose up -d --build    # levanta todo
+#   docker compose logs -f backend  # ver la API
+#   docker compose down             # apagar (agrega -v para borrar los datos de Postgres)
+#
+# Solo la BD para desarrollar la API en local: docker compose up -d db
+# Guía completa (variables, servidor, Railway, problemas): docs/DESPLIEGUE.md
+name: muevete-cb
+
 services:
   db:
-    image: postgres:16-alpine
+    build: ./db
+    image: muevete-cb/db:latest
+    container_name: muevete-db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: muevete
-      POSTGRES_PASSWORD: muevete
-      POSTGRES_DB: muevete
+      POSTGRES_USER: ${POSTGRES_USER:-muevete}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-muevete}
+      POSTGRES_DB: ${POSTGRES_DB:-muevete}
     ports:
       - "${PG_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U muevete -d muevete"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-muevete} -d ${POSTGRES_DB:-muevete}"]
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 10s
 
-  api:
-    profiles: ["api"]
+  backend:
     build: ./backend
+    image: muevete-cb/backend:latest
+    container_name: muevete-backend
+    restart: unless-stopped
+    # Variables opcionales del backend (LLM, Telegram, WhatsApp…) si existe backend/.env
     env_file:
       - path: ./backend/.env
         required: false
     environment:
-      DATABASE_URL: postgresql+psycopg://muevete:muevete@db:5432/muevete
       STORAGE: postgres
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-muevete}:${POSTGRES_PASSWORD:-muevete}@db:5432/${POSTGRES_DB:-muevete}
+      PORT: "8080"
+      ID_SALT: ${ID_SALT:-cambia-este-salt}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-none}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
     ports:
-      - "8080:8080"
+      - "${API_PORT:-8080}:8080"
     depends_on:
       db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build: ./web
+    image: muevete-cb/web:latest
+    container_name: muevete-web
+    restart: unless-stopped
+    environment:
+      # nginx reenvía /health, /routes, /incidents… al backend (mismo origen para el navegador)
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      backend:
         condition: service_healthy
 
 volumes:
   pgdata:
+    name: muevete-cb-pgdata

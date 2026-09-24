@@ -33,6 +33,19 @@ def get_actor(
     raise HTTPException(400, "Falta el header X-Client-Id")
 
 
+def get_viewer_id(
+    c: Container = Depends(get_container),
+    x_client_id: str | None = Header(default=None),
+    x_admin_key: str | None = Header(default=None),
+    x_admin_name: str | None = Header(default=None),
+) -> str | None:
+    """Identidad opcional para lecturas: marca en las vistas los reportes y votos de quien consulta."""
+    try:
+        return get_actor(c, x_client_id, x_admin_key, x_admin_name).reporter_id
+    except HTTPException:
+        return None
+
+
 def require_admin(
     c: Container = Depends(get_container),
     x_admin_key: str | None = Header(default=None),

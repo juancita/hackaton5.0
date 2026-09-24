@@ -7,14 +7,17 @@
  *
  * Identidad sin cuenta: se genera un client_id una sola vez y se envía en X-Client-Id.
  * Modo admin: la clave se guarda solo en esta pestaña (sessionStorage) y va en X-Admin-Key.
- * URL del backend: localStorage 'muevecb_api', window.MUEVECB_API o, por defecto, el mismo
- * host desde el que se abrió la app en el puerto 8080 (sirve en toda la red local).
+ * URL del backend: localStorage 'muevecb_api', window.MUEVECB_API o, por defecto:
+ *  - en desarrollo (web servida en otro puerto, p. ej. 8000): el mismo host en el puerto 8080;
+ *  - en producción (Railway) o si la sirve la propia API: el mismo origen.
  */
 
 const API = (() => {
-  const porDefecto = location.protocol.startsWith('http')
-    ? `${location.protocol}//${location.hostname}:8080`
-    : 'http://localhost:8080';
+  const porDefecto = !location.protocol.startsWith('http')
+    ? 'http://localhost:8080'
+    : (location.port && location.port !== '8080')
+      ? `${location.protocol}//${location.hostname}:8080`
+      : location.origin;
   const base = (() => {
     try { return localStorage.getItem('muevecb_api') || window.MUEVECB_API || porDefecto; }
     catch (e) { return window.MUEVECB_API || porDefecto; }
@@ -69,7 +72,10 @@ const API = (() => {
     suggest: async (q) => ok(await llamar('GET', `/places/suggest?q=${encodeURIComponent(q)}&limit=8`, null, 1500)),
     rutas: (origen_id, destino_id, prioridad, modos) => llamar('POST', '/routes', { origen_id, destino_id, prioridad, modos }),
     // El asistente puede tardar más: el LLM interpreta el mensaje y pule la respuesta
-    chat: async (texto) => ok(await llamar('POST', '/chat/web', { texto }, 30000)),
+    chat: async (texto, ubicacion) => ok(await llamar('POST', '/chat/web', { texto, ...(ubicacion || {}) }, 30000)),
+    // Imagen de la ruta que arma el backend (trazado, A/B y ubicación)
+    urlMapa: (mapa) => `${base}/mapas/ruta.jpg?${new URLSearchParams({
+      r: mapa.ruta, ...(mapa.ubicacion ? { u: mapa.ubicacion.map((v) => v.toFixed(5)).join(',') } : {}) })}`,
     incidentes: async () => ok(await llamar('GET', '/incidents')),
     // { horas } = solo las últimas N horas; { antes } = creados antes de esa fecha ISO (scroll infinito)
     recientes: async ({ horas, antes, limit = 30 } = {}) => ok(await llamar('GET', '/incidents/recent?' + new URLSearchParams({
