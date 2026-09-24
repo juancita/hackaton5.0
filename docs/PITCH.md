@@ -3,6 +3,33 @@
 > Regla de oro de la rúbrica: en los **primeros 2 minutos** el jurado debe entender
 > el problema y la solución. Todos los integrantes hablan. Cierre con impacto medible.
 
+---
+
+## 🏗️ Estructura de pitch ganador (9 bloques del taller)
+> Del taller Colombia 5.0: *"Todo pitch efectivo sigue una arquitectura de 9 bloques.
+> Cada bloque responde una pregunta que tu audiencia ya tiene en mente — tu trabajo es
+> anticiparla y responderla antes de que la formulen."*
+>
+> Como somos un proyecto **GovTech/social** (no lucrativo), adaptamos Mercado/Ingresos/
+> Finanzas a **alcance, sostenibilidad y costos** — sin inventar ingresos. Sé honesto: eso convence.
+
+| # | Bloque | Pregunta del jurado | Nuestra respuesta |
+|---|--------|---------------------|-------------------|
+| 01 | **Problema** | ¿Quién sufre y cuánto? | Habitantes de zonas altas/rurales de C. Bolívar pierden **2–3 h por trayecto**; la info del transporte informal solo existe en el "boca a boca". |
+| 02 | **Solución** | ¿Qué hace y cómo se usa? | Asistente que cruza formal+informal y recomienda la mejor ruta. Se usa por **WhatsApp** (mi abuela) o **web** (experto). Sin tecnicismos. |
+| 03 | **Mercado / Alcance** | ¿A cuántos llega? | TAM: ~**700.000** hab. de C. Bolívar. SAM: ~**200.000** en zonas altas/rurales dependientes del informal. SOM: piloto corredor TransMiCable + Paraíso/Quiba (año 1). |
+| 04 | **Modelo (Ingresos→Sostenibilidad)** | ¿Cómo se sostiene? | **Gratis para el ciudadano.** Se sostiene con presupuesto de Alcaldía Local/MinTIC + datos abiertos; opción de alianzas con comercio local (plaza Perdomo) sin cobrar al usuario. |
+| 05 | **Competencia** | ¿Quién más existe? | Moovit/Google: **no tienen el informal, no funcionan offline, no aprenden del reporte ciudadano en tiempo real**. Esa es nuestra ventaja. |
+| 06 | **Equipo** | ¿Quién ejecuta? | *(Presenta a cada integrante y su rol: territorio, dev, diseño, capitán.)* Perfiles multidisciplinarios del propio territorio. |
+| 07 | **Finanzas** | Costos y proyección 3 años | Operación **casi cero**: PWA estática + WhatsApp. Costo principal = validación comunitaria (JAC) y mantenimiento de datos. Proyección: piloto → localidad → réplica en Usme/Suba rural. |
+| 08 | **Roadmap / Tracción** | ¿En qué punto están y qué sigue? | Hoy: prototipo funcional con datos oficiales en vivo. 3 meses: piloto con 1 JAC + GTFS real. 12 meses: cobertura localidad. |
+| 09 | **Ask / Cierre** | ¿Qué piden? | Apoyo de Secretaría de Movilidad + Alcaldía Local para el piloto y acceso a validación comunitaria. *"El talento está aquí; el momento es ahora."* |
+
+> ⚠️ Los bloques 08 y 09 no se alcanzaban a ver en la foto del taller (se infieren del formato
+> estándar). **Confirmar con la organización** el contenido exacto de esos dos bloques.
+
+---
+
 ## Guion (5:00)
 
 ### 0:00–1:00 — El problema (Pertinencia territorial · 25%)

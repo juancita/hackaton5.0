@@ -6,3 +6,5 @@ Documentos oficiales de la Hackathon Colombia 5.0 — reto "Muévete CB".
 - `IMG_0469..0473.PNG` — capturas del formulario/convocatoria (reglas, reto y fuentes de datos).
 
 > Ver el análisis y la estrategia en `../docs/`.
+
+- `IMG_0563_estructura_pitch.*` — slide del taller: **estructura de pitch ganador (9 bloques)**. Ver `../docs/PITCH.md`.
