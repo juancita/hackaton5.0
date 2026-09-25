@@ -152,6 +152,10 @@ class DriverService:
             t.esperando = sum(1 for s in self._repo.seats_for_trip(t.id) if s.estado == "reservado")
         return sorted(viajes, key=lambda t: t.hora)
 
+    def _con_esperando(self, t: Trip) -> Trip:
+        t.esperando = sum(1 for s in self._repo.seats_for_trip(t.id) if s.estado == "reservado")
+        return t
+
     def _trip_de(self, trip_id: str) -> Trip:
         t = self._repo.get_trip(trip_id)
         if not t:
@@ -188,7 +192,7 @@ class DriverService:
             t.lat, t.lng = lat, lng
         if t.cupos_libres == 0:
             t.lleno = True
-        return self._repo.save_trip(t)
+        return self._con_esperando(self._repo.save_trip(t))
 
     def marcar_lleno(self, trip_id: str, driver_id: str) -> Trip:
         t = self._trip_de(trip_id)
@@ -196,14 +200,14 @@ class DriverService:
             raise InvalidInput("Solo el conductor puede marcar lleno")
         t.lleno = True
         t.cupos_libres = 0
-        return self._repo.save_trip(t)
+        return self._con_esperando(self._repo.save_trip(t))
 
     def finalizar(self, trip_id: str, driver_id: str) -> Trip:
         t = self._trip_de(trip_id)
         if t.driver_id != driver_id:
             raise InvalidInput("Solo el conductor puede finalizar el viaje")
         t.estado = "finalizado"
-        return self._repo.save_trip(t)
+        return self._con_esperando(self._repo.save_trip(t))
 
     def desvio(self, trip_id: str, driver_id: str, nota: str) -> Trip:
         """El conductor avisa que toma otra vía (protesta, cierre, derrumbe): los pasajeros lo ven."""
@@ -211,7 +215,10 @@ class DriverService:
         if t.driver_id != driver_id:
             raise InvalidInput("Solo el conductor puede avisar un desvío")
         t.desvio = (nota or "").strip()[:200] or "Desvío por novedad en la vía"
-        return self._repo.save_trip(t)
+        return self._con_esperando(self._repo.save_trip(t))
+
+    def mis_viajes(self, driver_id: str, limit: int = 50) -> list[Trip]:
+        return [self._con_esperando(t) for t in self._repo.driver_trips(driver_id, limit)]
 
     def viaje_activo(self, driver_id: str) -> Trip | None:
         """El viaje más reciente del conductor que no ha terminado (para comandos por chat)."""

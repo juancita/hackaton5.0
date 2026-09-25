@@ -105,7 +105,7 @@ def anunciar_viaje(body: ViajeRequest, actor: Actor = Depends(get_actor), c: Con
 
 @router.get("/conductores/mios", response_model=list[Trip], tags=["conductores"])
 def mis_viajes(actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> list[Trip]:
-    return c.drivers._repo.driver_trips(actor.reporter_id, 50)
+    return c.drivers.mis_viajes(actor.reporter_id, 50)
 
 
 @router.get("/conductores/{driver_id}/tendencia", tags=["conductores"])

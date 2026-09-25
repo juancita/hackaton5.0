@@ -209,11 +209,15 @@
     const btn = e.currentTarget;
     if (camTimer) { clearInterval(camTimer); camTimer = null; btn.innerHTML = ico('videocam') + 'Cámaras de fotodetección'; return; }
     btn.innerHTML = ico('videocam_off') + 'Detener cámaras';
+    let primera = true;
     const leer = async () => {
       if (!enLinea) return;
-      const cam = azar(window.DB.CAMARAS || []);
+      const camaras = window.DB.CAMARAS || [];
+      // Guion del demo: la primera lectura es la subida a Paraíso con el tráfico detenido (bloqueo)
+      const cam = primera ? (camaras.find((c) => c.id === 'cam-paraiso') || azar(camaras)) : azar(camaras);
       if (!cam) return;
-      const nivel = Math.min(0.97, 0.45 + Math.random() * 0.55);        // 45%..97%
+      const nivel = primera ? 0.97 : Math.min(0.97, 0.45 + Math.random() * 0.55);  // 45%..97%
+      primera = false;
       const vehiculos = Math.round(nivel * 60);
       const r = await API.camaraLectura(cam.id, +nivel.toFixed(2), vehiculos);
       const pct = Math.round(nivel * 100);

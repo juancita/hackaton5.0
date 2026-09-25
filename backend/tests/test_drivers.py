@@ -82,3 +82,12 @@ def test_chat_telegram_conductor_y_pasajero(client):
 def test_chat_de_rutas_no_se_afecta(client):
     # Una consulta de ruta normal sigue yendo al asistente
     assert "La más rápida" in tg(client, 3, "de meissen a paraiso", "Luz")
+
+
+def test_camara_bloquea_y_ruta_alternativa_avisa(client):
+    # Guion del demo: la cámara de la subida a Paraíso detecta tráfico detenido
+    assert client.post("/cameras/cam-paraiso/lectura", json={"nivel": 0.97}).json()["tipo"] == "bloqueo"
+    plan = client.post("/routes", json={"origen_id": "paraiso", "destino_id": "tunal"}).json()
+    rutas = [t["ruta"] for o in plan["opciones"] for t in o["tramos"]]
+    assert "Jeep Paraíso" not in rutas                      # esquiva el tramo bloqueado
+    assert plan["incidentes_evitados"]                      # y avisa que hubo un cierre en la ruta habitual

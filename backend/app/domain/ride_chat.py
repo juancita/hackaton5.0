@@ -43,6 +43,10 @@ BTN_UBIC = QuickReply(id="ubicacion", label="📍 Enviar mi ubicación")
 BTN_MENU = QuickReply(id="menu", label="🏠 Menú principal")
 
 
+def _pasajeros(n: int) -> str:
+    return f"{n} pasajero" if n == 1 else f"{n} pasajeros"
+
+
 def _hora(texto: str) -> tuple[str | None, str]:
     """Extrae la hora ("6:30", "6 pm", "18h") → ("HH:MM", texto_sin_la_hora)."""
     t = texto.lower()
@@ -218,7 +222,7 @@ class RideChat:
                     t = self._d.salir(activo.id, rid, lat, lng)
                     extra = "" if ubicacion else "\n📍 Toca «Enviar mi ubicación» para que te vean en el mapa."
                     lleno = " ¡Y sales LLENO! 🚫" if t.lleno else ""
-                    return self._msg(f"🚙 ¡En ruta!{lleno} Avisé a tus {t.esperando} pasajeros.{extra}",
+                    return self._msg(f"🚙 ¡En ruta!{lleno} Avisé a {_pasajeros(t.esperando)} que te esperan.{extra}",
                                      self._botones_conductor(canal))
                 if ubicacion and activo and not texto.strip():
                     t = self._d.salir(activo.id, rid, ubicacion[0], ubicacion[1])
@@ -245,7 +249,7 @@ class RideChat:
                                      self._botones_conductor(canal))
                 if n in ("cuantos esperan", "pasajeros", "quien va") and activo:
                     t = next((x for x in self._d.proximos(None, 50) if x.id == activo.id), activo)
-                    return self._msg(f"🧍 {t.esperando} pasajeros esperan tu viaje de las {t.hora}.",
+                    return self._msg(f"🧍 {_pasajeros(t.esperando)} esperando tu viaje de las {t.hora}.",
                                      self._botones_conductor(canal))
         except DomainError as e:
             return self._msg(f"🙏 {e}")

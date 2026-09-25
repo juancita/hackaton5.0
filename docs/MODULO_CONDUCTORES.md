@@ -97,4 +97,4 @@ Política completa: [DATOS_Y_PRIVACIDAD.md](DATOS_Y_PRIVACIDAD.md).
 - Persistencia: `backend/app/adapters/outbound/pg/` + migración `alembic/versions/0002_drivers.py`
 - Web: `web/js/rides.js` (login + vista Viajes), `web/js/sim.js` (cámaras)
 - Pruebas: `backend/tests/test_drivers.py`
-- Datos de demo: `docker compose exec backend python -m scripts.seed_demo`
+- Datos de demo: `docker compose exec backend python -m scripts.seed_demo` · Reiniciar demo: `bash scripts/reset_demo.sh`

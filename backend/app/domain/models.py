@@ -159,6 +159,7 @@ class TripPlan(BaseModel):
     opciones: list[RouteOption]
     recomendada: int = 0
     incidentes_aplicados: list[str] = []
+    incidentes_evitados: list[str] = []  # cierres de la ruta habitual que obligaron a desviarse
 
 
 # --- Reportes ----------------------------------------------------------------

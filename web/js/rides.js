@@ -89,7 +89,7 @@ window.Rides = (() => {
       if (API.logueado) API.setModo(b.dataset.modo);
       abrir();
     }));
-    $('#refViajes').addEventListener('click', cargarProximos);
+    $('#refViajes').addEventListener('click', () => cargarProximos());
     // Datalist de lugares para el conductor
     const dl = $('#lugaresV');
     if (dl && !dl.children.length) PARADEROS.forEach((p) => { const o = document.createElement('option'); o.value = p.nombre; dl.appendChild(o); });
@@ -104,9 +104,9 @@ window.Rides = (() => {
   }
 
   // -- Pasajero: próximos viajes + reservar --
-  async function cargarProximos() {
+  async function cargarProximos(silencioso = false) {
     const cont = $('#listaViajes');
-    cont.innerHTML = '<p class="empty">Cargando…</p>';
+    if (!silencioso) cont.innerHTML = '<p class="empty">Cargando…</p>';
     const viajes = await API.proximos();
     API.horarios().then((h) => { if (h && Object.keys(h).length) try { localStorage.setItem('muevecb_horarios', JSON.stringify(h)); } catch (e) {} });
     if (!viajes) {
@@ -165,9 +165,9 @@ window.Rides = (() => {
     toast(`${ico('campaign')} Viaje publicado: ${ruta} a las ${hora}`);
     cargarMisViajes();
   }
-  async function cargarMisViajes() {
+  async function cargarMisViajes(silencioso = false) {
     const cont = $('#misViajes');
-    cont.innerHTML = '<p class="empty">Cargando…</p>';
+    if (!silencioso) cont.innerHTML = '<p class="empty">Cargando…</p>';
     if (!API.logueado) { cont.innerHTML = '<p class="empty">Entra con tu celular para gestionar tus viajes.</p>'; return; }
     const viajes = await API.misViajes();
     if (!viajes) { cont.innerHTML = '<p class="empty">Sin conexión.</p>'; return; }
@@ -223,6 +223,12 @@ window.Rides = (() => {
     wireViajes();
     // rides.js carga después del router de app.js: si se entra directo a #/viajes, abrir aquí
     refrescarSesion().then(() => { if (/^#\/?viajes/.test(location.hash)) abrir(); });
+    // En vivo: mientras la vista Viajes está abierta se refresca sola ("en ruta", cupos, desvíos)
+    setInterval(() => {
+      const vista = document.getElementById('view-viajes');
+      if (!vista || !vista.classList.contains('active') || document.hidden) return;
+      if (modoUI === 'conductor') cargarMisViajes(true); else cargarProximos(true);
+    }, 5000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

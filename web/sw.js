@@ -1,5 +1,5 @@
 /* Service Worker — funciona OFFLINE (clave en zonas altas sin señal) */
-const CACHE = 'muevecb-v29';
+const CACHE = 'muevecb-v30';
 const RUNTIME = 'muevecb-rt-v11';
 const ASSETS = [
   './', './index.html', './simulador.html',

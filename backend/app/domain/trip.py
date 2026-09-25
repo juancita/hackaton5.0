@@ -36,15 +36,27 @@ class PlanTripUseCase:
         )
         recomendada = next((i for i, o in enumerate(opciones) if o.prioridad == (prioridad or "rapido")), 0)
 
+        def incidentes_de(ops) -> list[str]:
+            ids: list[str] = []
+            for op in ops:
+                for leg in op.tramos:
+                    for de, a in zip(leg.paradas, leg.paradas[1:]):
+                        p = pen.get(clave_tramo(de, a, leg.modo)) or pen.get(clave_tramo(a, de, leg.modo))
+                        for iid in p.incident_ids if p else []:
+                            if iid not in ids:
+                                ids.append(iid)
+            return ids
+
         # Incidentes que tocan alguno de los tramos usados por las opciones
-        aplicados: list[str] = []
-        for op in opciones:
-            for leg in op.tramos:
-                for de, a in zip(leg.paradas, leg.paradas[1:]):
-                    p = pen.get(clave_tramo(de, a, leg.modo)) or pen.get(clave_tramo(a, de, leg.modo))
-                    for iid in p.incident_ids if p else []:
-                        if iid not in aplicados:
-                            aplicados.append(iid)
+        aplicados = incidentes_de(opciones)
+        # Cierres sobre la ruta HABITUAL (la que saldría sin alertas) que obligaron a desviarse:
+        # sirven para avisar "hay un cierre, te mostramos alternativas" aunque ya no se use ese tramo.
+        evitados: list[str] = []
+        if pen:
+            habituales = self._routing.opciones(
+                origen_id, destino_id, {}, preferida=prioridad, modos=None if modos is None else frozenset(modos)
+            )
+            evitados = [i for i in incidentes_de(habituales) if i not in aplicados]
 
         return TripPlan(
             origen=PlaceRef(id=origen.id, nombre=origen.nombre),
@@ -52,4 +64,5 @@ class PlanTripUseCase:
             opciones=opciones,
             recomendada=recomendada,
             incidentes_aplicados=aplicados,
+            incidentes_evitados=evitados,
         )

@@ -298,7 +298,7 @@
     if (enLinea) {
       cont.innerHTML = '<p class="empty">Buscando rutas…</p>';
       const r = await API.rutas(oId, dId, prioridad, modos);
-      if (r && r.ok) { pintarPlan(r.data.opciones, r.data.recomendada, r.data.incidentes_aplicados.length, 'servidor'); return; }
+      if (r && r.ok) { pintarPlan(r.data.opciones, r.data.recomendada, r.data.incidentes_aplicados.length + (r.data.incidentes_evitados || []).length, 'servidor'); return; }
       if (r) { cont.innerHTML = `<p class="empty">${detalle(r)}</p>`; return; }
     }
     // Sin servidor: motor local, sin alertas (las alertas viven en el servidor)

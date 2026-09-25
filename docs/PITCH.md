@@ -1,331 +1,296 @@
 # 🎤 Pitch ganador — "Muévete CB"
-### Hackathon Colombia 5.0 · Reto Muévete CB · 5 jurados · estilo Shark Tank · 5 minutos
+### Hackathon Colombia 5.0 · Reto Muévete CB · 5 jurados · estilo Shark Tank · 5 minutos · **un solo expositor**
 
-> **Cómo usar este documento:** léelo completo una vez, repártanse las voces, memoricen los
-> primeros 45 segundos y el cierre **palabra por palabra**, y ensáyenlo cronometrado **mínimo 3 veces**.
-> El resto se dice con naturalidad, no de memoria. Lo que gana no es la app: es cómo la **venden**.
+> **Cómo usar este documento:** léelo completo una vez, memoriza **palabra por palabra** los primeros
+> 45 segundos y el cierre, y ensaya cronometrado **mínimo 3 veces**. El resto dilo con naturalidad.
+> Lo que gana no es la app: es cómo la **vendes**.
 
 ---
 
-## 0) La idea en una frase (el "logline")
-> **"Muévete CB es el Waze de Ciudad Bolívar: junta por primera vez el transporte formal
-> —TransMiCable, SITP— con el informal —los jeeps y colectivos que suben a la montaña—,
-> y le devuelve horas de vida a la gente. Funciona hasta sin señal y hasta por WhatsApp."**
+## 0) La idea en una frase
+> **"Muévete CB es el Waze de Ciudad Bolívar: junta por primera vez el TransMiCable y el SITP con los
+> jeeps y colectivos de la loma, y les organiza a los conductores informales sus cupos y horarios.
+> Funciona por Telegram —mañana WhatsApp— y en la app, hasta sin señal."**
 
-Si el jurado solo recuerda una frase, que sea esa. Repítanla al inicio y al final.
+Si el jurado solo recuerda una frase, que sea esa. Dila al inicio y al final.
 
 ---
 
 ## 1) La estrategia (por qué así se gana)
 
 ### Las dos reglas que mandan
-1. **La imagen del taller (los 9 bloques)** dice: *"Cada bloque responde una pregunta que tu
-   audiencia ya tiene en mente — tu trabajo es anticiparla y responderla antes de que la formulen."*
-   → Estructuramos el pitch en esos 9 bloques. **Respondemos antes de que pregunten.**
-2. **La rúbrica** reparte los puntos así. Cada segundo del pitch ataca un criterio:
+1. **La imagen del taller (9 bloques):** *"cada bloque responde una pregunta que tu audiencia ya tiene
+   en mente — anticípala y respóndela antes de que la formulen."* → El guion sigue esos 9 bloques.
+2. **La rúbrica del reto:**
 
-| Criterio | Peso | Dónde lo ganamos en el pitch |
+| Criterio | Peso | Dónde lo ganamos |
 |---|---|---|
-| **Pertinencia territorial** | **25%** | Bloque 1 (historia real + datos de CB) y lenguaje de barrio. **El más importante.** |
-| Innovación | 20% | Bloque 2 y 5: informal + tiempo real + Edge AI sobre fotodetección |
-| Viabilidad técnica | 20% | Demo EN VIVO + "funciona sin señal / reutiliza infraestructura existente" |
-| Impacto | 20% | Bloques 3 y 7: horas devueltas × personas, escalable y sostenible |
-| Presentación y comunicación | 15% | Todo el equipo habla, hilo claro, respuestas firmes |
+| **Pertinencia territorial** | **25%** | Doña Rosa y Don Pedro, datos de CB, jeeperos, JAC, TransMiCable |
+| Innovación | 20% | Automatizamos la logística del transporte informal + cámaras de fotocomparendos reutilizadas |
+| Viabilidad técnica | 20% | Demo en vivo, funciona sin señal, usa infraestructura que ya existe, solo con celular |
+| Impacto | 20% | Horas devueltas, cupos llenos más rápido, mapa de demanda que hoy no existe |
+| Presentación | 15% | Hilo claro, demo fluido, respuestas firmes |
 
 ### El estilo Shark Tank
-No es una exposición académica: es **vender**. Los 5 jurados son "inversionistas". Tienen que
-salir queriendo **poner plata y su nombre** en esto. Eso significa: energía, seguridad, una
-historia que emocione, números que respalden, y un producto que **funciona frente a ellos**.
+Los 5 jurados son inversionistas: **tienen que querer poner plata y su nombre**. Por eso el pitch deja
+claro **cómo gana dinero** el proyecto (lo recalcaron en el evento), sin cobrarle nunca al pasajero.
+
+### ¿Qué es "GovTech"? (para ti, no lo digas en el pitch)
+Son empresas de tecnología que le **venden soluciones al Estado** (alcaldías, secretarías, entidades)
+para mejorar servicios públicos. En el pitch **no uses la palabra**; di: *"le vendemos a las entidades
+públicas la información de movilidad que hoy no tienen"*.
 
 ---
 
-## 2) Pitch en solitario (lo presentas TÚ)
-Tú eres el único expositor. Todo el guion está pensado para que lo hagas solo. Claves:
-
-- **Tú narras y tú operas el demo.** Ensaya la coordinación mano-boca: mientras tocas la app,
-  sigue hablando (nada de silencios mirando la pantalla). Ten cada paso memorizado.
-- **Ritmo de una sola voz:** un pitch solo cansa al oído si el tono es plano. Varía el ritmo por
-  bloque (historia lenta y cálida → números firmes → cierre potente). Usa pausas como "puntuación".
-- **Divide el escenario en zonas:** cuando hables de la gente, mira a los jurados; cuando muestres
-  el demo, señala la pantalla y vuelve a mirarlos. No le des la espalda al jurado.
-
-> ⚠️ **La rúbrica premia que participe todo el equipo (Presentación, 15%).** Como expones tú solo,
-> compénsalo así:
-> - **Obligatorio en el guion:** vende fuerte al equipo en el **Bloque 6** ("somos un equipo de X…").
-> - **Opción de bajo esfuerzo (recomendada si se puede):** que **un compañero opere el portátil**
->   durante el demo y/o **diga una sola frase** en su punto fuerte (p. ej. el cierre técnico). Con
->   que dos personas aparezcan activas, ya cubres mejor ese criterio. Si no se puede, no pasa nada:
->   el guion funciona solo contigo.
+## 2) Pitch en solitario — claves
+- **Tú narras y tú operas el demo.** Nunca te quedes callado mirando la pantalla: narra lo que tocas.
+- **Ten todo abierto antes de empezar** (ver §6): celular con Telegram (Don Pedro), portátil con la app
+  en *Viajes* y la *Sala en vivo* en otra pestaña.
+- **Varía el ritmo:** historia lenta y cálida → demo ágil → números firmes → cierre lento y potente.
+- ⚠️ La rúbrica valora que participe el equipo: si puedes, que **un compañero sostenga el celular de
+  "Don Pedro"** durante el demo (se ve genial: dos personas "chateando" en vivo). Y nómbralos en el bloque 6.
 
 ---
 
-## 3) EL GUION — 5:00 minutos, bloque por bloque
+## 3) EL GUION — 5:00 minutos
 
-> Formato: **[tiempo]** · *qué se ve en pantalla* · **lo que dices** (guía, no camisa de fuerza).
-> El cronómetro es la clave: si te pasas de 5 min, te cortan. Ensaya con reloj.
+> Formato: **[tiempo]** · *qué se ve* · **lo que dices**.
 
-### 🎬 GANCHO + BLOQUE 1 — PROBLEMA · [0:00–1:00]
-*Pantalla: una foto de las lomas de Ciudad Bolívar al amanecer (o el mapa con las zonas altas).*
+### 🎬 GANCHO + BLOQUE 1 — PROBLEMA · [0:00–0:45]
+*Pantalla: foto de las lomas de Ciudad Bolívar (o la app en el mapa).*
 
-> *(Empezar mirando a los ojos a un jurado, sin leer, tono humano)*
+> **"Son las 4:30 de la mañana en Paraíso Alto. Doña Rosa baja la loma a pie y espera un jeep que no
+> tiene horario. Al mismo tiempo, Don Pedro, el jeepero, está parado en el paradero esperando a llenar,
+> porque no sabe cuánta gente va a bajar. Los dos pierden tiempo. Todos los días."**
 >
-> **"Son las 4 de la mañana en Paraíso Alto. Doña Rosa ya está de pie. Para llegar a su
-> trabajo en el centro tiene que bajar la loma a pie, coger un jeep que no tiene horario,
-> después un alimentador, después el cable, y después TransMilenio. Entre dos y tres horas.
-> Cada día. Solo para ir. Y otras dos o tres para volver."**
+> **"En Ciudad Bolívar vivimos cerca de 700.000 personas, en la montaña. El cable y el SITP llegan hasta
+> cierto punto; de ahí para arriba mandan los jeeps y colectivos, y esa información no está en ningún
+> mapa: vive en el 'boca a boca'. Por eso la gente gasta entre dos y tres horas por trayecto."**
+
+**Psicología:** dos personas con nombre (pasajera y conductor) = el problema tiene dos lados y los dos
+ganan con la solución. Ancla numérica: 700.000 y 2–3 horas.
+
+### BLOQUE 2 — SOLUCIÓN · [0:45–1:10]
+*Pantalla: app abierta.*
+
+> **"Muévete CB junta lo formal y lo informal en un solo lugar. Le dices de dónde sales y a dónde vas y te
+> arma la mejor ruta: cable, SITP **y** los jeeps de la loma. Y hace algo que nadie hace: le organiza al
+> conductor informal su trabajo. Él avisa a qué hora sale, la gente aparta su cupo, y él sabe cuántos lo
+> esperan. Todo con el celular: la abuela por el chat, el joven por la app. Sin contraseñas: solo su número."**
+
+### 🔥 DEMO EN VIVO · [1:10–2:40] (90 segundos)
+Secuencia exacta — ensáyala hasta que salga sola:
+
+1. **Conductor por Telegram (15 s).** En el celular de "Don Pedro" escribe:
+   `salgo 6:30 de Mirador a Paraíso con 8 cupos` → *"¡Viaje publicado!"*
+   > *"Así de fácil: Don Pedro no tiene que aprender ninguna app, le escribe al bot como a un vecino."*
+2. **Pasajera en la app (20 s).** Portátil → pestaña **Viajes** → aparece el viaje de Don Pedro →
+   **Apartar cupo** (entra con celular + nombre).
+   > *"Rosa ve a qué hora sale el jeep y aparta su puesto. Don Pedro ya sabe que lo espera una persona más."*
+3. **"Ya salí" (10 s).** En el celular: **✅ Ya salí** → en la app el viaje pasa a **en ruta**.
+   > *"Cuando arranca, avisa con un botón y comparte su ubicación. Si va lleno, se marca solo."*
+4. **Cámaras + cierre (35 s).** Pestaña **Sala en vivo** → botón **Cámaras de fotodetección** → la primera
+   lectura es siempre *"Fotodetección subida a Paraíso: 58 vehículos → bloqueo"* → vuelve a la app,
+   **Rutas**: origen **Paraíso Alto**, destino **Portal Tunal** → *"Hay 1 cierre en la zona, te mostramos
+   rutas alternativas que lo evitan"*. En el celular de Don Pedro: `desvío por Lucero porque la subida está
+   bloqueada` → aparece en la app como desvío del jeep.
+   > *"Aquí está lo más potente: las cámaras de fotocomparendos que ya están en los semáforos. Hoy solo
+   > sirven para multar. Nosotros contamos cuántos carros pasan: si se acumulan, es trancón. La cámara
+   > manda solo ese número —nunca video ni placas—, lo cruzamos con los reportes de los vecinos y el
+   > sistema te da otra ruta. Y si hay protesta en la Distrital, el jeepero avisa su desvío y todos lo ven."*
+5. **Remate (10 s).**
+   > *"Y si en la loma se cae la señal, la app sigue funcionando con los horarios que aprendió de cada
+   > conductor."*
+
+### BLOQUE 3 — MERCADO · [2:40–3:00]
+*Pantalla: TAM / SAM / SOM.*
+
+> **"Empezamos en Ciudad Bolívar: 700.000 personas y unos 150 conductores informales en el corredor del
+> cable; la meta del primer año son 40.000 usuarios. La Bogotá de ladera —Usme, San Cristóbal, Rafael
+> Uribe y Ciudad Bolívar— son casi 2 millones de personas con el mismo problema. Y Soacha, Medellín o Cali
+> tienen lomas y jeeps igualitos."**
+
+| | Personas | Valor (estimado) |
+|---|---|---|
+| **TAM** | Ciudades colombianas con ladera y transporte informal | ~20 localidades/municipios × COP 120 M/año en licencias ≈ **COP 2.400 M/año** + publicidad y datos |
+| **SAM** | Bogotá de ladera: ~1,9 M personas (4 localidades) | ≈ **COP 900 M/año** |
+| **SOM (año 1)** | Ciudad Bolívar: 40.000 usuarios, 150 conductores | ≈ **COP 330 M** |
+
+### BLOQUE 4 — MODELO DE NEGOCIO · [3:00–3:30] (clave: lo recalcaron en el evento)
+*Pantalla: 4 fuentes de ingreso. Grande: "El pasajero nunca paga".*
+
+> **"¿Cómo ganamos plata? El pasajero nunca paga. Ganamos por cuatro lados:**
+> **Uno: le vendemos a la Secretaría de Movilidad y a la Alcaldía un tablero con la demanda real del
+> transporte informal —dónde, a qué hora y cuánta gente se mueve— que hoy no tienen para planear rutas.
+> Dos: plan Pro para cooperativas y conductores: si el jeep se llena más rápido, gana más, y paga una
+> cuota pequeña. Tres: publicidad del comercio del barrio en las rutas. Cuatro: alianzas de datos con
+> apps como Moovit: ellos no tienen el informal, nosotros sí."**
+
+| Fuente | Quién paga | Precio (propuesta a validar) |
+|---|---|---|
+| Tablero de movilidad del territorio | Secretaría de Movilidad, Alcaldía Local, TransMilenio | COP 10 M/mes por localidad |
+| Plan Conductor Pro | Cooperativas / conductores (básico gratis) | COP 20.000/mes |
+| Publicidad hiperlocal | Tiendas, droguerías, plaza de Perdomo | COP 50.000–200.000/mes |
+| Alianza y licencia de datos | Moovit, Google, operadores, urbanizadoras | Revenue share / licencia anual |
+
+### BLOQUE 5 — COMPETENCIA Y ALIANZAS · [3:30–3:45]
+> **"Google Maps y Moovit son muy buenos para la ciudad formal. Pero no tienen el transporte informal, no
+> funcionan sin señal y no aprenden de la comunidad. No queremos pelear con ellos: queremos aliarnos.
+> Ellos tienen los buses en tiempo real; nosotros la loma. La integración ya está preparada en nuestro
+> sistema para recibir sus datos por API apenas firmemos."**
+
+### BLOQUE 6 — EQUIPO · [3:45–3:55]
+> **"Hoy les hablo yo, pero detrás hay un equipo: [nombres], [de la localidad / multidisciplinario]. En
+> horas construimos esto funcionando: backend, base de datos, bot de Telegram, cámaras y la app. Las ideas
+> no mueven a nadie; los equipos que ejecutan, sí."** *(Señala a tus compañeros.)*
+
+### BLOQUE 7 — FINANZAS · [3:55–4:15]
+*Pantalla: tabla de 3 años.*
+
+> **"Operar cuesta muy poco: es una web ligera y un bot, y usamos cámaras y datos que ya existen. Año uno,
+> con el piloto y fondos como los de MinTIC, llegamos a unos 330 millones. Año dos, cuatro localidades:
+> cerca de 940 millones. Año tres, Bogotá y otra ciudad: unos 2.000 millones, con margen positivo."**
+
+| (COP, proyección a validar) | Año 1 | Año 2 | Año 3 |
+|---|---|---|---|
+| Licencias entidades públicas | 120 M (1) | 480 M (4) | 960 M (8) |
+| Publicidad hiperlocal | 96 M | 300 M | 600 M |
+| Plan Conductor Pro | 12 M | 60 M | 150 M |
+| Datos y alianzas | — | 100 M | 300 M |
+| Fondos no reembolsables | 100 M | — | — |
+| **Ingresos** | **≈ 330 M** | **≈ 940 M** | **≈ 2.000 M** |
+| **Costos** (equipo, nube, trabajo de campo con JAC) | ≈ 230 M | ≈ 500 M | ≈ 1.000 M |
+
+### BLOQUE 8 — IMPACTO Y DATOS · [4:15–4:40]
+> **"El impacto es tiempo de vida: si ahorramos solo 30 minutos por viaje, es una hora al día por persona.
+> Con 40.000 personas son millones de horas al año devueltas a Ciudad Bolívar. Y los conductores llenan
+> más rápido, así que ganan más."**
 >
-> **"En Ciudad Bolívar viven cerca de 700.000 personas —es como una ciudad entera— trepada
-> en la montaña. El TransMiCable y el SITP llegan hasta cierto punto; de ahí para arriba,
-> la gente depende de jeeps y colectivos informales cuya información **no existe en ningún
-> mapa**: vive en el 'boca a boca'. Nadie sabe a qué hora pasa el jeep de Sierra Morena."**
+> **"Además, sin pedir cédula ni contraseña —solo el celular, guardado cifrado y cumpliendo la Ley 1581
+> de Habeas Data— construimos el mapa de cómo se mueve la loma, que hoy no existe. Y lo que compartimos
+> son estadísticas agregadas y anónimas, nunca datos de una persona."**
+
+### 🎯 BLOQUE 9 — PEDIDO Y CIERRE · [4:40–5:00]
+*Pantalla: logo + la frase.*
+
+> *(Más lento. Mira a los 5 jurados.)*
 >
-> **"Esa incertidumbre —no saber cómo ni cuándo moverse— es la que le roba el tiempo, la plata
-> y la tranquilidad a la gente del territorio."**
-
-**Por qué funciona (psicología):** abrimos con **una persona con nombre** (no "los usuarios"),
-un **detalle concreto** (4 a.m.) y un **número ancla** (700.000, 2–3 horas). Emoción + dato =
-pertinencia territorial (25%) desde el segundo uno.
-
-### BLOQUE 2 — SOLUCIÓN · [1:00–1:40]
-*Pantalla: la app abierta en la pantalla de inicio (Rutas).*
-
-> **"Muévete CB es un asistente de movilidad que, por primera vez, junta los dos mundos:
-> el transporte formal y el informal, en un solo lugar. Le dices de dónde sales y a dónde
-> vas, y te arma la mejor ruta combinando cable, buses **y** los jeeps de la loma."**
+> **"Les pedimos su respaldo para un piloto real en el corredor del TransMiCable con la Alcaldía Local, la
+> Secretaría de Movilidad y los jeeperos de Paraíso y Quiba. El cable ya está. Los jeeps ya están. Las
+> cámaras ya están. La comunidad ya está. Solo falta conectarlos. Muévete CB le devuelve el tiempo a
+> Ciudad Bolívar. El momento es ahora."**
 >
-> **"Y está pensado para todos: mi abuela, que solo sabe abrir WhatsApp, le escribe al bot y
-> le responde. Y quien maneja bien el celular usa la app con mapa en vivo. **Mismo cerebro,
-> dos puertas de entrada.** Sin tecnicismos, en el idioma de la gente."**
-
-**Anticipa la pregunta** "¿y esto para quién es?" → inclusión. **Sin jerga** (lo pide la imagen: "en lenguaje de usuario").
-
-### 🔥 DEMO EN VIVO (dentro del bloque 2/5) · [1:40–3:00]
-*Esto es el corazón. Práctiquenlo hasta que salga perfecto. Plan B listo (ver §6).*
-
-Secuencia exacta (rápida, narrada, sin silencios):
-1. **Ubicación real:** toca 📍 en Origen → *"tomo mi ubicación real"* → destino "Paraíso" → **Buscar**.
-   Aparece la ruta mixta: **SITP + TransMiCable + jeep**. *"Miren: el jeep que ninguna app tiene."*
-2. **Datos oficiales:** señala el indicador 🟢 → *"estos paraderos salen en vivo de los datos
-   abiertos oficiales de TransMilenio. No nos los inventamos."* (autoridad)
-3. **Tiempo real tipo Waze (el wow):** abre `simulador.html` en la pantalla grande → botón
-   **"Simular actividad"** → el mapa se llena de alertas de varios vecinos a la vez →
-   *"la comunidad reporta derrumbes y trancones, y todos lo ven al instante. Un Waze hecho por
-   el barrio, para el barrio."*
-4. **Telegram real:** desde tu celular escríbele al bot *"de Meissen a Paraíso"* → responde con
-   la ruta y el mapa. *"Esto no es una maqueta: es el bot funcionando en Telegram, ahora."*
-5. **A prueba de fallos:** *(opcional, si hay tiempo)* pon el equipo en **modo avión** y repite
-   una búsqueda → *"y funciona sin internet, porque en la loma la señal se cae."*
-
-> Frase de cierre del demo: **"No es un mapa más. Cruza lo formal con lo informal, aprende de la
-> comunidad en tiempo real y funciona en el celular más sencillo, con o sin señal."**
-
-### BLOQUE 3 — MERCADO / ALCANCE · [3:00–3:20]
-*Pantalla: cifras grandes TAM / SAM / SOM.*
-
-> **"El dolor es enorme. Solo en Ciudad Bolívar son ~700.000 personas (TAM). De ellas,
-> unas 250.000 viven en las zonas altas y rurales que dependen del transporte informal:
-> ese es nuestro mercado directo (SAM). Y arrancamos con un piloto en el corredor del
-> TransMiCable —Paraíso, Sierra Morena— con unos 40.000 usuarios en el primer año (SOM)."**
->
-> **"Y esto se replica: Usme, San Cristóbal, Rafael Uribe... toda la Bogotá de ladera son
-> más de 2 millones de personas con el mismo problema."**
-
-**Anticipa** "¿a cuántos llega?" con **cifras** (lo pide la imagen: "TAM, SAM, SOM en cifras").
-
-### BLOQUE 4 — INGRESOS / MODELO · [3:20–3:40]
-*Pantalla: 3 fuentes de ingreso, "gratis para el ciudadano" grande.*
-
-> **"Para el ciudadano es y será **gratis**: sería absurdo cobrarle a quien menos tiene. El
-> modelo es GovTech, con tres fuentes: uno, **licencia a entidades públicas** —Secretaría de
-> Movilidad y Alcaldía Local— que hoy no tienen estos datos del informal; dos, **venta de datos
-> agregados y anónimos** de movilidad para planear mejor el transporte; y tres, **pauta hiperlocal**
-> del comercio del barrio, como la plaza de Perdomo. La gente nunca paga."**
-
-**Anticipa** "¿cómo se gana plata?" (imagen: "¿Cómo cobras? sé específico"). Honestos: no inventamos que el usuario paga.
-
-### BLOQUE 5 — COMPETENCIA · [3:40–4:00]
-*Pantalla: tabla Nosotros vs. Google/Moovit.*
-
-> **"¿Y Google Maps o Moovit? Los respetamos, son buenísimos... para la ciudad formal. Pero
-> tienen tres huecos justo donde vive nuestra gente: **no tienen el transporte informal**,
-> **no funcionan sin señal**, y **no aprenden del reporte de la comunidad en tiempo real**.
-> Nosotros nacimos para la loma. Ahí está nuestra ventaja, y no es fácil de copiar: se
-> construye con la confianza de la comunidad."**
-
-**Anticipa** "¿en qué son distintos?" (imagen: "muestra tu ventaja sin subestimar a nadie" → por eso "los respetamos").
-
-### BLOQUE 6 — EQUIPO · [4:00–4:15]
-*Pantalla: fotos/nombres del equipo.*
-
-> **"Hoy les hablo yo, pero detrás hay un equipo: somos [nombres], [de la localidad /
-> multidisciplinario], con gente en desarrollo y en territorio. Conocemos esta realidad porque
-> **la vivimos**. Y en horas construimos un producto que ya funciona —con datos oficiales, con IA
-> y con Telegram en vivo—. Las ideas no mueven a nadie; los equipos que ejecutan, sí. Y nosotros
-> ya ejecutamos."**
->
-> *(Si un compañero está contigo, este es buen momento para señalarlo o que salude.)*
-
-**Anticipa** "¿quién ejecuta?" (imagen: "las personas convencen más que las ideas solas"). Vender al EQUIPO.
-
-### BLOQUE 7 — FINANZAS / SOSTENIBILIDAD · [4:15–4:35]
-*Pantalla: costos vs. proyección 3 años, punto de equilibrio.*
-
-> **"Los números cierran porque el costo de operar es mínimo: la app es una web ligera y usa
-> **infraestructura que ya existe** —hasta las cámaras de fotodetección de los semáforos, que
-> hoy solo multan, las reutilizamos para detectar trancones—. Año 1: piloto, con una licencia
-> pública cubrimos la operación. Año 2: toda la localidad. Año 3: tres localidades de ladera y
-> punto de equilibrio. Inversión baja, impacto masivo."**
-
-**Anticipa** "¿es sostenible?" (imagen: "ingresos, costos, proyecciones a 3 años"). Costo casi cero = viabilidad (20%).
-
-### BLOQUE 8 — IMPACTO / TRACCIÓN · [4:35–4:50]
-*Pantalla: el número grande del impacto.*
-
-> **"El impacto es tiempo de vida. Si le ahorramos a cada persona **solo 30 minutos por viaje**,
-> son **una hora al día**. Multiplicado por decenas de miles de personas, son **millones de
-> horas al año devueltas** a Ciudad Bolívar —horas para la familia, para estudiar, para
-> descansar—. Y hoy ya tenemos un prototipo funcional con datos reales. Esto no es una promesa:
-> ya está andando."**
-
-**Ancla** con el número más grande al final (efecto memoria).
-
-### 🎯 BLOQUE 9 — ASK / CIERRE · [4:50–5:00]
-*Pantalla: logo + la frase logline + el "pedido".*
-
-> *(Bajar el ritmo, mirar a los 5 jurados, con calma y firmeza)*
->
-> **"Les pedimos algo concreto: el respaldo para llevar Muévete CB a un piloto real con la
-> Alcaldía Local y la Secretaría de Movilidad. El TransMiCable ya está. Los jeeps ya están.
-> La comunidad ya está. Solo falta conectarlos. Muévete CB le devuelve el tiempo —y la
-> tranquilidad— a Ciudad Bolívar. El talento del territorio está listo. El momento es ahora."**
->
-> *(Silencio. No llenar el silencio. Dejar que aterrice. "Gracias.")*
+> *(Silencio de 2 segundos.)* **"Gracias."**
 
 ---
 
-## 4) Factores psicológicos (las armas de persuasión)
+## 4) Factores psicológicos
 
-| Arma | Cómo la usamos |
+| Arma | Cómo la usas |
 |---|---|
-| **Historia / identificación** | Doña Rosa abre y cierra. El jurado no invierte en "usuarios", invierte en personas. |
-| **Anclaje numérico** | Primero el número grande (700.000 · 2–3 horas · millones de horas). Fija la magnitud. |
-| **Autoridad / prueba** | "datos oficiales de TransMilenio", "en vivo", "ya funciona". No opinamos, mostramos. |
-| **Prueba social** | La comunidad, las JAC y los jeeperos alimentan el sistema → efecto red (como Waze). |
-| **Mostrar, no contar** | El demo en vivo vale más que 100 diapositivas. Es nuestra mayor ventaja. |
-| **Contraste / framing** | "Antes 2–3 horas → con nosotros X minutos". "Ellos para la ciudad → nosotros para la loma". |
-| **Aversión a la pérdida** | "Cada día sin esto son miles de horas perdidas del territorio." |
-| **Urgencia / escasez** | "La infraestructura ya existe. El momento es ahora." |
-| **Reciprocidad / dignidad** | "Gratis para quien menos tiene." Genera simpatía y confianza. |
-| **Villano claro** | El enemigo no es una empresa: es **la fragmentación de la información** y la incertidumbre. |
-| **Cierre con silencio** | Terminar y callar transmite seguridad. El que llena el silencio, pierde poder. |
+| **Historia con dos caras** | Rosa (pasajera) y Pedro (jeepero): el jurado ve que TODOS ganan |
+| **Anclaje numérico** | 700.000 personas → 2–3 horas → millones de horas |
+| **Mostrar, no contar** | El jurado ve a "Don Pedro" publicar un viaje por chat y a Rosa apartar cupo en vivo |
+| **Autoridad** | Datos oficiales de TransMilenio, cámaras de la Secretaría, Ley 1581 |
+| **Prueba social / efecto red** | Más vecinos y conductores = mejores datos (como Waze) |
+| **Dinero claro** | 4 fuentes de ingreso con precios: tranquiliza al "inversionista" |
+| **Aliado, no enemigo** | "Queremos aliarnos con Moovit": madurez y visión |
+| **Urgencia** | "El cable, los jeeps y las cámaras ya están. Solo falta conectarlos." |
+| **Cierre con silencio** | Terminar y callar transmite seguridad |
 
 ---
 
-## 5) Comunicación no verbal, voz y vestuario
+## 5) Voz, cuerpo y vestuario
 
-### 👔 Cómo vestir (importante: contexto Ciudad Bolívar)
-- **Objetivo:** verse **preparados y serios, pero cercanos al territorio.** Ni desarreglados ni
-  de traje corporativo (un vestido de gala puede leerse como "estos no son de aquí").
-- **Recomendado:** *smart casual limpio y uniforme entre todos.*
-  - Jean oscuro o pantalón chino + **camiseta/camisa lisa** (idealmente **los 4 del mismo color**
-    o una playera sencilla del equipo/proyecto). Zapatos cerrados y limpios.
-  - Un color de marca coherente (morado/verde de la app) suma recordación.
-- **Evitar:** ropa arrugada, logos ruidosos, gorra durante el pitch, exceso de accesorios.
-- **El detalle ganador:** que se note que son un **equipo** (mismo estilo/color). Comunica unión y ejecución.
+### 👔 Vestuario
+- **Smart casual limpio**: jean oscuro o chino, camiseta o camisa lisa (idealmente morada o verde de la
+  app), zapatos cerrados. Ni desarreglado ni de traje (el traje puede leerse como "no es de aquí").
+- Si tu equipo está en el público, **mismo color** que tú: se nota que son equipo.
 
-### 🗣️ Voz y ritmo
-- Habla **más lento de lo que crees** y con pausas. Los nervios aceleran; el reloj castiga.
-- Volumen alto y claro. Termina las frases con firmeza (no subir el tono como pregunta).
-- Varía el ritmo: la historia, lenta y cálida; los números, firmes; el cierre, potente y pausado.
+### 🗣️ Voz
+- Más lento de lo que crees. Pausa después de cada número importante.
+- Termina las frases hacia abajo (afirmando), no como pregunta.
 
 ### 🧍 Cuerpo
-- **Contacto visual con los 5 jurados**, repartido (no mirar solo a uno). Miren a los ojos.
-- Espalda recta, hombros abiertos, manos visibles (gesticular suma; manos en bolsillos resta).
-- Si alguien te apoya con el portátil: que mire al jurado, **nunca** al piso ni al celular.
-- Sonríe al inicio y al cierre. Transmite confianza y calidez.
-- Como estás solo: no llenes las transiciones con "eh…"; usa una **pausa** y respira mientras avanzas al siguiente bloque.
+- Mira a los 5 jurados, repartido. Manos visibles. Espalda recta. Sonríe al inicio y al final.
+- En el demo: señala la pantalla y **vuelve a mirar al jurado** para decir el beneficio.
 
-### 💬 Palabras que SÍ (úsenlas)
-"vecinos", "el territorio", "la loma", "la comunidad", "devolver tiempo", "dignidad",
-"co-diseñado con", "en vivo", "ya funciona", "sin señal", "gratis para la gente", "jeeperos", "las JAC".
+### 💬 Palabras que SÍ
+"vecinos", "la loma", "jeeperos", "apartar el cupo", "devolver tiempo", "ya funciona", "sin señal",
+"el pasajero nunca paga", "solo con el celular", "cifrado", "alianza".
 
-### 🚫 Palabras/errores que NO
-- Jerga técnica sin traducir: "grafo Dijkstra", "hexagonal", "endpoint", "PWA". *(Tradúzcanlo:
-  "calcula la mejor ruta", "funciona sin internet".)*
-- Condescendencia: "los pobrecitos", "esa gente". Se dice "los vecinos", "la comunidad".
-- Muletillas: "eh…", "o sea", "básicamente". Mejor una pausa en silencio.
-- "Vamos a hacer", "queremos", "sería" → hablen en presente: **"hace", "funciona", "ya está".**
-- Prometer de más (usuarios que no existen, cifras infladas). El jurado castiga la exageración.
+### 🚫 Palabras que NO
+"GovTech", "backend", "Dijkstra", "endpoint", "PWA", "hash", "API" (di: "conectado", "calcula la mejor
+ruta", "funciona sin internet"). Nada de "pobrecitos" ni "esa gente". Nada de "vamos a"/"sería":
+**"hace", "funciona", "ya está"**.
 
 ---
 
-## 6) Manejo del demo en vivo (a prueba de fallos)
-El demo es lo que más suma (viabilidad + presentación) y lo que más riesgo tiene. Blíndenlo:
-- **Todo local:** corre en `docker compose` en el portátil → **no depende del wifi del evento**.
-- **Ensayen el demo 5+ veces** con el guion exacto de §3. Sepan qué tocar sin dudar.
-- **Plan B por cada paso:**
-  - ¿Falla el proyector/pantalla grande? → demo en el portátil, que un jurado se acerque.
-  - ¿Falla el túnel de Telegram? → muestren el chat de la app (mismo cerebro) y digan "en producción va por Telegram, aquí está el bot" con captura.
-  - ¿Se cae algo? → **modo avión** y sigan: *"justo por esto lo hicimos offline"* (convierte el fallo en argumento).
-- **Datos listos:** abran la app **antes** con internet una vez (para llenar el 🟢 de datos oficiales).
-- Ten un **video corto de respaldo** (grabar el demo hoy) por si todo falla.
-- Antes de empezar: **batería llena, brillo alto, notificaciones en silencio, pestañas abiertas.**
+## 6) Demo a prueba de fallos
+**30 minutos antes:**
+- [ ] `docker compose ps` → 3 servicios **healthy**.
+- [ ] `bash scripts/reset_demo.sh` → borra alertas y viajes de ensayo y carga conductores de ejemplo.
+- [ ] `bash scripts/telegram_demo.sh` → deja esa terminal abierta (el bot queda vivo).
+- [ ] Celular de "Don Pedro": abrir el bot, `/start` → **Soy conductor** (ya listo para escribir).
+- [ ] Portátil: pestaña *Viajes* (sin sesión, para mostrar el login) + pestaña *Sala en vivo*.
+- [ ] Batería llena, brillo alto, notificaciones en silencio.
+- [ ] **Video de respaldo** del demo grabado.
+
+**Plan B:**
+| Si falla… | Haz esto |
+|---|---|
+| Telegram / túnel | Publica el viaje desde la app (Viajes → Soy conductor). *"Es el mismo cerebro"* |
+| Wifi del evento | Todo corre en el portátil (Docker local). Si cae, di: *"justo por esto funciona sin señal"* |
+| El proyector | Demo en el portátil; invita a un jurado a mirar |
+| Todo | Video de respaldo, sin drama |
 
 ---
 
-## 7) Preguntas del jurado y respuestas (anticipar = ganar)
-*Ensayen estas. Respuestas cortas, directas y honestas (la rúbrica premia "sin evasivas").*
+## 7) Preguntas del jurado (respuestas cortas y honestas)
 
-- **"¿De dónde sacan los datos del transporte informal?"**
-  → "De la comunidad: los mismos vecinos, jeeperos y JAC los reportan y validan, como en Waze.
-  En el prototipo van cargados con datos reales del territorio; el sistema se alimenta solo."
-- **"¿Y si no hay internet en la loma?"**
-  → "Ya lo vieron: funciona offline. La IA es un extra, no una dependencia. Ese fue un requisito
-  de diseño, no un accidente."
-- **"¿Quién lo mantiene y con qué plata?"**
-  → "Costo de operación casi cero: web ligera + reúso de infraestructura pública. Se sostiene con
-  licencia a la Alcaldía/Secretaría y datos agregados. El usuario nunca paga."
-- **"¿No es solo otro Google Maps?"**
-  → "Google no tiene el informal, no funciona sin señal y no aprende del reporte ciudadano. Nosotros
-  sí. Nacimos para la loma."
-- **"¿Cómo garantizan que un reporte es verdad?"**
-  → "Reputación: cada usuario tiene un peso según sus aciertos, los reportes se confirman entre
-  vecinos y hay moderación. La confianza se calcula, no se asume." *(está implementado)*
-- **"¿Y la seguridad / que no expongan datos de la gente?"**
-  → "No guardamos teléfonos: los anonimizamos. Y las cámaras solo dan el dato de congestión,
-  nunca el video ni las placas. Privacidad por diseño."
-- **"¿Esto es realmente implementable con la Alcaldía?"**
-  → "Sí: usa datos abiertos que ya existen (TransMilenio, IDECA) e infraestructura instalada.
-  El piloto solo necesita un convenio y validación comunitaria, no obra nueva."
-- **"¿Cuánto costó / cuánto necesitan?"**
-  → *(cifra honesta del piloto)* "Un piloto de X meses en el corredor del cable con [monto] para
-  operación y trabajo de campo con las JAC."
+- **"¿Cómo ganan plata si no le cobran al pasajero?"** → "Cuatro fuentes: tablero de demanda para la
+  Secretaría y la Alcaldía, plan Pro para conductores, publicidad del barrio y alianzas de datos. El
+  pasajero nunca paga."
+- **"¿Por qué un jeepero lo usaría?"** → "Porque llena más rápido y no espera a ciegas: sabe cuántos lo
+  esperan. Y no tiene que aprender una app: le escribe al bot. Tiempo parado es plata perdida."
+- **"¿Cómo detectan el tráfico las cámaras?"** → "Contamos vehículos en la imagen de la cámara del
+  semáforo, en el mismo equipo (no se envía video). Si el conteo sube y el flujo baja, es trancón; la
+  cámara manda solo ese número y se cruza con los reportes de los vecinos. En producción se hace con
+  convenio con la Secretaría de Movilidad."
+- **"¿Y los datos personales?"** → "Solo pedimos celular y un nombre. El número se guarda cifrado, nunca
+  en texto. Cumplimos la Ley 1581. Lo que vendemos son estadísticas agregadas y anónimas."
+- **"¿La alianza con Moovit es real?"** → "Aún no; es nuestra propuesta. El sistema ya está preparado
+  para recibir sus datos en tiempo real. Lo que les ofrecemos es algo que no tienen: el informal."
+- **"¿Y si no hay internet?"** → "La app guarda los horarios típicos de cada conductor y las rutas; sigue
+  funcionando sin señal."
+- **"¿Quién lo mantiene?"** → "Costo muy bajo de operación; se sostiene con las licencias y la publicidad.
+  Las JAC ayudan a validar las rutas."
+- **"¿Un reporte falso?"** → "Cada persona tiene reputación según sus aciertos; los vecinos confirman o
+  niegan, y las cámaras dan una fuente objetiva."
+- **"¿Cuánto necesitan?"** → *(cifra honesta)* "Para un piloto de 6 meses en el corredor del cable:
+  unos COP 150 millones (equipo, nube y trabajo con las JAC y los conductores)."
 
-> Regla de oro del Q&A: si no saben algo, **no inventen**. "Excelente pregunta, no lo hemos
-> medido aún; lo validaríamos en el piloto así:" — la honestidad puntúa.
+> Si no sabes algo: *"Buena pregunta. No lo hemos medido aún; en el piloto lo validamos así…"*
 
 ---
 
-## 8) Checklist final (antes de subir a tarima)
-- [ ] Guion cronometrado **≤ 5:00** (con margen de 10–15 s). Los primeros 45 s y el cierre, memorizados.
-- [ ] Te sabes el guion completo; si alguien te apoya (portátil o una frase), sabe su parte.
-- [ ] Demo probado 5+ veces; `docker compose ps` con los 3 servicios `healthy`.
-- [ ] App abierta una vez con internet (datos 🟢 en caché) + túnel de Telegram vivo (`scripts/telegram_demo.sh`).
-- [ ] Video de respaldo del demo grabado.
-- [ ] Portátil cargado + cargador + brillo alto + notificaciones en silencio.
-- [ ] Vestuario coordinado (mismo estilo/color), limpio.
-- [ ] Respuestas del §7 repasadas en voz alta.
-- [ ] Respiren. Sonrían. Están vendiendo algo que **de verdad importa** para su territorio.
+## 8) Checklist final
+- [ ] Guion cronometrado **≤ 5:00** (con 10–15 s de margen).
+- [ ] Primeros 45 s y cierre memorizados.
+- [ ] Demo ensayado 5+ veces con el orden de §3.
+- [ ] Todo el §6 hecho 30 min antes.
+- [ ] Respuestas del §7 dichas en voz alta.
+- [ ] Respira. Estás vendiendo algo que de verdad le sirve a tu territorio.
 
 ---
 
-## 9) Tarjeta de bolsillo (lo mínimo que no se les puede olvidar)
-1. **Doña Rosa, 4 a.m., 2–3 horas.** (engancha)
-2. **Juntamos formal + informal. Para la abuela por WhatsApp y para el experto por la app.**
-3. **DEMO: ruta con jeep → simulador en vivo → Telegram real → modo avión.**
-4. **700.000 personas · gratis para la gente · GovTech.**
-5. **Google no tiene la loma; nosotros sí.**
-6. **Somos del territorio y ya ejecutamos.**
-7. **Costo casi cero, reúsa lo que ya existe.**
-8. **Millones de horas devueltas al año.**
-9. **"El momento es ahora."** → silencio → "Gracias."
+## 9) Tarjeta de bolsillo
+1. **4:30 a.m.: Rosa espera el jeep, Pedro espera llenar.**
+2. **Formal + informal en un solo lugar; el conductor organiza cupos y horarios.**
+3. **DEMO: Pedro publica por chat → Rosa aparta cupo → "Ya salí" → cámara detecta trancón → ruta alternativa.**
+4. **700.000 personas · 150 conductores · 40.000 usuarios año 1.**
+5. **El pasajero nunca paga: entidades, plan Pro, publicidad, datos.**
+6. **Moovit: aliado, no enemigo.**
+7. **Equipo que ya ejecutó.**
+8. **330 M → 940 M → 2.000 M.**
+9. **"El cable, los jeeps y las cámaras ya están. Solo falta conectarlos. El momento es ahora."** → silencio → "Gracias."
