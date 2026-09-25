@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0..1,0&display=block" />
-  <link rel="stylesheet" href="css/styles.css?v=24" />
+  <link rel="stylesheet" href="css/styles.css?v=25" />
 </head>
 <body>
   <header class="topbar">
@@ -176,10 +176,8 @@
       <div class="card">
         <div class="viajes-head">
           <h2>Viajes de la comunidad</h2>
-          <div id="modoSwitch" class="modo-switch" role="tablist" aria-label="Modo de uso">
-            <button class="modo activo" data-modo="pasajero" role="tab"><span class="ms" aria-hidden="true">person</span>Soy pasajero</button>
-            <button class="modo" data-modo="conductor" role="tab"><span class="ms" aria-hidden="true">local_taxi</span>Soy conductor</button>
-          </div>
+          <!-- El rol (pasajero / conductor) se cambia solo desde el perfil: un único lugar, sin confusiones -->
+          <button id="modoActual" class="modo-actual" type="button" title="Cambiar en mi perfil"></button>
         </div>
         <p id="viajesLogin" class="hint" hidden><span class="ms" aria-hidden="true">info</span> Entra con tu celular para apartar cupo o publicar viajes.</p>
       </div>

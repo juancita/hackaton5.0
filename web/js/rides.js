@@ -43,6 +43,7 @@ window.Rides = (() => {
     } else {
       perfil = null; lugares = [];
       if (label) label.textContent = 'Entrar';
+      setModoUI('pasajero');
     }
     pintarAtajos();
   }
@@ -128,7 +129,12 @@ window.Rides = (() => {
       const acc = b.dataset.acc;
       if (acc === 'cerrar') cerrarPanel();
       else if (acc === 'salir') { API.logout(); cerrarPanel(); await refrescarSesion(); toast('Sesión cerrada'); }
-      else if (acc === 'modo') { await API.setModo(b.dataset.modo); await refrescarSesion(); pintarPanel(); }
+      else if (acc === 'modo') {
+        await API.setModo(b.dataset.modo);
+        await refrescarSesion(); pintarPanel();
+        toast(`${ico(modoUI === 'conductor' ? 'local_taxi' : 'person')} Ahora estás como <b>${modoUI}</b>`);
+        if ($('#view-viajes').classList.contains('active')) abrir();
+      }
       else if (acc === 'aqui') guardarAqui(b.dataset.etiqueta);
       else if (acc === 'mapa') guardarEnMapa(b.dataset.etiqueta);
     });
@@ -196,17 +202,15 @@ window.Rides = (() => {
   // ---------- Vista Viajes ----------
   function setModoUI(modo) {
     modoUI = modo === 'conductor' ? 'conductor' : 'pasajero';
-    $$('#modoSwitch .modo').forEach((b) => b.classList.toggle('activo', b.dataset.modo === modoUI));
+    const chip = $('#modoActual');
+    if (chip) chip.innerHTML = `${ico(modoUI === 'conductor' ? 'local_taxi' : 'person')}<span>Estás como ${modoUI}<br>`
+      + `<small>${API.logueado ? 'Cámbialo en tu perfil' : 'Entra con tu celular para ser conductor'}</small></span>`;
     $('#panelPasajero').hidden = modoUI !== 'pasajero';
     $('#panelConductor').hidden = modoUI !== 'conductor';
   }
 
   function wireViajes() {
-    $$('#modoSwitch .modo').forEach((b) => b.addEventListener('click', async () => {
-      setModoUI(b.dataset.modo);
-      if (API.logueado) API.setModo(b.dataset.modo);
-      abrir();
-    }));
+    $('#modoActual').addEventListener('click', () => (API.logueado ? abrirPanel() : abrirLogin()));
     $('#refViajes').addEventListener('click', () => cargarProximos());
     const dl = $('#lugaresV');
     if (dl && !dl.children.length) PARADEROS.forEach((p) => { const o = document.createElement('option'); o.value = p.nombre; dl.appendChild(o); });
@@ -231,7 +235,7 @@ window.Rides = (() => {
 
   async function abrir() {
     $('#viajesLogin').hidden = API.logueado;
-    if (perfil && perfil.modo) setModoUI(perfil.modo);
+    setModoUI((perfil && perfil.modo) || modoUI);
     if (modoUI === 'conductor') { await cargarMisViajes(); } else { await cargarProximos(); }
   }
 

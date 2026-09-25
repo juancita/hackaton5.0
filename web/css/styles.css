@@ -674,6 +674,11 @@ span.voto-btn { border-color: transparent; background: transparent; padding-inli
 
 /* ---------- Vista Viajes ---------- */
 .viajes-head { display: flex; flex-direction: column; gap: 10px; }
+/* Rol actual en Viajes: informativo; se cambia desde el perfil */
+.modo-actual { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; padding: 10px 14px;
+  border-radius: 12px; border: 2px solid var(--morado-100); background: #fff; color: var(--morado);
+  font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; text-align: left; }
+.modo-actual small { font-weight: 600; opacity: .75; }
 .viaje .viaje-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; }
 .viaje .viaje-acc { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .viaje .viaje-acc .linkbtn { flex: 1; min-width: 110px; }
