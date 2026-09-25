@@ -161,7 +161,7 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 - [ ] `docker compose ps` → 3 servicios **healthy**.
 - [ ] **Gemini (ya activado):** `.env` con `LLM_PROVIDER=gemini`, `GEMINI_MODEL=gemini-3.5-flash-lite` y la clave; `backend/.env` con `LLM_TIMEOUT_S=5`. El bot responde en 2–6 s. Frase para lucirlo: *«ando por el hospital y voy donde mi tía en Potosí, lo más barato»*.
 - [ ] `bash scripts/reset_demo.sh` → demo limpio con conductores de ejemplo.
-- [ ] `bash scripts/telegram_demo.sh` → deja esa terminal abierta.
+- [ ] `bash scripts/telegram_guardian.sh` → deja esa terminal abierta. Levanta el bot y, si el túnel se cae (cambio de red, suspensión), abre uno nuevo y reconecta Telegram solo en ~1 minuto.
 - [ ] **Celular de Wilson:** escribir al bot `/start` → **Soy conductor** (así el bot sabe a dónde mandarle los avisos).
 - [ ] Portátil: pestaña *Viajes*, pestaña *Sala en vivo* y pestaña **Admin → Tablero de movilidad** ya abierta con la clave (así el análisis de la IA ya está listo). Batería, brillo, notificaciones en silencio.
 - [ ] Video de respaldo del demo grabado.

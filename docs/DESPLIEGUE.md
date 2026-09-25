@@ -128,7 +128,7 @@ Ambos necesitan una **URL pública HTTPS** hacia el backend (dominio propio con 
 ```bash
 brew install cloudflared                         # una sola vez
 # pon TELEGRAM_TOKEN (de @BotFather) y, opcional, TELEGRAM_WEBHOOK_SECRET en .env
-bash scripts/telegram_demo.sh                    # abre el túnel y registra el webhook
+bash scripts/telegram_guardian.sh   # o telegram_demo.sh sin reconexión automática                    # abre el túnel y registra el webhook
 ```
 El script: levanta los servicios, abre el túnel al backend (:8080), **espera a que sea enrutable**,
 fija `PUBLIC_BASE_URL` (para que Telegram descargue las imágenes de ruta), registra el webhook
