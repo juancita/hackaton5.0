@@ -39,27 +39,32 @@ historia que emocione, números que respalden, y un producto que **funciona fren
 
 ---
 
-## 2) Reparto del equipo (quién dice qué)
-Ajusten a cuántos sean (3–4). **Todos deben hablar** (lo pide la rúbrica). Sugerencia con 4:
+## 2) Pitch en solitario (lo presentas TÚ)
+Tú eres el único expositor. Todo el guion está pensado para que lo hagas solo. Claves:
 
-| Persona | Rol en el pitch | Bloques |
-|---|---|---|
-| **1 — El/la que engancha** | Abre con la historia y el problema. La voz más cálida y con más presencia. | 1, 3 |
-| **2 — El/la del producto** | Solución + DEMO EN VIVO. La persona más segura con la app. | 2, 5 |
-| **3 — El/la de negocio** | Mercado, ingresos, finanzas, impacto. Voz de datos y confianza. | 4, 7, 8 |
-| **4 — Capitán/a** | Equipo + cierre + lidera el Q&A. La voz más firme para cerrar y defender. | 6, 9, Q&A |
+- **Tú narras y tú operas el demo.** Ensaya la coordinación mano-boca: mientras tocas la app,
+  sigue hablando (nada de silencios mirando la pantalla). Ten cada paso memorizado.
+- **Ritmo de una sola voz:** un pitch solo cansa al oído si el tono es plano. Varía el ritmo por
+  bloque (historia lenta y cálida → números firmes → cierre potente). Usa pausas como "puntuación".
+- **Divide el escenario en zonas:** cuando hables de la gente, mira a los jurados; cuando muestres
+  el demo, señala la pantalla y vuelve a mirarlos. No le des la espalda al jurado.
 
-> Regla: **una persona habla a la vez**, las demás miran al jurado con atención (no al piso, no al
-> celular). El lenguaje corporal del equipo también comunica.
+> ⚠️ **La rúbrica premia que participe todo el equipo (Presentación, 15%).** Como expones tú solo,
+> compénsalo así:
+> - **Obligatorio en el guion:** vende fuerte al equipo en el **Bloque 6** ("somos un equipo de X…").
+> - **Opción de bajo esfuerzo (recomendada si se puede):** que **un compañero opere el portátil**
+>   durante el demo y/o **diga una sola frase** en su punto fuerte (p. ej. el cierre técnico). Con
+>   que dos personas aparezcan activas, ya cubres mejor ese criterio. Si no se puede, no pasa nada:
+>   el guion funciona solo contigo.
 
 ---
 
 ## 3) EL GUION — 5:00 minutos, bloque por bloque
 
-> Formato: **[tiempo]** · quién · *qué se ve en pantalla* · **lo que se dice** (guía, no camisa de fuerza).
-> Los cronómetros son la clave: si se pasan de 5 min, los cortan. Ensayen con reloj.
+> Formato: **[tiempo]** · *qué se ve en pantalla* · **lo que dices** (guía, no camisa de fuerza).
+> El cronómetro es la clave: si te pasas de 5 min, te cortan. Ensaya con reloj.
 
-### 🎬 GANCHO + BLOQUE 1 — PROBLEMA · [0:00–1:00] · Persona 1
+### 🎬 GANCHO + BLOQUE 1 — PROBLEMA · [0:00–1:00]
 *Pantalla: una foto de las lomas de Ciudad Bolívar al amanecer (o el mapa con las zonas altas).*
 
 > *(Empezar mirando a los ojos a un jurado, sin leer, tono humano)*
@@ -81,7 +86,7 @@ Ajusten a cuántos sean (3–4). **Todos deben hablar** (lo pide la rúbrica). S
 un **detalle concreto** (4 a.m.) y un **número ancla** (700.000, 2–3 horas). Emoción + dato =
 pertinencia territorial (25%) desde el segundo uno.
 
-### BLOQUE 2 — SOLUCIÓN · [1:00–1:40] · Persona 2
+### BLOQUE 2 — SOLUCIÓN · [1:00–1:40]
 *Pantalla: la app abierta en la pantalla de inicio (Rutas).*
 
 > **"Muévete CB es un asistente de movilidad que, por primera vez, junta los dos mundos:
@@ -94,7 +99,7 @@ pertinencia territorial (25%) desde el segundo uno.
 
 **Anticipa la pregunta** "¿y esto para quién es?" → inclusión. **Sin jerga** (lo pide la imagen: "en lenguaje de usuario").
 
-### 🔥 DEMO EN VIVO (dentro del bloque 2/5) · [1:40–3:00] · Persona 2
+### 🔥 DEMO EN VIVO (dentro del bloque 2/5) · [1:40–3:00]
 *Esto es el corazón. Práctiquenlo hasta que salga perfecto. Plan B listo (ver §6).*
 
 Secuencia exacta (rápida, narrada, sin silencios):
@@ -114,7 +119,7 @@ Secuencia exacta (rápida, narrada, sin silencios):
 > Frase de cierre del demo: **"No es un mapa más. Cruza lo formal con lo informal, aprende de la
 > comunidad en tiempo real y funciona en el celular más sencillo, con o sin señal."**
 
-### BLOQUE 3 — MERCADO / ALCANCE · [3:00–3:20] · Persona 3
+### BLOQUE 3 — MERCADO / ALCANCE · [3:00–3:20]
 *Pantalla: cifras grandes TAM / SAM / SOM.*
 
 > **"El dolor es enorme. Solo en Ciudad Bolívar son ~700.000 personas (TAM). De ellas,
@@ -127,7 +132,7 @@ Secuencia exacta (rápida, narrada, sin silencios):
 
 **Anticipa** "¿a cuántos llega?" con **cifras** (lo pide la imagen: "TAM, SAM, SOM en cifras").
 
-### BLOQUE 4 — INGRESOS / MODELO · [3:20–3:40] · Persona 3
+### BLOQUE 4 — INGRESOS / MODELO · [3:20–3:40]
 *Pantalla: 3 fuentes de ingreso, "gratis para el ciudadano" grande.*
 
 > **"Para el ciudadano es y será **gratis**: sería absurdo cobrarle a quien menos tiene. El
@@ -138,7 +143,7 @@ Secuencia exacta (rápida, narrada, sin silencios):
 
 **Anticipa** "¿cómo se gana plata?" (imagen: "¿Cómo cobras? sé específico"). Honestos: no inventamos que el usuario paga.
 
-### BLOQUE 5 — COMPETENCIA · [3:40–4:00] · Persona 2
+### BLOQUE 5 — COMPETENCIA · [3:40–4:00]
 *Pantalla: tabla Nosotros vs. Google/Moovit.*
 
 > **"¿Y Google Maps o Moovit? Los respetamos, son buenísimos... para la ciudad formal. Pero
@@ -149,17 +154,20 @@ Secuencia exacta (rápida, narrada, sin silencios):
 
 **Anticipa** "¿en qué son distintos?" (imagen: "muestra tu ventaja sin subestimar a nadie" → por eso "los respetamos").
 
-### BLOQUE 6 — EQUIPO · [4:00–4:15] · Capitán/a
+### BLOQUE 6 — EQUIPO · [4:00–4:15]
 *Pantalla: fotos/nombres del equipo.*
 
-> **"Somos [nombres], un equipo [de la localidad / multidisciplinario]: [X] en desarrollo,
-> [X] en territorio y comunicación. Conocemos esta realidad porque **la vivimos**. Y en horas
-> construimos un producto que ya funciona —con datos oficiales, con IA y con Telegram en vivo—.
-> Las ideas no mueven a nadie; los equipos que ejecutan, sí. Y nosotros ya ejecutamos."**
+> **"Hoy les hablo yo, pero detrás hay un equipo: somos [nombres], [de la localidad /
+> multidisciplinario], con gente en desarrollo y en territorio. Conocemos esta realidad porque
+> **la vivimos**. Y en horas construimos un producto que ya funciona —con datos oficiales, con IA
+> y con Telegram en vivo—. Las ideas no mueven a nadie; los equipos que ejecutan, sí. Y nosotros
+> ya ejecutamos."**
+>
+> *(Si un compañero está contigo, este es buen momento para señalarlo o que salude.)*
 
 **Anticipa** "¿quién ejecuta?" (imagen: "las personas convencen más que las ideas solas"). Vender al EQUIPO.
 
-### BLOQUE 7 — FINANZAS / SOSTENIBILIDAD · [4:15–4:35] · Persona 3
+### BLOQUE 7 — FINANZAS / SOSTENIBILIDAD · [4:15–4:35]
 *Pantalla: costos vs. proyección 3 años, punto de equilibrio.*
 
 > **"Los números cierran porque el costo de operar es mínimo: la app es una web ligera y usa
@@ -170,7 +178,7 @@ Secuencia exacta (rápida, narrada, sin silencios):
 
 **Anticipa** "¿es sostenible?" (imagen: "ingresos, costos, proyecciones a 3 años"). Costo casi cero = viabilidad (20%).
 
-### BLOQUE 8 — IMPACTO / TRACCIÓN · [4:35–4:50] · Capitán/a
+### BLOQUE 8 — IMPACTO / TRACCIÓN · [4:35–4:50]
 *Pantalla: el número grande del impacto.*
 
 > **"El impacto es tiempo de vida. Si le ahorramos a cada persona **solo 30 minutos por viaje**,
@@ -181,7 +189,7 @@ Secuencia exacta (rápida, narrada, sin silencios):
 
 **Ancla** con el número más grande al final (efecto memoria).
 
-### 🎯 BLOQUE 9 — ASK / CIERRE · [4:50–5:00] · Capitán/a
+### 🎯 BLOQUE 9 — ASK / CIERRE · [4:50–5:00]
 *Pantalla: logo + la frase logline + el "pedido".*
 
 > *(Bajar el ritmo, mirar a los 5 jurados, con calma y firmeza)*
@@ -233,8 +241,9 @@ Secuencia exacta (rápida, narrada, sin silencios):
 ### 🧍 Cuerpo
 - **Contacto visual con los 5 jurados**, repartido (no mirar solo a uno). Miren a los ojos.
 - Espalda recta, hombros abiertos, manos visibles (gesticular suma; manos en bolsillos resta).
-- El que no habla: mira al que habla o al jurado, **nunca** al piso ni al celular.
+- Si alguien te apoya con el portátil: que mire al jurado, **nunca** al piso ni al celular.
 - Sonríe al inicio y al cierre. Transmite confianza y calidez.
+- Como estás solo: no llenes las transiciones con "eh…"; usa una **pausa** y respira mientras avanzas al siguiente bloque.
 
 ### 💬 Palabras que SÍ (úsenlas)
 "vecinos", "el territorio", "la loma", "la comunidad", "devolver tiempo", "dignidad",
@@ -299,7 +308,7 @@ El demo es lo que más suma (viabilidad + presentación) y lo que más riesgo ti
 
 ## 8) Checklist final (antes de subir a tarima)
 - [ ] Guion cronometrado **≤ 5:00** (con margen de 10–15 s). Los primeros 45 s y el cierre, memorizados.
-- [ ] Todos saben su bloque y **todos hablan**.
+- [ ] Te sabes el guion completo; si alguien te apoya (portátil o una frase), sabe su parte.
 - [ ] Demo probado 5+ veces; `docker compose ps` con los 3 servicios `healthy`.
 - [ ] App abierta una vez con internet (datos 🟢 en caché) + túnel de Telegram vivo (`scripts/telegram_demo.sh`).
 - [ ] Video de respaldo del demo grabado.
