@@ -151,7 +151,7 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 
 ## 7) Demo a prueba de fallos — 30 min antes
 - [ ] `docker compose ps` → 3 servicios **healthy**.
-- [ ] **Gemini:** en `.env` → `LLM_PROVIDER=gemini` y `GEMINI_API_KEY=<clave>`; luego `docker compose up -d backend`. *(Si no hay clave, no digas que Gemini está respondiendo en vivo.)*
+- [ ] **Gemini (ya activado):** `.env` con `LLM_PROVIDER=gemini`, `GEMINI_MODEL=gemini-3.5-flash-lite` y la clave; `backend/.env` con `LLM_TIMEOUT_S=5`. El bot responde en 2–6 s. Frase para lucirlo: *«ando por el hospital y voy donde mi tía en Potosí, lo más barato»*.
 - [ ] `bash scripts/reset_demo.sh` → demo limpio con conductores de ejemplo.
 - [ ] `bash scripts/telegram_demo.sh` → deja esa terminal abierta.
 - [ ] **Celular de Wilson:** escribir al bot `/start` → **Soy conductor** (así el bot sabe a dónde mandarle los avisos).
