@@ -55,6 +55,10 @@ OPC_MENU = [
     QuickReply(id="manual", label="✍️ Escribir mi viaje"),
     QuickReply(id="reportar", label="⚠️ Reportar novedad"),
     QuickReply(id="incidentes", label="📋 Últimos incidentes"),
+    # Módulo de viajes (lo atiende RideChat antes que el asistente)
+    QuickReply(id="ver_viajes", label="🕒 Viajes de jeeps"),
+    QuickReply(id="soy_conductor", label="🚙 Soy conductor"),
+    QuickReply(id="mi_casa", label="🏡 Mi casa"),
 ]
 OPC_PRIORIDAD = [
     QuickReply(id="rapido", label="⚡ Llegar rápido"),
@@ -68,7 +72,10 @@ PREGUNTA_MENU = (
     "• 🧭 Ruta guiada: te pregunto paso a paso de dónde sales y a dónde vas\n"
     "• ✍️ Escribir mi viaje: me lo cuentas con tus palabras\n"
     "• ⚠️ Reportar novedad: avisa un trancón, derrumbe o bloqueo\n"
-    "• 📋 Últimos incidentes: mira lo que han reportado los vecinos"
+    "• 📋 Últimos incidentes: mira lo que han reportado los vecinos\n"
+    "• 🕒 Viajes de jeeps: mira a qué hora salen y aparta tu cupo\n"
+    "• 🚙 Soy conductor: publica tus salidas y mira cuántos te esperan\n"
+    "• 🏡 Mi casa: guárdala y pide rutas con «a mi casa»"
 )
 PREGUNTA_ORIGEN = "Paso 1 de 3 · ¿Desde dónde sales? 📍"
 PREGUNTA_DESTINO = "Paso 2 de 3 · ¿A dónde te diriges? 🏁"

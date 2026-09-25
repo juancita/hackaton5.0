@@ -23,7 +23,7 @@ def con_refiner(refiner, reloj):
 def test_saludo_ofrece_modos(container):
     (out,) = conversar(container, "hola")
     assert out.paso == "inicio"
-    assert [o.id for o in out.opciones_rapidas] == ["guiada", "manual", "reportar", "incidentes"]
+    assert [o.id for o in out.opciones_rapidas] == ["guiada", "manual", "reportar", "incidentes", "ver_viajes", "soy_conductor", "mi_casa"]
 
 
 def test_flujo_guiado_completo(container):
@@ -157,7 +157,9 @@ def test_render_por_canal(container):
     (out,) = conversar(container, "hola")
     assert render_telegram(out)["reply_markup"]["keyboard"] == [
         [{"text": "🧭 Ruta guiada"}, {"text": "✍️ Escribir mi viaje"}],
-        [{"text": "⚠️ Reportar novedad"}, {"text": "📋 Últimos incidentes"}]]
+        [{"text": "⚠️ Reportar novedad"}, {"text": "📋 Últimos incidentes"}],
+        [{"text": "🕒 Viajes de jeeps"}, {"text": "🚙 Soy conductor"}],
+        [{"text": "🏡 Mi casa"}]]
     assert "1. 🧭 Ruta guiada\n2. ✍️ Escribir mi viaje" in render_whatsapp(out)
     (paso,) = conversar(container, "guiada")
     assert render_telegram(paso)["reply_markup"]["keyboard"][-1] == [{"text": "✖️ Cancelar"}]
@@ -222,7 +224,7 @@ def test_menu_invalido_pide_elegir_opcion(container):
 def test_cancelar_vuelve_al_menu(container, cancelar):
     out = conversar(container, "guiada", "meissen", "paraiso", cancelar)[-1]
     assert out.paso == "inicio" and out.texto.startswith("Listo, cancelé")
-    assert [o.id for o in out.opciones_rapidas] == ["guiada", "manual", "reportar", "incidentes"]
+    assert [o.id for o in out.opciones_rapidas] == ["guiada", "manual", "reportar", "incidentes", "ver_viajes", "soy_conductor", "mi_casa"]
 
 
 def test_resultado_ofrece_acciones_claras(container):

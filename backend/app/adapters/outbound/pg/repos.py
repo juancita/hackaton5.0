@@ -1,5 +1,7 @@
 """Repositorios de feedback sobre PostgreSQL."""
 
+import json
+
 from datetime import datetime
 
 from sqlalchemy import and_, delete, func, or_, select, update
@@ -202,7 +204,8 @@ def _trip_dom(r: TripRow) -> Trip:
         id=r.id, driver_id=r.driver_id, driver_nombre=r.driver_nombre, ruta=r.ruta,
         origen_id=r.origen_id, destino_id=r.destino_id, hora=r.hora, cupos_total=r.cupos_total,
         cupos_libres=r.cupos_libres, estado=r.estado, lleno=r.lleno, lat=r.lat, lng=r.lng,
-        salio_en=r.salio_en, desvio=r.desvio, creado_en=r.creado_en,
+        salio_en=r.salio_en, desvio=r.desvio, paradas=json.loads(r.paradas) if r.paradas else [],
+        corta_en=r.corta_en, creado_en=r.creado_en,
     )
 
 
@@ -231,7 +234,8 @@ class PgDriverRepository:
                 id=t.id, driver_id=t.driver_id, driver_nombre=t.driver_nombre, ruta=t.ruta,
                 origen_id=t.origen_id, destino_id=t.destino_id, hora=t.hora, cupos_total=t.cupos_total,
                 cupos_libres=t.cupos_libres, estado=t.estado, lleno=t.lleno, lat=t.lat, lng=t.lng,
-                salio_en=t.salio_en, desvio=t.desvio, creado_en=t.creado_en,
+                salio_en=t.salio_en, desvio=t.desvio, paradas=json.dumps(t.paradas) if t.paradas else None,
+                corta_en=t.corta_en, creado_en=t.creado_en,
             ))
         return t
 
@@ -246,8 +250,9 @@ class PgDriverRepository:
             if row is None:
                 return t
             for c in ("driver_nombre", "ruta", "hora", "cupos_total", "cupos_libres",
-                      "estado", "lleno", "lat", "lng", "salio_en", "desvio"):
+                      "estado", "lleno", "lat", "lng", "salio_en", "desvio", "corta_en"):
                 setattr(row, c, getattr(t, c))
+            row.paradas = json.dumps(t.paradas) if t.paradas else None
         return t
 
     def list_trips(self, estados: list[str], barrio_id: str | None = None, limit: int = 50) -> list[Trip]:
@@ -270,7 +275,7 @@ class PgDriverRepository:
         with self._sessions.begin() as s:
             s.add(SeatRequestRow(
                 id=sr.id, trip_id=sr.trip_id, passenger_id=sr.passenger_id,
-                passenger_nombre=sr.passenger_nombre, estado=sr.estado, creado_en=sr.creado_en,
+                passenger_nombre=sr.passenger_nombre, baja_en=sr.baja_en, estado=sr.estado, creado_en=sr.creado_en,
             ))
         return sr
 
@@ -278,7 +283,8 @@ class PgDriverRepository:
         with self._sessions() as s:
             rows = s.scalars(select(SeatRequestRow).where(SeatRequestRow.trip_id == trip_id)).all()
             return [SeatRequest(id=r.id, trip_id=r.trip_id, passenger_id=r.passenger_id,
-                                passenger_nombre=r.passenger_nombre, estado=r.estado, creado_en=r.creado_en)
+                                passenger_nombre=r.passenger_nombre, baja_en=r.baja_en, estado=r.estado,
+                                creado_en=r.creado_en)
                     for r in rows]
 
     def save_place(self, sp: SavedPlace) -> SavedPlace:

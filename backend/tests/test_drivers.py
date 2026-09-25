@@ -91,3 +91,41 @@ def test_camara_bloquea_y_ruta_alternativa_avisa(client):
     rutas = [t["ruta"] for o in plan["opciones"] for t in o["tramos"]]
     assert "Jeep Paraíso" not in rutas                      # esquiva el tramo bloqueado
     assert plan["incidentes_evitados"]                      # y avisa que hubo un cierre en la ruta habitual
+
+
+def test_ensueno_potosi_bajar_a_mitad_y_cortar(client, container):
+    # El conductor publica; el recorrido se deduce de la ruta informal (pasa por Sierra Morena)
+    assert "CONDUCTOR" in tg(client, 11, "🚙 Soy conductor", "Álvaro")
+    texto = tg(client, 11, "salgo 6:30 de El Ensueño a Potosí con 10 cupos", "Álvaro")
+    assert "Sierra Morena" in texto and "Potosí" in texto
+    # Dos pasajeras: una se baja a mitad del trayecto
+    tg(client, 12, "🧍 Soy pasajero", "Rosa")
+    assert "Próximos viajes" in tg(client, 12, "colectivo a Potosí", "Rosa")
+    assert "te bajas en Sierra Morena" in tg(client, 12, "apartar 1 bajo en Sierra Morena", "Rosa")
+    tg(client, 13, "🧍 Soy pasajero", "Luz")
+    tg(client, 13, "colectivo a Potosí", "Luz")
+    tg(client, 13, "Apartar 1", "Luz")
+    # El conductor corta en Sierra Morena: solo Luz (iba a Potosí) queda afectada
+    assert "¿Hasta dónde llegas?" in tg(client, 11, "✂️ Cortar viaje", "Álvaro")
+    assert "Avisé a 1 pasajero" in tg(client, 11, "✂️ Llego hasta Sierra Morena", "Álvaro")
+    assert "Llega solo hasta Sierra Morena" in tg(client, 13, "ver viajes", "Luz")
+
+
+def test_avisos_push_a_conductor_y_pasajeros(container):
+    r = container.rides
+    r.handle("telegram", "21", "🚙 Soy conductor", "Pedro")
+    r.handle("telegram", "21", "salgo 6:00 de Mirador a Paraíso con 5 cupos", "Pedro")
+    r.handle("telegram", "22", "ver viajes", "Ana")
+    r.tomar_avisos()
+    r.handle("telegram", "22", "Apartar 1", "Ana")
+    assert [chat for chat, _ in r.tomar_avisos()] == ["21"]          # al conductor le llega la reserva
+    r.handle("telegram", "21", "✅ Ya salí", "Pedro")
+    avisos = r.tomar_avisos()
+    assert [chat for chat, _ in avisos] == ["22"] and "ya salió" in avisos[0][1]  # a la pasajera, la salida
+
+
+def test_mi_casa_por_ubicacion_y_ruta(client):
+    assert "Enviar mi ubicación" in tg(client, 31, "🏡 Mi casa", "Rosa")
+    assert "Guardado" in tg(client, 31, loc=(4.5689, -74.1703), nombre="Rosa")   # junto a Potosí
+    texto = tg(client, 31, "de Meissen a mi casa", "Rosa")
+    assert "Potosí" in texto or "La más rápida" in texto

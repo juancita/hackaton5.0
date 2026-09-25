@@ -684,3 +684,27 @@ span.voto-btn { border-color: transparent; background: transparent; padding-inli
 #panelConductor .od-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .viaje .desvio { margin-top: 6px; font-size: 13px; background: #FFF4E5; color: #8A4B00; border-radius: 8px; padding: 6px 8px; display: flex; gap: 6px; align-items: center; }
 #refViajes { flex: none; padding: 8px 12px; }
+
+/* ---------- Atajos por ubicación en el planeador ---------- */
+.lugares-rapidos { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+.chip-l { display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--morado); background: var(--morado); color: #fff;
+  border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.chip-l.suave { background: #fff; color: var(--morado); }
+.chip-l .ms { font-size: 18px; }
+.leaflet-map.eligiendo { cursor: crosshair; outline: 3px solid var(--verde); outline-offset: -3px; }
+
+/* ---------- Panel "Mi cuenta" ---------- */
+.modal-card.cuenta { text-align: left; }
+.modal-card.cuenta h2, .modal-card.cuenta .admin-escudo { text-align: center; }
+.cuenta-tit { margin: 16px 0 6px; font-size: 15px; }
+.cuenta-lugar { border: 1px solid var(--morado-100); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+.cuenta-lugar small { color: var(--gris, #666); }
+.cuenta-acc { display: flex; gap: 6px; margin-top: 8px; }
+.cuenta-acc .linkbtn { padding: 8px; }
+.modal-card.cuenta .salir { width: 100%; margin-top: 10px; }
+
+/* ---------- Viajes: bajarse a mitad y cortar ---------- */
+.bajadas-tit { width: 100%; color: var(--gris, #666); font-weight: 700; }
+.viaje .desvio.corte { background: #FDE2E2; color: #B42318; }
+/* El atributo hidden debe ganarle al display:flex de .viaje-acc */
+.viaje .bajadas[hidden], .viaje .cortes[hidden], .modal[hidden] { display: none !important; }

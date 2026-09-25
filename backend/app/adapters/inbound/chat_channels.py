@@ -70,6 +70,7 @@ async def web_chat(
         viaje = await run_in_threadpool(c.rides.handle, "web", msg.user_id, msg.texto, msg.nombre, msg.ubicacion)
         if viaje:
             return viaje
+        msg = msg.model_copy(update={"texto": c.rides.reescribir("web", msg.user_id, msg.texto)})
     return await c.assistant.handle(msg)
 
 
@@ -149,11 +150,27 @@ async def telegram_webhook(
     if c.rides:
         out = await run_in_threadpool(c.rides.handle, "telegram", msg.user_id, msg.texto, msg.nombre, msg.ubicacion, telefono)
     if out is None:
-        out = await c.assistant.handle(msg)
+        texto = c.rides.reescribir("telegram", msg.user_id, msg.texto) if c.rides else msg.texto
+        out = await c.assistant.handle(msg.model_copy(update={"texto": texto}))
+    if c.rides:  # avisos push a otras personas (pasajeros o conductor) generados por este mensaje
+        await enviar_avisos_telegram(_http(request), c, c.rides.tomar_avisos())
     mapa_url = url_mapa(request, c, out.mapa) if await mapa_listo(c, out.mapa) else None
     # Se responde en el cuerpo del webhook: Telegram ejecuta el método por nosotros,
     # sin que el backend tenga que abrir una conexión saliente a api.telegram.org.
     return {"chat_id": message["chat"]["id"], **render_telegram(out, mapa_url)}
+
+
+async def enviar_avisos_telegram(http: httpx.AsyncClient, c: Container, avisos: list[tuple[str, str]]) -> None:
+    """Mensajes proactivos (p. ej. "Don Pedro ya salió") a otros chats. Sin token no hace nada."""
+    token = c.settings.telegram_token
+    if not token:
+        return
+    for chat_id, texto in avisos:
+        try:
+            r = await http.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": chat_id, "text": texto})
+            r.raise_for_status()
+        except httpx.HTTPError:
+            log.exception("No se pudo enviar el aviso de Telegram")
 
 
 # --- WhatsApp (Meta Cloud API) -------------------------------------------------

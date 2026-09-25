@@ -114,6 +114,8 @@ class TripRow(Base):
     lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     salio_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     desvio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    paradas: Mapped[str | None] = mapped_column(Text, nullable=True)   # JSON: ["ensueno","sierramorena","potosi"]
+    corta_en: Mapped[str | None] = mapped_column(String(64), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
     __table_args__ = (Index("ix_trips_estado", "estado", "origen_id", "destino_id"),)
@@ -126,6 +128,7 @@ class SeatRequestRow(Base):
     trip_id: Mapped[str] = mapped_column(String(36), index=True)
     passenger_id: Mapped[str] = mapped_column(String(64))
     passenger_nombre: Mapped[str] = mapped_column(String(40), default="")
+    baja_en: Mapped[str | None] = mapped_column(String(64), nullable=True)
     estado: Mapped[str] = mapped_column(String(16), default="reservado")
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 

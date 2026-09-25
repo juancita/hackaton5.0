@@ -3,7 +3,7 @@ cámaras de fotodetección y datos agregados (negocio)."""
 
 import asyncio
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from pydantic import BaseModel, Field
 
 from app.adapters.inbound.deps import get_actor, get_container
@@ -90,6 +90,7 @@ class ViajeRequest(BaseModel):
     hora: str = Field(pattern=r"^\d{1,2}:\d{2}$")
     cupos: int = Field(ge=1, le=30)
     ruta: str | None = Field(default=None, max_length=80)
+    via: list[str] | None = None  # paradas intermedias (si no, se deducen de la ruta informal)
 
 
 def _nombre(c: Container, actor: Actor) -> str:
@@ -100,7 +101,14 @@ def _nombre(c: Container, actor: Actor) -> str:
 @router.post("/conductores/viajes", response_model=Trip, tags=["conductores"])
 def anunciar_viaje(body: ViajeRequest, actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> Trip:
     return c.drivers.anunciar(actor.reporter_id, _nombre(c, actor), body.origen_id, body.destino_id,
-                              body.hora, body.cupos, body.ruta)
+                              body.hora, body.cupos, body.ruta, body.via)
+
+
+def _avisar(request: Request, bg: BackgroundTasks, c: Container, avisos: list[tuple[str, str]]) -> None:
+    """Envía avisos push por Telegram en segundo plano (si el bot está configurado)."""
+    if avisos:
+        from app.adapters.inbound.chat_channels import enviar_avisos_telegram
+        bg.add_task(enviar_avisos_telegram, request.app.state.http, c, avisos)
 
 
 @router.get("/conductores/mios", response_model=list[Trip], tags=["conductores"])
@@ -132,8 +140,12 @@ class SalirRequest(BaseModel):
 
 
 @router.post("/conductores/viajes/{trip_id}/salir", response_model=Trip, tags=["conductores"])
-def salir(trip_id: str, body: SalirRequest, actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> Trip:
-    return c.drivers.salir(trip_id, actor.reporter_id, body.lat, body.lng)
+def salir(trip_id: str, body: SalirRequest, request: Request, bg: BackgroundTasks,
+          actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> Trip:
+    t = c.drivers.salir(trip_id, actor.reporter_id, body.lat, body.lng)
+    if c.rides:
+        _avisar(request, bg, c, c.rides.avisos_pasajeros(t, c.rides.texto_salida(t)))
+    return t
 
 
 @router.post("/conductores/viajes/{trip_id}/lleno", response_model=Trip, tags=["conductores"])
@@ -141,12 +153,32 @@ def lleno(trip_id: str, actor: Actor = Depends(get_actor), c: Container = Depend
     return c.drivers.marcar_lleno(trip_id, actor.reporter_id)
 
 
+class CortarRequest(BaseModel):
+    parada_id: str
+
+
+class CorteResponse(BaseModel):
+    viaje: Trip
+    afectados: int  # pasajeros que iban más allá del corte
+
+
+@router.post("/conductores/viajes/{trip_id}/cortar", response_model=CorteResponse, tags=["conductores"])
+def cortar(trip_id: str, body: CortarRequest, request: Request, bg: BackgroundTasks,
+           actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> CorteResponse:
+    """"Hasta aquí llego": el viaje termina en una parada intermedia. Se avisa a quienes iban más allá."""
+    t, afectados = c.drivers.cortar(trip_id, actor.reporter_id, body.parada_id)
+    if c.rides:
+        _avisar(request, bg, c, c.rides.avisos_pasajeros(t, c.rides.texto_corte(t)))
+    return CorteResponse(viaje=t, afectados=afectados)
+
+
 class DesvioRequest(BaseModel):
     nota: str = Field(default="", max_length=200)
 
 
 @router.post("/conductores/viajes/{trip_id}/desvio", response_model=Trip, tags=["conductores"])
-def desvio(trip_id: str, body: DesvioRequest, actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> Trip:
+def desvio(trip_id: str, body: DesvioRequest, request: Request, bg: BackgroundTasks,
+           actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> Trip:
     """El conductor informal avisa que toma otra vía (protesta, cierre, derrumbe). Los pasajeros lo ven
     en el viaje y, si hay un tramo directo, queda como novedad en el mapa para toda la comunidad."""
     t = c.drivers.desvio(trip_id, actor.reporter_id, body.nota)
@@ -155,6 +187,8 @@ def desvio(trip_id: str, body: DesvioRequest, actor: Actor = Depends(get_actor),
             c.reports.reportar(actor, "novedad", t.origen_id, t.destino_id, None, f"Desvío de {t.ruta}: {t.desvio}")
         except Exception:
             pass
+    if c.rides:
+        _avisar(request, bg, c, c.rides.avisos_pasajeros(t, f"↪️ Tu viaje de las {t.hora} ({t.ruta}) va por desvío: {t.desvio}"))
     return t
 
 
@@ -174,9 +208,18 @@ def proximos(
     return c.drivers.proximos(barrio, limit)
 
 
+class ReservaRequest(BaseModel):
+    baja_en: str | None = None  # parada donde se baja (None = destino final)
+
+
 @router.post("/viajes/{trip_id}/reservar", response_model=Trip, tags=["viajes"])
-def reservar(trip_id: str, actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> Trip:
-    return c.drivers.reservar(trip_id, actor.reporter_id, c.reports.perfil(actor).nombre or "Pasajero")
+def reservar(trip_id: str, request: Request, bg: BackgroundTasks, body: ReservaRequest | None = None,
+             actor: Actor = Depends(get_actor), c: Container = Depends(get_container)) -> Trip:
+    nombre = c.reports.perfil(actor).nombre or "Pasajero"
+    t = c.drivers.reservar(trip_id, actor.reporter_id, nombre, body.baja_en if body else None)
+    if c.rides:
+        _avisar(request, bg, c, c.rides.aviso_conductor(t, c.rides.texto_reserva(t, nombre, body.baja_en if body else None)))
+    return t
 
 
 @router.get("/viajes/demanda", tags=["viajes"])

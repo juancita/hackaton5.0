@@ -490,6 +490,29 @@
     pintarLeyenda();
     setTimeout(() => mapa.invalidateSize(), 120);
   }
+  // API mínima del planeador para rides.js: elegir un punto en el mapa y fijar origen/destino
+  window.appPlan = {
+    elegirEnMapa(mensaje, cb) {
+      if (location.hash !== '#/rutas') location.hash = '#/rutas';
+      setTimeout(() => {
+        abrirMapa();
+        if (!mapa) { toast('El mapa no está disponible sin conexión'); return; }
+        toast(`${ico('touch_app')} ${mensaje}`);
+        $('#mapa').classList.add('eligiendo');
+        $('#mapa').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        mapa.once('click', (e) => { $('#mapa').classList.remove('eligiendo'); cb(e.latlng.lat, e.latlng.lng); });
+      }, 150);
+    },
+    fijar(campo, placeId) {
+      const inp = $(campo === 'origen' ? '#origen' : '#destino');
+      const p = Engine.nodoPorId[placeId];
+      if (!inp || !p) return;
+      inp.value = p.nombre; inp.dataset.id = p.id;
+      if (idLugar($('#origen')) && idLugar($('#destino'))) buscar();
+    },
+    paraderoCercano: (lat, lng) => { const c = paraderoCercano(lat, lng); return c ? c.p : null; },
+  };
+
   function activarSvgFallback() {
     usandoSvg = true;
     $('#mapa').style.display = 'none';

@@ -54,6 +54,8 @@ const PARADEROS = [
   {"id": "tesoro", "nombre": "El Tesoro (Arabia)", "tipo": "barrio", "zona": "alta", "lat": 4.53898, "lng": -74.14628, "direccion": "KR 18D Bis - CL 79 Sur", "fuente": "OpenStreetMap (Nominatim) / IDECA", "x": 57, "y": 50},
   {"id": "quibaalta", "nombre": "Quiba Alta (rural)", "tipo": "vereda", "zona": "rural", "lat": 4.51446, "lng": -74.16445, "direccion": "CL 89 Sur - KR 18F", "fuente": "OpenStreetMap (Nominatim) / IDECA", "x": 29, "y": 70},
   {"id": "mochueloalto", "nombre": "Mochuelo Alto (rural)", "tipo": "vereda", "zona": "rural", "lat": 4.48836, "lng": -74.14834, "direccion": "Vía Mochuelo - Pasquilla", "fuente": "OpenStreetMap (Nominatim) / IDECA", "x": 54, "y": 90},
+  {"id": "ensueno", "nombre": "C.C. Gran Plaza El Ensueño", "tipo": "comercio", "zona": "baja", "lat": 4.5822, "lng": -74.15694, "direccion": "CL 59 Sur # 51-21, El Ensueño", "fuente": "OpenStreetMap (Nominatim) / IDECA", "x": 41, "y": 23},
+  {"id": "potosi", "nombre": "Potosí", "tipo": "barrio", "zona": "alta", "lat": 4.5686, "lng": -74.17055, "direccion": "CL 82B Sur, Potosí", "fuente": "OpenStreetMap (Nominatim) / IDECA", "x": 20, "y": 27},
 ];
 
 const TRAMOS = [
@@ -102,6 +104,10 @@ const TRAMOS = [
   {"de": "plaza", "a": "tesoro", "modo": "colectivo", "min": 7, "cop": 2000, "freqMin": 15, "ruta": "Colectivo El Tesoro", "fuente": "Conocimiento comunitario (por validar con reporte ciudadano); trazado por las calles: OSRM / OpenStreetMap", "geom": [[4.54931, -74.13988], [4.54892, -74.13982], [4.54839, -74.14214], [4.54645, -74.14185], [4.54528, -74.14194], [4.54474, -74.14246], [4.54458, -74.1441], [4.54294, -74.14411], [4.54233, -74.1443], [4.54207, -74.14652], [4.54135, -74.14659], [4.54094, -74.1465], [4.54032, -74.14663], [4.53978, -74.14617], [4.53916, -74.14601], [4.5392, -74.1462]]},
   {"de": "tunal", "a": "lucero", "modo": "colectivo", "min": 8, "cop": 2000, "freqMin": 10, "ruta": "Colectivo Tunal - Lucero", "fuente": "Conocimiento comunitario (por validar con reporte ciudadano); trazado por las calles: OSRM / OpenStreetMap", "geom": [[4.56956, -74.1389], [4.5689, -74.13898], [4.56783, -74.13934], [4.56742, -74.13957], [4.56728, -74.13973], [4.56682, -74.14187], [4.5668, -74.14282], [4.56666, -74.14303], [4.56551, -74.14345], [4.56356, -74.14226], [4.56285, -74.14166], [4.56193, -74.14028], [4.56178, -74.13942], [4.5616, -74.13917], [4.56093, -74.13926], [4.56043, -74.1401], [4.55985, -74.1405], [4.55972, -74.14043], [4.5597, -74.1406], [4.55948, -74.1409], [4.55821, -74.14124], [4.55799, -74.14114], [4.55839, -74.14053], [4.55781, -74.14028]]},
   {"de": "mochuelo", "a": "mochueloalto", "modo": "veredal", "min": 8, "cop": 2500, "freqMin": 45, "ruta": "Veredal Mochuelo Alto", "fuente": "Conocimiento comunitario (por validar con reporte ciudadano); trazado por las calles: OSRM / OpenStreetMap", "geom": [[4.5084, -74.14819], [4.5083, -74.14707], [4.50713, -74.14734], [4.50652, -74.14758], [4.50596, -74.14735], [4.50542, -74.14738], [4.50516, -74.14748], [4.50476, -74.14785], [4.50449, -74.14773], [4.50308, -74.14754], [4.50237, -74.14781], [4.5014, -74.14747], [4.50051, -74.14784], [4.49992, -74.14787], [4.49933, -74.14772], [4.49826, -74.14771], [4.49684, -74.14727], [4.49658, -74.1473], [4.49539, -74.14784], [4.49422, -74.14782], [4.4935, -74.14763], [4.49277, -74.14779], [4.49206, -74.1476], [4.49144, -74.14785], [4.49083, -74.14838], [4.48925, -74.14835], [4.48865, -74.14867], [4.48821, -74.14875], [4.48817, -74.1482], [4.48834, -74.14818]]},
+  {"de": "ensueno", "a": "udtecno", "modo": "caminando", "min": 7, "cop": 0, "freqMin": 0, "ruta": "a pie", "fuente": "Distancia real 449 m; trazado por las calles: OSRM / OpenStreetMap", "geom": [[4.5815, -74.15717], [4.58136, -74.15695], [4.58103, -74.15708], [4.58064, -74.1573], [4.58054, -74.15767], [4.58029, -74.15754], [4.58021, -74.15758], [4.58005, -74.15734], [4.57948, -74.15704], [4.57922, -74.15793]]},
+  {"de": "potosi", "a": "jerusalen", "modo": "caminando", "min": 8, "cop": 0, "freqMin": 0, "ruta": "a pie", "fuente": "Distancia real 453 m; trazado por las calles: OSRM / OpenStreetMap", "geom": [[4.56858, -74.17041], [4.56828, -74.17046], [4.56742, -74.16972], [4.56743, -74.16765], [4.56726, -74.16765], [4.56726, -74.16771]]},
+  {"de": "ensueno", "a": "sierramorena", "modo": "colectivo", "min": 15, "cop": 1500, "freqMin": 12, "ruta": "Colectivo El Ensueño - Sierra Morena - Potosí", "fuente": "Conocimiento comunitario (por validar con reporte ciudadano); trazado por las calles: OSRM / OpenStreetMap", "geom": [[4.58148, -74.15717], [4.58158, -74.15761], [4.58272, -74.15819], [4.58316, -74.15752], [4.58316, -74.15712], [4.5834, -74.15693], [4.58359, -74.15624], [4.58353, -74.15607], [4.58335, -74.15592], [4.58109, -74.15552], [4.58085, -74.15563], [4.58017, -74.15958], [4.58014, -74.16036], [4.58047, -74.16081], [4.58141, -74.16143], [4.58195, -74.16244], [4.58225, -74.1628], [4.58261, -74.16295], [4.58385, -74.16299], [4.584, -74.16322], [4.58399, -74.1635], [4.58364, -74.16444], [4.58322, -74.16484], [4.58171, -74.16545], [4.57905, -74.16599], [4.57804, -74.16683], [4.57745, -74.16699], [4.57739, -74.1673], [4.57761, -74.16753], [4.57841, -74.16773], [4.57859, -74.1679], [4.57876, -74.16912], [4.57946, -74.17045], [4.57938, -74.17066], [4.57925, -74.17075], [4.57897, -74.17079], [4.57881, -74.17072], [4.57867, -74.17049], [4.5787, -74.17004], [4.5786, -74.16976], [4.57779, -74.16924], [4.57693, -74.16904], [4.57692, -74.16925], [4.5774, -74.17008]]},
+  {"de": "sierramorena", "a": "potosi", "modo": "colectivo", "min": 5, "cop": 1000, "freqMin": 12, "ruta": "Colectivo El Ensueño - Sierra Morena - Potosí", "fuente": "Conocimiento comunitario (por validar con reporte ciudadano); trazado por las calles: OSRM / OpenStreetMap", "geom": [[4.5774, -74.17008], [4.57663, -74.16887], [4.57416, -74.16694], [4.5736, -74.16675], [4.5733, -74.16681], [4.5729, -74.16704], [4.57133, -74.16882], [4.5707, -74.16837], [4.57036, -74.16858], [4.56883, -74.17002], [4.56888, -74.17037], [4.56858, -74.17041]]},
 ];
 
 const CAMARAS = [
@@ -160,6 +166,17 @@ const ALIAS = {
   "tesorito": "tesoro",
   "quiba alta": "quibaalta",
   "mochuelo alto": "mochueloalto",
+  "ensueno": "ensueno",
+  "el ensueno": "ensueno",
+  "gran plaza el ensueno": "ensueno",
+  "centro comercial el ensueno": "ensueno",
+  "cc el ensueno": "ensueno",
+  "potosi": "potosi",
+  "ensueño": "ensueno",
+  "el ensueño": "ensueno",
+  "gran plaza el ensueño": "ensueno",
+  "centro comercial el ensueño": "ensueno",
+  "cc el ensueño": "ensueno",
 };
 
 // Exponer global (sin módulos, para máxima compatibilidad offline)

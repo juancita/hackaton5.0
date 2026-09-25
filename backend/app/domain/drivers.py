@@ -56,6 +56,8 @@ class Trip(BaseModel):
     salio_en: datetime | None = None
     creado_en: datetime
     desvio: str | None = None      # aviso del conductor: "voy por X porque la vía está cerrada"
+    paradas: list[str] = []        # recorrido [origen, ...intermedias, destino] (se puede bajar a mitad)
+    corta_en: str | None = None    # el conductor avisa que el viaje llega solo hasta esta parada
     esperando: int = 0             # pasajeros que apartaron cupo
 
 
@@ -64,6 +66,7 @@ class SeatRequest(BaseModel):
     trip_id: str
     passenger_id: str
     passenger_nombre: str = ""
+    baja_en: str | None = None     # parada donde se baja (None = destino final)
     estado: Literal["reservado", "cancelado"] = "reservado"
     creado_en: datetime
 
@@ -117,6 +120,14 @@ class DriverService:
         self._repo = repo
         self._now = clock
 
+    @property
+    def network(self) -> Network:
+        return self._net
+
+    def pasajeros(self, trip_id: str) -> list[SeatRequest]:
+        """Cupos apartados (vigentes) de un viaje."""
+        return [s for s in self._repo.seats_for_trip(trip_id) if s.estado == "reservado"]
+
     # -- Perfil de conductor --
     def perfil(self, reporter_id: str) -> DriverProfile | None:
         return self._repo.get_profile(reporter_id)
@@ -131,8 +142,34 @@ class DriverService:
         return self._repo.save_profile(p)
 
     # -- Anunciar / gestionar viajes --
+    def recorrido(self, origen_id: str, destino_id: str, via: list[str] | None = None) -> list[str]:
+        """Paradas del viaje. Con vías dadas: [origen, *vías, destino]. Si no, busca en la red una cadena
+        de tramos informales de la MISMA ruta que una origen y destino (p. ej. El Ensueño → Sierra Morena
+        → Potosí) para que el pasajero se pueda bajar a mitad del trayecto."""
+        if via:
+            return [origen_id, *[v for v in via if v not in (origen_id, destino_id)], destino_id]
+        informales = [t for t in self._net.tramos if not self._net.modos[t.modo].formal]
+        for ruta in {t.ruta for t in informales}:
+            vecinos: dict[str, list[str]] = {}
+            for t in informales:
+                if t.ruta == ruta:
+                    vecinos.setdefault(t.de, []).append(t.a)
+                    vecinos.setdefault(t.a, []).append(t.de)
+            if origen_id not in vecinos or destino_id not in vecinos:
+                continue
+            camino, pila = None, [(origen_id, [origen_id])]
+            while pila:
+                nodo, hecho = pila.pop()
+                if nodo == destino_id:
+                    camino = hecho
+                    break
+                pila += [(v, hecho + [v]) for v in vecinos[nodo] if v not in hecho]
+            if camino:
+                return camino
+        return [origen_id, destino_id]
+
     def anunciar(self, driver_id: str, driver_nombre: str, origen_id: str, destino_id: str,
-                 hora: str, cupos: int, ruta: str | None = None) -> Trip:
+                 hora: str, cupos: int, ruta: str | None = None, via: list[str] | None = None) -> Trip:
         if not self._net.lugar(origen_id) or not self._net.lugar(destino_id):
             raise InvalidInput("Origen o destino no existe en la red")
         if cupos < 1 or cupos > 30:
@@ -142,7 +179,7 @@ class DriverService:
         t = Trip(
             id=str(uuid.uuid4()), driver_id=driver_id, driver_nombre=driver_nombre, ruta=ruta_final,
             origen_id=origen_id, destino_id=destino_id, hora=hora, cupos_total=cupos, cupos_libres=cupos,
-            creado_en=self._now(),
+            paradas=self.recorrido(origen_id, destino_id, via), creado_en=self._now(),
         )
         return self._repo.create_trip(t)
 
@@ -162,8 +199,11 @@ class DriverService:
             raise InvalidInput("Ese viaje no existe o ya terminó")
         return t
 
-    def reservar(self, trip_id: str, passenger_id: str, passenger_nombre: str = "") -> Trip:
+    def reservar(self, trip_id: str, passenger_id: str, passenger_nombre: str = "",
+                 baja_en: str | None = None) -> Trip:
         t = self._trip_de(trip_id)
+        if baja_en and t.paradas and (baja_en not in t.paradas or baja_en == t.paradas[0]):
+            raise InvalidInput("Esa parada no está en el recorrido de este viaje")
         if t.estado == "finalizado":
             raise InvalidInput("Ese viaje ya finalizó")
         seats = self._repo.seats_for_trip(trip_id)
@@ -174,7 +214,8 @@ class DriverService:
             raise InvalidInput("Ese viaje ya está lleno. Mira otros horarios.")
         self._repo.add_seat(SeatRequest(
             id=str(uuid.uuid4()), trip_id=trip_id, passenger_id=passenger_id,
-            passenger_nombre=passenger_nombre, creado_en=self._now(),
+            passenger_nombre=passenger_nombre, baja_en=baja_en if baja_en != t.destino_id else None,
+            creado_en=self._now(),
         ))
         t.cupos_libres -= 1
         if t.cupos_libres == 0:
@@ -216,6 +257,23 @@ class DriverService:
             raise InvalidInput("Solo el conductor puede avisar un desvío")
         t.desvio = (nota or "").strip()[:200] or "Desvío por novedad en la vía"
         return self._con_esperando(self._repo.save_trip(t))
+
+    def cortar(self, trip_id: str, driver_id: str, parada_id: str) -> tuple[Trip, int]:
+        """El conductor avisa que el viaje llega solo hasta una parada intermedia (lo que pasa a menudo:
+        "hasta aquí llego"). Devuelve el viaje y cuántos pasajeros iban más allá y deben buscar otra opción."""
+        t = self._trip_de(trip_id)
+        if t.driver_id != driver_id:
+            raise InvalidInput("Solo el conductor puede cortar el viaje")
+        paradas = t.paradas or [t.origen_id, t.destino_id]
+        if parada_id not in paradas[1:-1]:
+            raise InvalidInput("Solo se puede cortar en una parada intermedia del recorrido")
+        t.corta_en = parada_id
+        corte = paradas.index(parada_id)
+        afectados = sum(
+            1 for sr in self._repo.seats_for_trip(t.id)
+            if sr.estado == "reservado" and (sr.baja_en is None or paradas.index(sr.baja_en) > corte)
+        )
+        return self._con_esperando(self._repo.save_trip(t)), afectados
 
     def mis_viajes(self, driver_id: str, limit: int = 50) -> list[Trip]:
         return [self._con_esperando(t) for t in self._repo.driver_trips(driver_id, limit)]

@@ -100,7 +100,7 @@ def test_ultimos_incidentes(container):
     conversar(container, "hay un derrumbe en paraiso", user="vecino")
     out = conversar(container, "incidentes")[-1]
     assert out.paso == "inicio" and "Derrumbe" in out.texto and "1." in out.texto
-    assert [o.id for o in out.opciones_rapidas] == ["guiada", "manual", "reportar", "incidentes"]
+    assert [o.id for o in out.opciones_rapidas] == ["guiada", "manual", "reportar", "incidentes", "ver_viajes", "soy_conductor", "mi_casa"]
 
 
 # --- Telegram ----------------------------------------------------------------------

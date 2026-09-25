@@ -52,9 +52,12 @@ def test_tramo_bloqueado_se_excluye(container):
 
 
 def test_penalizacion_en_sentido_inverso(container):
-    base = container.routing.mejor_ruta("perdomo", "sierramorena")
+    # Solo formal: desde que existe el colectivo El Ensueño - Sierra Morena - Potosí, con trancón el
+    # motor puede esquivar el SITP; aquí se prueba que la penalización aplica en ambos sentidos.
+    formal = frozenset({"sitp", "alimentador", "troncal", "cable"})
+    base = container.routing.mejor_ruta("perdomo", "sierramorena", modos=formal)
     pen = {clave_tramo("sierramorena", "perdomo", "sitp"): Penalty(factor=3, motivo="trancón")}
-    r = container.routing.mejor_ruta("perdomo", "sierramorena", "rapido", pen)
+    r = container.routing.mejor_ruta("perdomo", "sierramorena", "rapido", pen, modos=formal)
     assert r.totalMin > base.totalMin
     assert r.alertas == ["trancón"]
 

@@ -115,6 +115,11 @@ LUGARES = [
          fuente=FUENTE_OSM),
     dict(id="mochueloalto", nombre="Mochuelo Alto (rural)", tipo="vereda", zona="rural",
          ancla=("fijo", 4.48836, -74.14834), direccion="Vía Mochuelo - Pasquilla", fuente=FUENTE_OSM),
+    # Ruta informal El Ensueño – Sierra Morena – Potosí (ejemplo real de la comunidad)
+    dict(id="ensueno", nombre="C.C. Gran Plaza El Ensueño", tipo="comercio", zona="baja",
+         ancla=("fijo", 4.58220, -74.15694), direccion="CL 59 Sur # 51-21, El Ensueño", fuente=FUENTE_OSM),
+    dict(id="potosi", nombre="Potosí", tipo="barrio", zona="alta", ancla=("fijo", 4.56860, -74.17055),
+         direccion="CL 82B Sur, Potosí", fuente=FUENTE_OSM),
 ]
 
 # --- Tramos formales derivados del orden oficial de paradas -------------------
@@ -148,6 +153,7 @@ CABLE = [  # tiempos oficiales de operación (~13,5 min de Tunal a Mirador)
 A_PIE = [  # conexiones cortas reales (distancia en línea recta x 1,3)
     ("meissen", "hospital"), ("hospital", "lucero"), ("estperdomo", "perdomo"),
     ("candelaria", "udtecno"), ("jerusalen", "sena"),
+    ("ensueno", "udtecno"), ("potosi", "jerusalen"),
 ]
 # Tramos con trazado propio (ya validados en Google Maps el 24/09/2026)
 _GEOM_UD = [[4.5797, -74.1571], [4.57576, -74.15499], [4.574, -74.15363], [4.57294, -74.1524], [4.5678, -74.1449],
@@ -183,6 +189,12 @@ INFORMAL = [
     dict(de="plaza", a="tesoro", modo="colectivo", min=None, cop=2000, freqMin=15, ruta="Colectivo El Tesoro"),
     dict(de="tunal", a="lucero", modo="colectivo", min=None, cop=2000, freqMin=10, ruta="Colectivo Tunal - Lucero"),
     dict(de="mochuelo", a="mochueloalto", modo="veredal", min=None, cop=2500, freqMin=45, ruta="Veredal Mochuelo Alto"),
+    # Colectivo informal del C.C. El Ensueño a Potosí pasando por Sierra Morena. Mucha gente se baja a mitad
+    # del trayecto (Sierra Morena) y a veces el conductor corta el viaje ahí: se cobra por tramo.
+    dict(de="ensueno", a="sierramorena", modo="colectivo", min=None, cop=1500, freqMin=12,
+         ruta="Colectivo El Ensueño - Sierra Morena - Potosí"),
+    dict(de="sierramorena", a="potosi", modo="colectivo", min=None, cop=1000, freqMin=12,
+         ruta="Colectivo El Ensueño - Sierra Morena - Potosí"),
 ]
 # Cámaras de fotodetección: referencia visual sobre avenidas reales (sin dataset oficial abierto).
 CAMARAS = [
@@ -196,6 +208,10 @@ CAMARAS = [
          tramo={"de": "mirador", "a": "paraiso", "modo": "jeep"}, lat=4.5496, lng=-74.1610),
 ]
 ALIAS = {
+    "ensueno": "ensueno", "el ensueno": "ensueno", "gran plaza el ensueno": "ensueno",
+    "centro comercial el ensueno": "ensueno", "cc el ensueno": "ensueno", "potosi": "potosi",
+    "ensueño": "ensueno", "el ensueño": "ensueno", "gran plaza el ensueño": "ensueno",
+    "centro comercial el ensueño": "ensueno", "cc el ensueño": "ensueno", "ensueno": "ensueno",
     "el cable": "tunal", "transmicable": "tunal", "portal": "tunal", "portal tunal": "tunal", "tunal": "tunal",
     "paraiso": "paraiso", "el paraiso": "paraiso", "mirador": "mirador", "mirador del paraiso": "mirador",
     "sierra": "sierramorena", "sierra morena": "sierramorena",

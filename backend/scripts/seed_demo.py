@@ -25,7 +25,12 @@ CONDUCTORES = [
     ("3000000002", "Doña Marta", "Colectivo Lucero", ["05:45", "06:15", "07:00", "18:00"], 12),
     ("3000000003", "Jairo", "Jeep Quiba", ["05:00", "06:00", "14:00"], 7),
     ("3000000004", "Don Álvaro", "Colectivo Santo Domingo", ["05:15", "06:00", "06:45", "19:00"], 10),
+    # El Ensueño → Sierra Morena → Potosí: muchos se bajan en Sierra Morena (mitad del trayecto)
+    ("3000000005", "Wilson", "Colectivo El Ensueño - Sierra Morena - Potosí",
+     ["05:40", "06:10", "06:40", "07:10", "17:45", "18:30"], 10),
 ]
+# Recorrido completo cuando la ruta informal tiene varias paradas (origen, destino)
+RECORRIDO = {"Colectivo El Ensueño - Sierra Morena - Potosí": ("ensueno", "potosi")}
 
 
 def main() -> None:
@@ -40,7 +45,9 @@ def main() -> None:
         actor = Actor(reporter_id=rid, canal="web")
         c.reports.registrar_perfil(actor, nombre, "conductor")
         tramo = next((t for t in tramos_inf if t.ruta == ruta), tramos_inf[0])
-        c.drivers.registrar_conductor(rid, ruta, tramo.de)
+        origen, destino = RECORRIDO.get(ruta, (tramo.de, tramo.a))
+        paradas = c.drivers.recorrido(origen, destino)
+        c.drivers.registrar_conductor(rid, ruta, origen)
         if repo.driver_trips(rid, 1):
             print(f"· {nombre}: ya tenía historial, no se duplica")
             continue
@@ -52,12 +59,12 @@ def main() -> None:
                     creado = (ahora - timedelta(days=d)).replace(hour=hh, minute=mm, second=0, microsecond=0)
                     repo.create_trip(Trip(
                         id=str(uuid.uuid4()), driver_id=rid, driver_nombre=nombre, ruta=ruta,
-                        origen_id=tramo.de, destino_id=tramo.a, hora=h, cupos_total=cupos, cupos_libres=0,
-                        estado="finalizado", lleno=True, creado_en=creado,
+                        origen_id=origen, destino_id=destino, hora=h, cupos_total=cupos, cupos_libres=0,
+                        estado="finalizado", lleno=True, paradas=paradas, creado_en=creado,
                     ))
                     n += 1
         for h in horas[:2]:  # viajes publicados HOY (visibles para pasajeros)
-            c.drivers.anunciar(rid, nombre, tramo.de, tramo.a, h, cupos, ruta)
+            c.drivers.anunciar(rid, nombre, origen, destino, h, cupos, ruta)
         print(f"· {nombre} ({ruta}): {n} viajes de historial + {len(horas[:2])} publicados hoy")
     print("\nHorarios típicos (modo offline):")
     for r, hs in c.drivers.horarios_tipicos().items():
