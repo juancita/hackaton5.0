@@ -113,3 +113,10 @@ La arquitectura completa está en **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
 ## 🆕 Módulo de conductores, login por celular y cámaras
 - [docs/MODULO_CONDUCTORES.md](docs/MODULO_CONDUCTORES.md) — conductores informales, cupos, "ya salí", desvíos, tendencia de horarios, cámaras de fotodetección.
 - [docs/DATOS_Y_PRIVACIDAD.md](docs/DATOS_Y_PRIVACIDAD.md) — Ley 1581 (Habeas Data), qué datos guardamos y cómo.
+
+## 📊 Tablero de movilidad (modo administrador)
+Pestaña **Admin** → clave → **Tablero de movilidad**: indicadores, consultas por hora, flujos barrio → salida →
+destino final en el mapa, rutas informales (ocupación, cortes), mapa de calor, reportes por canal y el
+**análisis de la IA** (Gemini redacta el resumen con las cifras ya calculadas). Es la demo del producto que se
+vende a las entidades. Los datos del demo son simulados: `bash scripts/reset_demo.sh` los regenera.
+Preguntas difíciles del jurado: [docs/PREGUNTAS_JURADO.md](docs/PREGUNTAS_JURADO.md).

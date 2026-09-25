@@ -86,6 +86,10 @@ El badge superior muestra 🟢 vivo / 🟡 caché / ⚪ semilla. Ver [FUENTES_DA
   (Docker) para el feedback, conversaciones en memoria.
 - Las cámaras de fotodetección quedan **solo como marcadores** del mapa (la detección se retiró).
 - Specs detallados en [`docs/specs/`](specs/00-contexto.md).
+- **Tablero de analítica** (`app/domain/analytics.py`, `/admin/tablero`): agrega consultas, viajes, cupos y
+  reportes (puerto de lectura `AnalyticsSource`), calcula conclusiones con reglas y le pide a Gemini
+  (`DataAnalyst`) solo la redacción del resumen ejecutivo. Web: `web/js/tablero.js` (Chart.js + Leaflet).
+  Datos de demostración: `backend/scripts/seed_analitica.py`.
 
 ### 6) Asistente (`ai.js`)
 - **Local (siempre):** interpreta "de X a Y", prioridad y **reportes** en lenguaje natural.

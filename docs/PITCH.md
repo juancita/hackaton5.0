@@ -103,6 +103,10 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 > dónde hay cierres—. Dos: estudios de movilidad agregados y anónimos para operadores, constructoras y
 > universidades. Tres: alianzas con plataformas como Moovit, Google o Waze: ellos no tienen el transporte
 > informal, nosotros sí; se lo licenciamos y a cambio recibimos sus buses en tiempo real."**
+>
+> *(Si hay 10 segundos: cambia a la pestaña **Admin → Tablero de movilidad** y señala el análisis de la IA.)*
+> **"Esto es lo que compra la Secretaría: a qué hora sale la loma, por dónde sale, a dónde va, qué rutas se
+> cortan… y la IA se lo resume al gerente."**
 
 ### BLOQUE 5 — COMPETENCIA Y ALIANZAS · [3:35–3:50]
 > **"No competimos con Moovit ni Google: son buenos para la ciudad formal, pero no tienen la loma. Queremos
@@ -155,12 +159,15 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 - [ ] `bash scripts/reset_demo.sh` → demo limpio con conductores de ejemplo.
 - [ ] `bash scripts/telegram_demo.sh` → deja esa terminal abierta.
 - [ ] **Celular de Wilson:** escribir al bot `/start` → **Soy conductor** (así el bot sabe a dónde mandarle los avisos).
-- [ ] Portátil: pestaña *Viajes* y pestaña *Sala en vivo* abiertas. Batería, brillo, notificaciones en silencio.
+- [ ] Portátil: pestaña *Viajes*, pestaña *Sala en vivo* y pestaña **Admin → Tablero de movilidad** ya abierta con la clave (así el análisis de la IA ya está listo). Batería, brillo, notificaciones en silencio.
 - [ ] Video de respaldo del demo grabado.
 
 **Plan B:** Telegram falla → publica el viaje desde la app (Viajes → Soy conductor) · Wifi falla → todo corre local; *"justo por esto funciona sin señal"* · Proyector falla → demo en el portátil · Todo falla → video.
 
 ## 8) Preguntas del jurado
+> Las difíciles (dónde vive la app, quién la paga, la brecha legal, cómo convencer a los conductores, la base
+> de datos, el modo administrador) están desarrolladas en **[PREGUNTAS_JURADO.md](PREGUNTAS_JURADO.md)**.
+
 - **"¿Dónde está la IA?"** → Los 4 componentes de la sección 2. Remata con *"la IA entiende y explica; el motor calcula"*.
 - **"¿Cómo ganan plata?"** → Venta de datos a entidades públicas (tablero de demanda), estudios agregados para empresas y universidades, y alianzas con plataformas. El pasajero nunca paga.
 - **"¿Por qué un colectivero lo usaría?"** → Llena más rápido, sabe cuántos lo esperan y dónde se bajan, y no corta viajes a ciegas. No aprende ninguna app: le escribe al bot.

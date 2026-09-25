@@ -19,6 +19,8 @@
 | **Datos agregados** | Lo que se comparte o vende a terceros son **estadísticas agregadas y anónimas** (p. ej. "300 personas piden Meissen→Paraíso entre 5 y 6 a.m."), nunca datos de una persona. |
 | **Cámaras** | La cámara solo envía un **nivel de congestión**. No se transmite video ni placas. |
 | **Ubicación** | Solo cuando la persona la comparte (reportar, "Ya salí", origen por GPS). |
+| **Tablero para entidades** | Solo cifras agregadas; los flujos con menos de **5 personas** se agrupan (k-anonimato). El resumen de la IA recibe únicamente esas cifras, nunca datos de personas. |
+| **Datos de demostración** | El tablero del demo usa 60 días **simulados**, marcados en la base (`demo:*`, `demo-*`) y avisados en pantalla. |
 | **Supresión** | Derecho a pedir borrado (a implementar: comando "borrar mis datos" en app y Telegram). |
 
 ## Importante (honestidad técnica)
