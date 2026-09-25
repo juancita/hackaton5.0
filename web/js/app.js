@@ -9,8 +9,8 @@
   const $$ = (s) => document.querySelectorAll(s);
 
   // ---------- Navegación (hash routing: /#/rutas, /#/asistente, /#/reportar, /#/admin) ----------
-  const SLUG_POR_VISTA = { plan: 'rutas', chat: 'asistente', report: 'reportar', admin: 'admin' };
-  const VISTA_POR_SLUG = { rutas: 'plan', asistente: 'chat', chat: 'chat', reportar: 'report', admin: 'admin' };
+  const SLUG_POR_VISTA = { plan: 'rutas', chat: 'asistente', viajes: 'viajes', report: 'reportar', admin: 'admin' };
+  const VISTA_POR_SLUG = { rutas: 'plan', asistente: 'chat', chat: 'chat', viajes: 'viajes', reportar: 'report', admin: 'admin' };
   function mostrarVista(vista) {
     $$('.tabbar button').forEach((x) => x.classList.toggle('active', x.dataset.view === vista));
     $$('.view').forEach((v) => v.classList.remove('active'));
@@ -18,6 +18,7 @@
     if (vista === 'plan') abrirMapa();
     if (vista === 'report') { abrirReporte(); vigilarFeed(); }
     if (vista === 'admin') pintarAdmin();
+    if (vista === 'viajes' && window.Rides) window.Rides.abrir();
   }
   function aplicarRuta() {
     const slug = location.hash.replace(/^#\/?/, '').toLowerCase();
@@ -65,6 +66,7 @@
     setTimeout(() => el.classList.add('show'), 10);
     setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 5000);
   }
+  window.appToast = toast; // lo usa rides.js (login y viajes)
 
   // ---------- Autocompletar origen / destino ----------
   // Pide sugerencias al backend (/places/suggest); sin backend, filtra PARADEROS en local.
@@ -314,9 +316,19 @@
       return;
     }
     const orden = [recomendada, ...ops.map((_, i) => i).filter((i) => i !== recomendada)];
-    const aviso = nIncidentes ? `<p class="hint aviso-ruta">${ico('warning')} ${nIncidentes} alerta(s) ciudadana(s) afectan estas rutas.</p>` : '';
+    // Cierres (protestas, derrumbes, cámaras): se explica que las opciones ya los esquivan
+    const aviso = nIncidentes
+      ? `<p class="hint aviso-ruta">${ico('warning')} Hay ${nIncidentes} cierre(s) o novedad(es) en la zona (reportes de vecinos y cámaras). Te mostramos <b>${ops.length} ruta(s) alternativa(s)</b> que las evitan.</p>`
+      : '';
     const origen = fuente === 'servidor' ? `${ico('cloud_done')} Calculado en el servidor con las alertas de toda la comunidad` : `${ico('smartphone')} Calculado en este dispositivo (sin servidor)`;
-    cont.innerHTML = aviso + orden.map((i) => tarjetaRuta(ops[i], i === recomendada, i)).join('') + `<p class="hint fuente">${origen}</p>`;
+    cont.innerHTML = aviso + '<div id="desviosInformales"></div>' + orden.map((i) => tarjetaRuta(ops[i], i === recomendada, i)).join('') + `<p class="hint fuente">${origen}</p>`;
+    // ¿Los conductores informales están desviándose? Se muestra a los pasajeros
+    if (enLinea && window.API) API.proximos().then((vs) => {
+      const con = (vs || []).filter((v) => v.desvio);
+      const box = $('#desviosInformales');
+      if (box && con.length) box.innerHTML = `<div class="hint aviso-ruta">${ico('alt_route')} <b>Desvíos de conductores informales:</b>` +
+        con.map((v) => `<br>• ${esc(v.ruta)} (${v.hora}): ${esc(v.desvio)}`).join('') + '</div>';
+    });
     elegirRuta(recomendada);
     // En móvil: sube hasta el mapa para ver la ruta y las tarjetas debajo
     if (esMovil()) {

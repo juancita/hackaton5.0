@@ -109,3 +109,7 @@ La arquitectura completa está en **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
 - **Pertinencia (25%)**: datos y actores reales de Ciudad Bolívar.
 - **Impacto (20%)**: minutos devueltos × miles de personas; escalable y sostenible.
 - **Presentación (15%)**: demo en vivo a prueba de fallos (funciona en modo avión).
+
+## 🆕 Módulo de conductores, login por celular y cámaras
+- [docs/MODULO_CONDUCTORES.md](docs/MODULO_CONDUCTORES.md) — conductores informales, cupos, "ya salí", desvíos, tendencia de horarios, cámaras de fotodetección.
+- [docs/DATOS_Y_PRIVACIDAD.md](docs/DATOS_Y_PRIVACIDAD.md) — Ley 1581 (Habeas Data), qué datos guardamos y cómo.

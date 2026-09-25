@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.adapters.inbound import chat_channels, http_api
+from app.adapters.inbound import chat_channels, driver_api, http_api
 from app.config import get_settings
 from app.container import Container, build_container
 from app.domain.errors import Conflict, DomainError, InvalidInput, NotFound, RateLimited
@@ -40,6 +40,7 @@ def create_app(container: Container | None = None, http_client: httpx.AsyncClien
         return JSONResponse({"detail": str(exc)}, status_code=STATUS.get(type(exc), 400))
 
     app.include_router(http_api.router)
+    app.include_router(driver_api.router)
     app.include_router(chat_channels.router)
 
     # La web se monta al final para que las rutas de la API tengan prioridad

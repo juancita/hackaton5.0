@@ -196,6 +196,8 @@ class Reporter(BaseModel):
     id: str
     canal: str
     rol: Role = Role.usuario
+    nombre: str | None = None          # nombre de usuario (login por celular)
+    modo: str = "pasajero"             # "pasajero" | "conductor" (se puede alternar)
     aciertos: int = 0
     fallos: int = 0
     creado_en: datetime | None = None
@@ -266,6 +268,9 @@ class IncidentView(BaseModel):
 
 class ReporterProfile(BaseModel):
     rol: Role
+    nombre: str | None = None
+    modo: str = "pasajero"
+    es_conductor: bool = False
     aciertos: int
     fallos: int
     estrellas: float

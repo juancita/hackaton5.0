@@ -1,6 +1,7 @@
 """Reportes ciudadanos con roles, reputación y confianza (spec 05)."""
 
 import hashlib
+import re
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -48,6 +49,18 @@ ESTRELLAS_MAX = 5.0
 def reporter_id_para(canal: str, id_externo: str, salt: str) -> str:
     """Identidad anónima y estable: no se guarda el teléfono ni el id del canal en claro."""
     return hashlib.sha256(f"{salt}{canal}:{id_externo}".encode()).hexdigest()
+
+
+def normalizar_telefono(telefono: str) -> str:
+    """Deja solo dígitos y toma los últimos 10 (Colombia). Así '573001234567' y '3001234567'
+    (WhatsApp/Telegram vs. app) son la MISMA persona."""
+    return re.sub(r"\D", "", telefono or "")[-10:]
+
+
+def reporter_id_por_telefono(telefono: str, salt: str) -> str:
+    """Identidad UNIFICADA por teléfono, independiente del canal (app, Telegram, WhatsApp).
+    Se hashea con sal: el número nunca queda en claro en la base de datos."""
+    return hashlib.sha256(f"{salt}tel:{normalizar_telefono(telefono)}".encode()).hexdigest()
 
 
 def estrellas(likes: int, dislikes: int) -> float:
@@ -100,6 +113,16 @@ class ReportService:
     def actor_de_canal(self, canal: str, id_externo: str) -> Actor:
         return Actor(reporter_id=reporter_id_para(canal, id_externo, self._salt), canal=canal)
 
+    def actor_por_telefono(self, canal: str, telefono: str) -> Actor:
+        """Identidad unificada por teléfono: la misma persona en la app y en Telegram/WhatsApp."""
+        return Actor(reporter_id=reporter_id_por_telefono(telefono, self._salt), canal=canal)
+
+    def registrar_perfil(self, actor: Actor, nombre: str | None, modo: str | None) -> Reporter:
+        """Guarda/actualiza el nombre de usuario y el modo (pasajero/conductor)."""
+        self._reporters.get_or_create(actor.reporter_id, actor.canal, actor.rol, self._now())
+        modo_ok = modo if modo in ("pasajero", "conductor") else None
+        return self._reporters.set_perfil(actor.reporter_id, (nombre or "").strip()[:40] or None, modo_ok)
+
     @staticmethod
     def actor_admin(nombre: str | None = None) -> Actor:
         return Actor(reporter_id=f"admin:{nombre or 'default'}", canal="admin", rol=Role.admin)
@@ -118,7 +141,8 @@ class ReportService:
         r = self._reporters.get(actor.reporter_id) or Reporter(id=actor.reporter_id, canal=actor.canal, rol=actor.rol)
         likes, dislikes, est = self.calificacion(r.id)
         return ReporterProfile(
-            rol=r.rol, aciertos=r.aciertos, fallos=r.fallos, estrellas=est, likes=likes, dislikes=dislikes,
+            rol=r.rol, nombre=r.nombre, modo=r.modo, es_conductor=(r.modo == "conductor"),
+            aciertos=r.aciertos, fallos=r.fallos, estrellas=est, likes=likes, dislikes=dislikes,
             reputacion=round(est / ESTRELLAS_MAX, 4), peso=round(self._peso(r), 4),
         )
 

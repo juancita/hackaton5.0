@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0..1,0&display=block" />
-  <link rel="stylesheet" href="css/styles.css?v=20" />
+  <link rel="stylesheet" href="css/styles.css?v=22" />
 </head>
 <body>
   <header class="topbar">
@@ -18,6 +18,9 @@
       <span class="ms fill logo" aria-hidden="true">gondola_lift</span>
       <h1>Muévete <span class="cb">CB</span></h1>
     </a>
+    <button id="btnSesion" class="sesion" type="button" title="Entrar con mi celular">
+      <span class="ms" aria-hidden="true">account_circle</span><span id="sesionLabel">Entrar</span>
+    </button>
   </header>
 
   <div id="toasts" class="toasts"></div>
@@ -166,11 +169,72 @@
       <button id="btnLimpiar" class="linkbtn peligro" type="button"><span class="ms" aria-hidden="true">delete_sweep</span>Limpiar todas las alertas</button>
     </section>
 
+    <!-- VISTA: VIAJES (conductores informales + cupos) -->
+    <section id="view-viajes" class="view">
+      <div class="card">
+        <div class="viajes-head">
+          <h2>Viajes de la comunidad</h2>
+          <div id="modoSwitch" class="modo-switch" role="tablist" aria-label="Modo de uso">
+            <button class="modo activo" data-modo="pasajero" role="tab"><span class="ms" aria-hidden="true">person</span>Soy pasajero</button>
+            <button class="modo" data-modo="conductor" role="tab"><span class="ms" aria-hidden="true">local_taxi</span>Soy conductor</button>
+          </div>
+        </div>
+        <p id="viajesLogin" class="hint" hidden><span class="ms" aria-hidden="true">info</span> Entra con tu celular para apartar cupo o publicar viajes.</p>
+      </div>
+
+      <!-- Pasajero -->
+      <div id="panelPasajero">
+        <div class="feed-head"><h3>Próximos viajes</h3><button id="refViajes" class="linkbtn ghost" type="button"><span class="ms" aria-hidden="true">refresh</span></button></div>
+        <div id="listaViajes" class="reportes"></div>
+      </div>
+
+      <!-- Conductor -->
+      <div id="panelConductor" hidden>
+        <div class="card">
+          <h3>Anunciar un viaje</h3>
+          <label>Mi ruta <input id="cRuta" placeholder="Ej: Jeep Paraíso" /></label>
+          <div class="od-campos">
+            <label>Sale de <input id="cOrigen" list="lugaresV" placeholder="Ej: Mirador" autocomplete="off" /></label>
+            <label>Va a <input id="cDestino" list="lugaresV" placeholder="Ej: Paraíso Alto" autocomplete="off" /></label>
+          </div>
+          <datalist id="lugaresV"></datalist>
+          <div class="od-campos">
+            <label>Hora de salida <input id="cHora" type="time" value="06:00" /></label>
+            <label>Cupos <input id="cCupos" type="number" min="1" max="20" value="8" /></label>
+          </div>
+          <button id="btnAnunciar" class="primary" type="button">Publicar viaje</button>
+        </div>
+        <div class="feed-head"><h3>Mis viajes</h3></div>
+        <div id="misViajes" class="reportes"></div>
+      </div>
+    </section>
+
   </main>
+
+  <!-- Modal de login por celular -->
+  <div id="loginModal" class="modal" hidden>
+    <div class="modal-card">
+      <button id="loginCerrar" class="modal-x" type="button" aria-label="Cerrar"><span class="ms">close</span></button>
+      <div class="admin-escudo" aria-hidden="true"><span class="ms">account_circle</span></div>
+      <h2>Entra con tu celular</h2>
+      <p class="hint">Sin contraseñas. Solo tu número y un nombre. El mismo número funciona en la app y en el bot de Telegram.</p>
+      <form id="loginForm" class="admin-form">
+        <input id="loginTel" type="tel" inputmode="numeric" placeholder="Número de celular" autocomplete="tel" required />
+        <input id="loginNombre" type="text" placeholder="¿Cómo te llamas?" autocomplete="nickname" required />
+        <div class="modo-switch" id="loginModo" role="radiogroup" aria-label="¿Cómo vas a usar la app?">
+          <button type="button" class="modo activo" data-modo="pasajero"><span class="ms" aria-hidden="true">person</span>Pasajero</button>
+          <button type="button" class="modo" data-modo="conductor"><span class="ms" aria-hidden="true">local_taxi</span>Conductor</button>
+        </div>
+        <button id="btnLogin" class="primary" type="submit">Entrar</button>
+      </form>
+      <p class="hint mini">Al entrar autorizas el tratamiento de tus datos según la <b>Ley 1581 de 2012 (Habeas Data)</b>: tu número se guarda <b>cifrado</b> (nunca en texto plano), solo para reconocerte y mejorar la movilidad del barrio. Las estadísticas que compartimos son siempre <b>agregadas y anónimas</b>. Puedes pedir que borremos tus datos cuando quieras.</p>
+    </div>
+  </div>
 
   <nav class="tabbar">
     <button data-view="plan" class="active"><span class="ms" aria-hidden="true">route</span><span>Rutas</span></button>
     <button data-view="chat"><span class="ms" aria-hidden="true">chat</span><span>Asistente</span></button>
+    <button data-view="viajes"><span class="ms" aria-hidden="true">local_taxi</span><span>Viajes</span></button>
     <button data-view="report"><span class="ms" aria-hidden="true">campaign</span><span>Reportar</span></button>
     <button data-view="admin"><span class="ms" aria-hidden="true">shield_person</span><span>Admin</span></button>
   </nav>
@@ -187,5 +251,6 @@
   <script src="js/api.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/rides.js"></script>
 </body>
 </html>

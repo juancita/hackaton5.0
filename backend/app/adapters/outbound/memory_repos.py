@@ -1,7 +1,9 @@
 """Implementaciones en memoria. Conversaciones en producción; repos de feedback solo para pruebas o demo sin BD."""
 
+from collections import Counter
 from datetime import datetime
 
+from app.domain.drivers import DriverProfile, RouteEvent, SavedPlace, SeatRequest, Trip
 from app.domain.models import Conversation, Incident, IncidentState, Reporter, Role
 
 
@@ -111,3 +113,90 @@ class MemoryReporterRepository:
             if r := self._data.get(rid):
                 r.aciertos += aciertos
                 r.fallos += fallos
+
+    def set_perfil(self, reporter_id: str, nombre: str | None, modo: str | None) -> Reporter:
+        r = self._data.get(reporter_id)
+        if r is None:
+            r = Reporter(id=reporter_id, canal="web")
+            self._data[reporter_id] = r
+        if nombre is not None:
+            r.nombre = nombre
+        if modo is not None:
+            r.modo = modo
+        return r.model_copy()
+
+
+class MemoryDriverRepository:
+    """Conductores, viajes, cupos, lugares y tracking en memoria (demo sin BD)."""
+
+    def __init__(self):
+        self._profiles: dict[str, DriverProfile] = {}
+        self._trips: dict[str, Trip] = {}
+        self._seats: list[SeatRequest] = []
+        self._places: list[SavedPlace] = []
+        self._events: list[RouteEvent] = []
+        self._links: dict[str, str] = {}
+        self._seq = 0
+
+    def get_profile(self, reporter_id: str) -> DriverProfile | None:
+        p = self._profiles.get(reporter_id)
+        return p.model_copy() if p else None
+
+    def save_profile(self, p: DriverProfile) -> DriverProfile:
+        self._profiles[p.reporter_id] = p.model_copy()
+        return p.model_copy()
+
+    def create_trip(self, t: Trip) -> Trip:
+        self._trips[t.id] = t.model_copy()
+        return t.model_copy()
+
+    def get_trip(self, trip_id: str) -> Trip | None:
+        t = self._trips.get(trip_id)
+        return t.model_copy() if t else None
+
+    def save_trip(self, t: Trip) -> Trip:
+        self._trips[t.id] = t.model_copy()
+        return t.model_copy()
+
+    def list_trips(self, estados: list[str], barrio_id: str | None = None, limit: int = 50) -> list[Trip]:
+        out = [
+            t for t in self._trips.values()
+            if t.estado in estados and (barrio_id is None or barrio_id in (t.origen_id, t.destino_id))
+        ]
+        out.sort(key=lambda t: t.creado_en, reverse=True)
+        return [t.model_copy() for t in out[:limit]]
+
+    def driver_trips(self, driver_id: str, limit: int = 200) -> list[Trip]:
+        out = [t for t in self._trips.values() if t.driver_id == driver_id]
+        out.sort(key=lambda t: t.creado_en, reverse=True)
+        return [t.model_copy() for t in out[:limit]]
+
+    def add_seat(self, sr: SeatRequest) -> SeatRequest:
+        self._seats.append(sr.model_copy())
+        return sr.model_copy()
+
+    def seats_for_trip(self, trip_id: str) -> list[SeatRequest]:
+        return [s.model_copy() for s in self._seats if s.trip_id == trip_id]
+
+    def save_place(self, sp: SavedPlace) -> SavedPlace:
+        self._places = [p for p in self._places if not (p.reporter_id == sp.reporter_id and p.etiqueta == sp.etiqueta)]
+        self._places.append(sp.model_copy())
+        return sp.model_copy()
+
+    def list_places(self, reporter_id: str) -> list[SavedPlace]:
+        return [p.model_copy() for p in self._places if p.reporter_id == reporter_id]
+
+    def add_route_event(self, ev: RouteEvent) -> None:
+        self._seq += 1
+        ev.id = self._seq
+        self._events.append(ev.model_copy())
+
+    def route_stats(self, limit: int = 20) -> list[tuple[str, str, int]]:
+        c = Counter((e.origen_id, e.destino_id) for e in self._events)
+        return [(o, d, n) for (o, d), n in c.most_common(limit)]
+
+    def link_identity(self, canal_key: str, reporter_id: str, now) -> None:
+        self._links[canal_key] = reporter_id
+
+    def get_link(self, canal_key: str) -> str | None:
+        return self._links.get(canal_key)

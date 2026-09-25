@@ -10,6 +10,7 @@ cd hackaton5.0
 cp .env.example .env              # ajusta ADMIN_API_KEY, ID_SALT y (opcional) GEMINI_API_KEY
 docker compose up -d --build      # construye las 3 imágenes y levanta todo
 docker compose ps                 # los 3 servicios deben quedar "healthy"
+docker compose exec backend python -m scripts.seed_demo   # (opcional) conductores y viajes de demo
 ```
 | Servicio | Contenedor | Imagen local | URL en la máquina |
 |---|---|---|---|

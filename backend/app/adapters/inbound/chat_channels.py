@@ -66,6 +66,10 @@ async def web_chat(
     ubicacion = (body.lat, body.lng) if body.lat is not None and body.lng is not None else None
     msg = InboundMessage(canal="web", user_id=x_client_id.strip()[:128], texto=body.texto, nombre=body.nombre,
                          ubicacion=ubicacion)
+    if c.rides:
+        viaje = await run_in_threadpool(c.rides.handle, "web", msg.user_id, msg.texto, msg.nombre, msg.ubicacion)
+        if viaje:
+            return viaje
     return await c.assistant.handle(msg)
 
 
@@ -77,9 +81,15 @@ ENLACE_GOOGLE = "🗺️ Abrir la ruta en Google Maps"
 
 
 def _teclado(out: OutboundMessage) -> dict:
-    boton = lambda o: {"text": o.label, "request_location": True} if o.id == "ubicacion" else {"text": o.label}  # noqa: E731
-    normales = [boton(o) for o in out.opciones_rapidas if o.id not in SALIDAS and o.id != "ubicacion"]
-    solas = [[boton(o)] for o in out.opciones_rapidas if o.id == "ubicacion"]
+    def boton(o):
+        if o.id == "ubicacion":
+            return {"text": o.label, "request_location": True}
+        if o.id == "telefono":
+            return {"text": o.label, "request_contact": True}
+        return {"text": o.label}
+    especiales = ("ubicacion", "telefono")
+    normales = [boton(o) for o in out.opciones_rapidas if o.id not in SALIDAS and o.id not in especiales]
+    solas = [[boton(o)] for o in out.opciones_rapidas if o.id in especiales]
     salidas = [boton(o) for o in out.opciones_rapidas if o.id in SALIDAS]
     filas = [normales[i:i + 2] for i in range(0, len(normales), 2)] + solas + ([salidas] if salidas else [])
     if not filas:
@@ -132,7 +142,14 @@ async def telegram_webhook(
         nombre=remitente.get("first_name"),
         ubicacion=(ubicacion["latitude"], ubicacion["longitude"]) if ubicacion else None,
     )
-    out = await c.assistant.handle(msg)
+    # Contacto compartido: solo se acepta el número PROPIO (el del remitente)
+    contacto = message.get("contact")
+    telefono = contacto.get("phone_number") if contacto and contacto.get("user_id") == remitente["id"] else None
+    out = None
+    if c.rides:
+        out = await run_in_threadpool(c.rides.handle, "telegram", msg.user_id, msg.texto, msg.nombre, msg.ubicacion, telefono)
+    if out is None:
+        out = await c.assistant.handle(msg)
     mapa_url = url_mapa(request, c, out.mapa) if await mapa_listo(c, out.mapa) else None
     # Se responde en el cuerpo del webhook: Telegram ejecuta el método por nosotros,
     # sin que el backend tenga que abrir una conexión saliente a api.telegram.org.

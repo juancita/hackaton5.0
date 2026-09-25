@@ -650,3 +650,37 @@ span.voto-btn { border-color: transparent; background: transparent; padding-inli
   .rep-mapa { height: 42vh; min-height: 300px; }
   #view-admin.active { padding: 24px; }
 }
+
+/* ---------- Login por celular (sesión) ---------- */
+.sesion { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.16); color: #fff;
+  border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.sesion:hover { background: rgba(255,255,255,.26); }
+.modal { position: fixed; inset: 0; z-index: 3000; background: rgba(20,10,30,.55); display: grid; place-items: center; padding: 16px; }
+.modal[hidden] { display: none; }
+.modal-card { position: relative; width: 100%; max-width: 420px; background: #fff; border-radius: 18px; padding: 22px 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3); text-align: center; }
+.modal-card h2 { margin: 6px 0 4px; }
+.modal-card .admin-form { flex-direction: column; align-items: stretch; margin-top: 12px; }
+.modal-card .admin-form input { font-size: 17px; padding: 14px; }
+.modal-x { position: absolute; top: 10px; right: 10px; border: none; background: none; cursor: pointer; color: var(--gris, #666); }
+.hint.mini { font-size: 12px; margin-top: 10px; }
+
+/* Selector grande pasajero / conductor (pensado para usuarios mayores: botones grandes y claros) */
+.modo-switch { display: flex; gap: 8px; }
+.modo-switch .modo { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px 10px; border-radius: 12px; border: 2px solid var(--morado-100); background: #fff; color: var(--morado);
+  font-weight: 700; font-size: 15px; cursor: pointer; }
+.modo-switch .modo.activo { background: var(--morado); border-color: var(--morado); color: #fff; }
+
+/* ---------- Vista Viajes ---------- */
+.viajes-head { display: flex; flex-direction: column; gap: 10px; }
+.viaje .viaje-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; }
+.viaje .viaje-acc { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.viaje .viaje-acc .linkbtn { flex: 1; min-width: 110px; }
+.vb { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.vb.libre { background: #DDF7E7; color: #0B7A3B; }
+.vb.lleno { background: #FDE2E2; color: #B42318; }
+.vb.ruta { background: #FFF1D6; color: #9A5B00; display: inline-flex; align-items: center; gap: 4px; }
+#panelConductor .od-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.viaje .desvio { margin-top: 6px; font-size: 13px; background: #FFF4E5; color: #8A4B00; border-radius: 8px; padding: 6px 8px; display: flex; gap: 6px; align-items: center; }
+#refViajes { flex: none; padding: 8px 12px; }

@@ -27,7 +27,11 @@ def get_actor(
     if _es_admin(c, x_admin_key):
         return c.reports.actor_admin(x_admin_name)
     if x_client_id and x_client_id.strip():
-        return c.reports.actor_de_canal("web", x_client_id.strip()[:128])
+        cid = x_client_id.strip()[:128]
+        # Login por celular: "tel:<numero>" da identidad UNIFICADA (misma persona en app y Telegram)
+        if cid.startswith("tel:"):
+            return c.reports.actor_por_telefono("web", cid[4:])
+        return c.reports.actor_de_canal("web", cid)
     if x_admin_key:
         raise HTTPException(401, "X-Admin-Key inválida")
     raise HTTPException(400, "Falta el header X-Client-Id")

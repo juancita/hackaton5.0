@@ -8,12 +8,15 @@ from app.adapters.outbound.json_catalog import JsonCatalog
 from app.adapters.outbound.map_renderer import TileMapRenderer
 from app.adapters.outbound.memory_repos import (
     MemoryConversationStore,
+    MemoryDriverRepository,
     MemoryIncidentRepository,
     MemoryReporterRepository,
 )
 from app.adapters.outbound.refiners import GeminiInterpreter, GeminiRefiner, NoopInterpreter, NoopRefiner
 from app.config import Settings
 from app.domain.assistant import AssistantService
+from app.domain.drivers import DriverService
+from app.domain.ride_chat import RideChat
 from app.domain.models import Network
 from app.domain.places import PlaceService
 from app.domain.reports import ReportService, utcnow
@@ -37,7 +40,10 @@ class Container:
     reports: ReportService
     trip: PlanTripUseCase
     assistant: AssistantService
+    drivers: DriverService
     mapas: MapRenderer
+    rides: RideChat | None = None
+    refiner: ResponseRefiner | None = None
 
 
 def build_container(
@@ -52,15 +58,23 @@ def build_container(
 ) -> Container:
     network = JsonCatalog().load()
 
+    drivers_repo = None
     if incidents is None or reporters is None:
         if settings.storage == "postgres":
             from app.adapters.outbound.pg.db import make_session_factory
-            from app.adapters.outbound.pg.repos import PgIncidentRepository, PgReporterRepository
+            from app.adapters.outbound.pg.repos import (
+                PgDriverRepository,
+                PgIncidentRepository,
+                PgReporterRepository,
+            )
 
             sessions = make_session_factory(settings.database_url)
             incidents, reporters = PgIncidentRepository(sessions), PgReporterRepository(sessions)
+            drivers_repo = PgDriverRepository(sessions)
         else:
             incidents, reporters = MemoryIncidentRepository(), MemoryReporterRepository()
+    if drivers_repo is None:
+        drivers_repo = MemoryDriverRepository()
 
     gemini = settings.llm_provider == "gemini" and settings.gemini_api_key
     opciones_gemini = dict(
@@ -87,5 +101,8 @@ def build_container(
         refine_timeout_s=settings.llm_timeout_s,
         clock=clock,
     )
+    drivers = DriverService(network, drivers_repo, clock)
+    rides = RideChat(drivers, reports, places, settings.id_salt,
+                     lambda pid: (network.lugar(pid).nombre if network.lugar(pid) else pid))
     mapas = mapas or TileMapRenderer(settings.map_tile_url)
-    return Container(settings, network, places, routing, reports, trip, assistant, mapas)
+    return Container(settings, network, places, routing, reports, trip, assistant, drivers, mapas, rides, refiner)

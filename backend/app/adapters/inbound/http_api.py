@@ -64,8 +64,19 @@ class RouteRequest(BaseModel):
 
 
 @router.post("/routes", response_model=TripPlan, tags=["rutas"])
-def routes(body: RouteRequest, c: Container = Depends(get_container)) -> TripPlan:
-    return c.trip.ejecutar(body.origen_id, body.destino_id, body.prioridad, body.modos or None)
+def routes(
+    body: RouteRequest,
+    viewer: str | None = Depends(get_viewer_id),
+    c: Container = Depends(get_container),
+) -> TripPlan:
+    plan = c.trip.ejecutar(body.origen_id, body.destino_id, body.prioridad, body.modos or None)
+    # Tracking anónimo de la demanda de rutas (dato de negocio); nunca guarda el teléfono en claro
+    if viewer:
+        try:
+            c.drivers.registrar_consulta(viewer, body.origen_id, body.destino_id, "web")
+        except Exception:
+            pass
+    return plan
 
 
 _cache_mapas: dict[tuple[str, str], bytes] = {}

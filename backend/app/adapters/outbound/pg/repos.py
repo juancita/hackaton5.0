@@ -6,7 +6,19 @@ from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.adapters.outbound.pg.tables import IncidentRow, ReporterRow, ReportRow, VoteRow
+from app.adapters.outbound.pg.tables import (
+    DriverProfileRow,
+    IdentityLinkRow,
+    IncidentRow,
+    ReporterRow,
+    ReportRow,
+    RouteEventRow,
+    SavedPlaceRow,
+    SeatRequestRow,
+    TripRow,
+    VoteRow,
+)
+from app.domain.drivers import DriverProfile, RouteEvent, SavedPlace, SeatRequest, Trip
 from app.domain.models import Incident, IncidentState, ReportEntry, Reporter, Role, VoteEntry
 
 ABIERTOS = (IncidentState.activo.value, IncidentState.verificado.value)
@@ -143,7 +155,8 @@ class PgReporterRepository:
 
     @staticmethod
     def _a_dominio(row: ReporterRow) -> Reporter:
-        return Reporter(id=row.id, canal=row.canal, rol=Role(row.rol), aciertos=row.aciertos, fallos=row.fallos,
+        return Reporter(id=row.id, canal=row.canal, rol=Role(row.rol), nombre=row.nombre,
+                        modo=row.modo or "pasajero", aciertos=row.aciertos, fallos=row.fallos,
                         creado_en=row.creado_en, ultimo_en=row.ultimo_en)
 
     def get(self, reporter_id: str) -> Reporter | None:
@@ -169,3 +182,143 @@ class PgReporterRepository:
                 .where(ReporterRow.id.in_(reporter_ids))
                 .values(aciertos=ReporterRow.aciertos + aciertos, fallos=ReporterRow.fallos + fallos)
             )
+
+    def set_perfil(self, reporter_id: str, nombre: str | None, modo: str | None) -> Reporter:
+        cambios: dict = {}
+        if nombre is not None:
+            cambios["nombre"] = nombre
+        if modo is not None:
+            cambios["modo"] = modo
+        with self._sessions.begin() as s:
+            if cambios:
+                s.execute(update(ReporterRow).where(ReporterRow.id == reporter_id).values(**cambios))
+            return self._a_dominio(s.get(ReporterRow, reporter_id))
+
+
+# --- Módulo de conductores ---------------------------------------------------
+
+def _trip_dom(r: TripRow) -> Trip:
+    return Trip(
+        id=r.id, driver_id=r.driver_id, driver_nombre=r.driver_nombre, ruta=r.ruta,
+        origen_id=r.origen_id, destino_id=r.destino_id, hora=r.hora, cupos_total=r.cupos_total,
+        cupos_libres=r.cupos_libres, estado=r.estado, lleno=r.lleno, lat=r.lat, lng=r.lng,
+        salio_en=r.salio_en, desvio=r.desvio, creado_en=r.creado_en,
+    )
+
+
+class PgDriverRepository:
+    def __init__(self, sessions: sessionmaker[Session]):
+        self._sessions = sessions
+
+    def get_profile(self, reporter_id: str) -> DriverProfile | None:
+        with self._sessions() as s:
+            r = s.get(DriverProfileRow, reporter_id)
+            return DriverProfile(reporter_id=r.reporter_id, ruta=r.ruta, barrio_base=r.barrio_base,
+                                 placa=r.placa, activo=r.activo, creado_en=r.creado_en) if r else None
+
+    def save_profile(self, p: DriverProfile) -> DriverProfile:
+        with self._sessions.begin() as s:
+            row = s.get(DriverProfileRow, p.reporter_id)
+            if row is None:
+                row = DriverProfileRow(reporter_id=p.reporter_id, creado_en=p.creado_en)
+                s.add(row)
+            row.ruta, row.barrio_base, row.placa, row.activo = p.ruta, p.barrio_base, p.placa, p.activo
+        return p
+
+    def create_trip(self, t: Trip) -> Trip:
+        with self._sessions.begin() as s:
+            s.add(TripRow(
+                id=t.id, driver_id=t.driver_id, driver_nombre=t.driver_nombre, ruta=t.ruta,
+                origen_id=t.origen_id, destino_id=t.destino_id, hora=t.hora, cupos_total=t.cupos_total,
+                cupos_libres=t.cupos_libres, estado=t.estado, lleno=t.lleno, lat=t.lat, lng=t.lng,
+                salio_en=t.salio_en, desvio=t.desvio, creado_en=t.creado_en,
+            ))
+        return t
+
+    def get_trip(self, trip_id: str) -> Trip | None:
+        with self._sessions() as s:
+            r = s.get(TripRow, trip_id)
+            return _trip_dom(r) if r else None
+
+    def save_trip(self, t: Trip) -> Trip:
+        with self._sessions.begin() as s:
+            row = s.get(TripRow, t.id)
+            if row is None:
+                return t
+            for c in ("driver_nombre", "ruta", "hora", "cupos_total", "cupos_libres",
+                      "estado", "lleno", "lat", "lng", "salio_en", "desvio"):
+                setattr(row, c, getattr(t, c))
+        return t
+
+    def list_trips(self, estados: list[str], barrio_id: str | None = None, limit: int = 50) -> list[Trip]:
+        q = select(TripRow).where(TripRow.estado.in_(estados))
+        if barrio_id:
+            q = q.where(or_(TripRow.origen_id == barrio_id, TripRow.destino_id == barrio_id))
+        with self._sessions() as s:
+            rows = s.scalars(q.order_by(TripRow.creado_en.desc()).limit(limit)).all()
+            return [_trip_dom(r) for r in rows]
+
+    def driver_trips(self, driver_id: str, limit: int = 200) -> list[Trip]:
+        with self._sessions() as s:
+            rows = s.scalars(
+                select(TripRow).where(TripRow.driver_id == driver_id)
+                .order_by(TripRow.creado_en.desc()).limit(limit)
+            ).all()
+            return [_trip_dom(r) for r in rows]
+
+    def add_seat(self, sr: SeatRequest) -> SeatRequest:
+        with self._sessions.begin() as s:
+            s.add(SeatRequestRow(
+                id=sr.id, trip_id=sr.trip_id, passenger_id=sr.passenger_id,
+                passenger_nombre=sr.passenger_nombre, estado=sr.estado, creado_en=sr.creado_en,
+            ))
+        return sr
+
+    def seats_for_trip(self, trip_id: str) -> list[SeatRequest]:
+        with self._sessions() as s:
+            rows = s.scalars(select(SeatRequestRow).where(SeatRequestRow.trip_id == trip_id)).all()
+            return [SeatRequest(id=r.id, trip_id=r.trip_id, passenger_id=r.passenger_id,
+                                passenger_nombre=r.passenger_nombre, estado=r.estado, creado_en=r.creado_en)
+                    for r in rows]
+
+    def save_place(self, sp: SavedPlace) -> SavedPlace:
+        with self._sessions.begin() as s:
+            s.execute(insert(SavedPlaceRow).values(
+                id=sp.id, reporter_id=sp.reporter_id, etiqueta=sp.etiqueta, nombre=sp.nombre,
+                lat=sp.lat, lng=sp.lng, place_id=sp.place_id, creado_en=sp.creado_en,
+            ).on_conflict_do_update(
+                index_elements=[SavedPlaceRow.reporter_id, SavedPlaceRow.etiqueta],
+                set_={"nombre": sp.nombre, "lat": sp.lat, "lng": sp.lng, "place_id": sp.place_id, "creado_en": sp.creado_en},
+            ))
+        return sp
+
+    def list_places(self, reporter_id: str) -> list[SavedPlace]:
+        with self._sessions() as s:
+            rows = s.scalars(select(SavedPlaceRow).where(SavedPlaceRow.reporter_id == reporter_id)).all()
+            return [SavedPlace(id=r.id, reporter_id=r.reporter_id, etiqueta=r.etiqueta, nombre=r.nombre,
+                               lat=r.lat, lng=r.lng, place_id=r.place_id, creado_en=r.creado_en) for r in rows]
+
+    def add_route_event(self, ev: RouteEvent) -> None:
+        with self._sessions.begin() as s:
+            s.add(RouteEventRow(reporter_id=ev.reporter_id, origen_id=ev.origen_id,
+                                destino_id=ev.destino_id, canal=ev.canal, creado_en=ev.creado_en))
+
+    def route_stats(self, limit: int = 20) -> list[tuple[str, str, int]]:
+        with self._sessions() as s:
+            rows = s.execute(
+                select(RouteEventRow.origen_id, RouteEventRow.destino_id, func.count())
+                .group_by(RouteEventRow.origen_id, RouteEventRow.destino_id)
+                .order_by(func.count().desc()).limit(limit)
+            ).all()
+            return [(o, d, n) for o, d, n in rows]
+
+    def link_identity(self, canal_key: str, reporter_id: str, now) -> None:
+        with self._sessions.begin() as s:
+            s.execute(insert(IdentityLinkRow).values(canal_key=canal_key, reporter_id=reporter_id, creado_en=now)
+                      .on_conflict_do_update(index_elements=[IdentityLinkRow.canal_key],
+                                             set_={"reporter_id": reporter_id, "creado_en": now}))
+
+    def get_link(self, canal_key: str) -> str | None:
+        with self._sessions() as s:
+            r = s.get(IdentityLinkRow, canal_key)
+            return r.reporter_id if r else None

@@ -199,4 +199,32 @@
       else reportarComo(idx, azar(RAPIDOS));
     }, 3500);
   });
+
+  // ---------- Cámaras de fotodetección (Edge AI) ----------
+  // Cada cámara de semáforo (las de fotocomparendos) cuenta vehículos EN EL BORDE y solo envía un número:
+  // el nivel de congestión. Con ≥60% el backend crea un incidente verificado en su tramo y las rutas lo
+  // esquivan; se combina con los reportes de los vecinos (más fuentes = más confianza).
+  let camTimer = null;
+  $('#btnCamaras').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    if (camTimer) { clearInterval(camTimer); camTimer = null; btn.innerHTML = ico('videocam') + 'Cámaras de fotodetección'; return; }
+    btn.innerHTML = ico('videocam_off') + 'Detener cámaras';
+    const leer = async () => {
+      if (!enLinea) return;
+      const cam = azar(window.DB.CAMARAS || []);
+      if (!cam) return;
+      const nivel = Math.min(0.97, 0.45 + Math.random() * 0.55);        // 45%..97%
+      const vehiculos = Math.round(nivel * 60);
+      const r = await API.camaraLectura(cam.id, +nivel.toFixed(2), vehiculos);
+      const pct = Math.round(nivel * 100);
+      if (r && r.ok && r.data.accion === 'incidente') {
+        toast(`<b>${ico('videocam')} ${cam.nombre}</b><br>Detectó ${vehiculos} vehículos (${pct}% de congestión) → <b>${r.data.tipo}</b> publicado y rutas desviadas`, '#E4002B');
+        refrescar();
+      } else if (r && r.ok) {
+        toast(`${ico('videocam')} ${cam.nombre}: flujo normal (${pct}%)`, '#2ECC71');
+      }
+    };
+    leer();
+    camTimer = setInterval(leer, 6000);
+  });
 })();
