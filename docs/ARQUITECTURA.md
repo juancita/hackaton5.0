@@ -8,7 +8,7 @@ Una **PWA offline-first** (HTML/CSS/JS vainilla) con un **backend FastAPI opcion
 1. Consume **datos abiertos oficiales en vivo** (ArcGIS TransMilenio, datos.gov.co, IDECA) y los cachea para offline.
 2. Los **cruza con transporte informal** (jeeps, colectivos, veredales) en un grafo multimodal.
 3. Recomienda rutas con un **motor local** (Dijkstra) + **capa de IA** para lenguaje natural.
-4. Tiene un **mapa vivo tipo Waze** con reportes ciudadanos en **tiempo real**.
+4. Tiene un **mapa vivo de la comunidad** con reportes ciudadanos en **tiempo real**.
 5. Pondera los reportes por **reputación** (usuario / admin) y los guarda en PostgreSQL.
 6. Funciona por **web** (perfil experto), **WhatsApp** y **Telegram** (asistente guiado paso a paso).
 

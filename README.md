@@ -5,7 +5,7 @@
 
 Integra en un solo punto el transporte **formal** (TransMiCable, SITP) y el
 **informal** (jeeps, colectivos, rutas veredales) que hoy solo vive en el
-"boca a boca", con un **mapa vivo tipo Waze**, **reporte ciudadano en tiempo real**
+"boca a boca", con un **mapa vivo de la comunidad**, **reporte ciudadano en tiempo real**
 y un **asistente guiado** con IA. Funciona por **web**, **WhatsApp** y **Telegram**, incluso **sin internet**.
 
 ---
@@ -15,7 +15,7 @@ Todos pueden consultar el SITP en Google Maps. **Nadie tiene mapeado el transpor
 informal** ni un sistema colaborativo en tiempo real para la ladera. Esa es la brecha
 del reto y es nuestro corazón:
 1. **Digitalizamos lo informal** (jeeps de Quiba, colectivos a Paraíso, veredales).
-2. **Tiempo real tipo Waze**: la comunidad reporta y todos ven al instante.
+2. **Mapa vivo en tiempo real**: la comunidad reporta y todos ven al instante.
 3. **Reportes con reputación**: cada vecino gana peso cuando sus reportes resultan ciertos; los admin validan. Sin crear cuenta.
 4. **Inclusión real**: WhatsApp, Telegram y web con el mismo cerebro (backend hexagonal con puertos por canal).
 5. **Offline-first**: en las zonas altas no hay señal; la app igual funciona.
@@ -25,7 +25,7 @@ del reto y es nuestro corazón:
 |---|---------------------|----------------|
 | 1 | Integración formal + informal | Grafo multimodal + **datos oficiales en vivo** (`data.js`, `datasources.js`) |
 | 2 | Agente de recomendación IA | Asistente guiado/manual con estado + Gemini Flash opcional (`backend/app/domain/assistant.py`) |
-| 3 | Visualización geográfica | **Mapa vivo Leaflet tipo Waze** + esquema offline (`app.js`) |
+| 3 | Visualización geográfica | **Mapa vivo Leaflet con reportes de la comunidad** + esquema offline (`app.js`) |
 | 4 | Reporte ciudadano en tiempo real | Incidentes con confianza por reputación en Postgres + bus en tiempo real (`reports.py`, `realtime.js`) |
 | 5 | Canal de bajo umbral | **PWA + WhatsApp + Telegram** (mismo backend) |
 
@@ -104,7 +104,7 @@ Empieza por **[docs/GUIA_EQUIPO.md](docs/GUIA_EQUIPO.md)** y **[CONTRIBUTING.md]
 La arquitectura completa está en **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)**.
 
 ## 🏆 Por qué gana
-- **Innovación (20%)**: informal + tiempo real Waze + reportes con reputación = combinación no obvia.
+- **Innovación (20%)**: informal + mapa vivo en tiempo real + reportes con reputación = combinación no obvia.
 - **Viabilidad (20%)**: offline, gama baja, costo casi cero, datos oficiales reales.
 - **Pertinencia (25%)**: datos y actores reales de Ciudad Bolívar.
 - **Impacto (20%)**: minutos devueltos × miles de personas; escalable y sostenible.

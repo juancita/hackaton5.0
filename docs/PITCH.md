@@ -8,8 +8,8 @@
 ---
 
 ## 0) La idea en una frase
-> **"Muévete CB es el Waze de Ciudad Bolívar: junta el TransMiCable y el SITP con los jeeps y colectivos
-> de la loma, y usa inteligencia artificial para organizarles a los conductores informales sus cupos y
+> **"Muévete CB junta en un solo lugar toda la movilidad de la loma: el TransMiCable y el SITP con los jeeps
+> y colectivos, y usa inteligencia artificial para organizarles a los conductores informales sus cupos y
 > horarios. Funciona por Telegram —mañana WhatsApp— y en la app, hasta sin señal."**
 
 ---
@@ -96,13 +96,13 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 > **"Empezamos en Ciudad Bolívar: 700.000 personas. La Bogotá de ladera son casi 2 millones con el mismo
 > problema, y Soacha, Medellín o Cali tienen lomas y jeeps igualitos."** *(Señala TAM/SAM/SOM en pantalla.)*
 
-### BLOQUE 4 — MODELO DE NEGOCIO · [3:05–3:35] · *Diapositiva 7*
+### BLOQUE 4 — MODELO DE NEGOCIO · [3:05–3:35] · *Diapositiva 7 (lee los precios verdes)*
 > **"El pasajero nunca paga. Ganamos con datos y con alianzas.**
-> **Uno: la Secretaría de Movilidad, la Alcaldía y TransMilenio no saben cómo se mueve la gente en la loma.
-> Nosotros sí: les vendemos un tablero con la demanda real —qué rutas pide la gente, a qué hora, dónde se baja,
-> dónde hay cierres—. Dos: estudios de movilidad agregados y anónimos para operadores, constructoras y
-> universidades. Tres: alianzas con plataformas como Moovit, Google o Waze: ellos no tienen el transporte
-> informal, nosotros sí; se lo licenciamos y a cambio recibimos sus buses en tiempo real."**
+> **Uno: la Secretaría de Movilidad y la Alcaldía no saben cómo se mueve la gente en la loma; nosotros sí: les
+> vendemos un tablero con la demanda real por 10 millones al mes por localidad. Dos: estudios agregados y
+> anónimos para operadores, comercio y universidades, de 15 a 40 millones cada uno. Tres: a Moovit, Google o
+> Waze les licenciamos la capa informal, unos 150 millones al año por plataforma. Y mantener todo esto cuesta
+> menos de 40 pesos al mes por vecino."**
 >
 > *(Si hay 10 segundos: cambia a la pestaña **Admin → Tablero de movilidad** y señala el análisis de la IA.)*
 > **"Esto es lo que compra la Secretaría: a qué hora sale la loma, por dónde sale, a dónde va, qué rutas se
@@ -117,8 +117,12 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 > base de datos, cámaras e IA. Las ideas no mueven a nadie; los equipos que ejecutan, sí."**
 
 ### BLOQUE 7 — FINANZAS · [4:00–4:15] · *Diapositiva 8 (lee la tabla)*
-> **"Operar cuesta muy poco porque usamos cámaras y datos que ya existen. Con el piloto llegamos a unos 280
-> millones el primer año, cerca de 880 el segundo y unos 2.000 millones el tercero, con margen positivo."**
+> **"Con el piloto llegamos a unos 280 millones el primer año, 880 el segundo y unos 2.000 millones el tercero.
+> Desde el mes 7 cada mes se paga solo. Y lo caro no es la tecnología: mantener la plataforma cuesta menos de
+> 40 pesos al mes por vecino."**
+>
+> *(Costos y "¿cuándo venden los datos?": diapositivas de **anexo** al final; solo si preguntan.
+> Detalle completo en [MODELO_NEGOCIO.md](MODELO_NEGOCIO.md).)*
 
 ### BLOQUE 8 — IMPACTO Y DATOS · [4:15–4:40] · *Diapositiva 9*
 > **"El impacto es tiempo de vida: 30 minutos menos por viaje es una hora al día por persona. Los conductores
@@ -199,6 +203,11 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 | Fondos no reembolsables (MinTIC, convocatorias) | 100 M | — | — |
 | **Ingresos** | **≈ 280 M** | **≈ 880 M** | **≈ 2.010 M** |
 | **Costos** | ≈ 230 M | ≈ 500 M | ≈ 1.000 M |
+| **Resultado** | +50 M (−50 sin fondos) | +380 M | +1.010 M |
+
+Precios: tablero COP 10 M/mes por localidad · estudios COP 15–40 M · licencia a plataformas COP 150 M/año.
+Nube: ≈ USD 270/mes por localidad (≈ COP 36 por vecino al mes). Equilibrio mensual desde el mes 7.
+Simulador con los supuestos: `python3 scripts/simular_negocio.py`.
 
 TAM: ~20 localidades/municipios con ladera × COP 120 M/año ≈ COP 2.400 M/año en tableros + datos y alianzas ·
 SAM: Bogotá de ladera (~1,9 M personas, 4 localidades) ≈ COP 880 M/año · SOM año 1: Ciudad Bolívar ≈ COP 280 M.

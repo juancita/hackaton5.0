@@ -37,6 +37,11 @@ Si no sabes algo: *"Buena pregunta; eso lo validamos en el piloto"*. Nunca inven
 
 - **Costos año 1 ≈ COP 230 M.** La mayor parte es equipo y trabajo de campo con los conductores; la nube y la IA
   son la parte pequeña. *(Estimado, se valida en el piloto.)*
+- **La nube para una localidad cuesta ≈ USD 270 al mes (≈ COP 1,1 M): unos COP 36 por vecino al mes.**
+- **Precios:** tablero COP 10 M/mes por localidad · estudios COP 15–40 M · licencia a plataformas COP 150 M/año.
+- **¿Cuándo venden datos?** La Alcaldía paga el tablero desde el mes 1 del piloto; a terceros, desde el mes 7
+  (con 3 meses de datos y volumen suficiente para anonimizar). Equilibrio mensual desde el mes 7.
+- Todo el detalle y el simulador: [MODELO_NEGOCIO.md](MODELO_NEGOCIO.md).
 - La IA es barata porque usamos el modelo liviano de Gemini (*flash-lite*), **solo cuando las reglas no
   entienden** el mensaje, y con un tope de 5 segundos.
 - **Telegram es gratis.** WhatsApp cobra por conversación: por eso el demo va por Telegram y WhatsApp queda
