@@ -74,7 +74,7 @@ async def web_chat(
         msg = msg.model_copy(update={"texto": c.rides.reescribir("web", msg.user_id, msg.texto)})
     out = await c.assistant.handle(msg)
     registrar_consulta_chat(c, "web", msg.user_id, out)
-    return out
+    return c.rides.ajustar_menu("web", msg.user_id, out) if c.rides else out
 
 
 def registrar_consulta_chat(c: Container, canal: str, user_id: str, out: OutboundMessage) -> None:
@@ -169,6 +169,8 @@ async def telegram_webhook(
         texto = c.rides.reescribir("telegram", msg.user_id, msg.texto) if c.rides else msg.texto
         out = await c.assistant.handle(msg.model_copy(update={"texto": texto}))
         registrar_consulta_chat(c, "telegram", msg.user_id, out)
+        if c.rides:
+            out = c.rides.ajustar_menu("telegram", msg.user_id, out)
     if c.rides:  # avisos push a otras personas (pasajeros o conductor) generados por este mensaje
         await enviar_avisos_telegram(_http(request), c, c.rides.tomar_avisos())
     mapa_url = url_mapa(request, c, out.mapa) if await mapa_listo(c, out.mapa) else None

@@ -106,7 +106,9 @@ class PgIncidentRepository:
             return [_a_dominio(r) for r in rows]
 
     def list_recent(self, limit: int, since: datetime | None = None, before: datetime | None = None) -> list[Incident]:
-        q = select(IncidentRow).where(IncidentRow.estado != IncidentState.rechazado.value)
+        # El historial SIMULADO del tablero (ids demo-*) no aparece en el feed público de reportes
+        q = select(IncidentRow).where(IncidentRow.estado != IncidentState.rechazado.value,
+                                      ~IncidentRow.id.like("demo-%"))
         if since is not None:
             q = q.where(IncidentRow.creado_en >= since)
         if before is not None:

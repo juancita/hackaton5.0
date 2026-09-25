@@ -55,6 +55,19 @@ BTN_MENU = QuickReply(id="menu", label="🏠 Menú principal")
 BTN_CASA = QuickReply(id="mi_casa", label="🏡 Mi casa")
 BTN_IR_CASA = QuickReply(id="ir_casa", label="🏡 Ir a mi casa")
 BTN_CAMBIAR_CASA = QuickReply(id="cambiar_casa", label="📍 Cambiar mi casa")
+# Cambio de rol (botones grandes y explícitos: pensado para personas mayores)
+BTN_A_PASAJERO = QuickReply(id="soy_pasajero", label="🔄 Cambiar a pasajero")
+BTN_A_CONDUCTOR = QuickReply(id="soy_conductor", label="🔄 Cambiar a conductor")
+BTN_FIN_Y_PASAJERO = QuickReply(id="terminar_y_pasajero", label="🏁 Terminar viaje y ser pasajero")
+BTN_SEGUIR_CONDUCTOR = QuickReply(id="seguir_conductor", label="🚙 Seguir como conductor")
+
+A_CONDUCTOR = {"soy conductor", "conductor", "modo conductor", "cambiar a conductor", "ser conductor",
+               "pasarme a conductor", "volver a conductor"}
+A_PASAJERO = {"soy pasajero", "pasajero", "modo pasajero", "cambiar a pasajero", "ser pasajero", "pasarme a pasajero",
+              "volver a pasajero", "salir de conductor", "salir del modo conductor", "ya no soy conductor",
+              "dejar de ser conductor", "no soy conductor"}
+MI_ROL = {"mi rol", "que soy", "quien soy", "cambiar rol", "cambiar de rol", "cambiar modo", "cambiar de modo",
+          "mi perfil", "perfil", "mi modo"}
 
 
 def _pasajeros(n: int) -> str:
@@ -120,11 +133,23 @@ class RideChat:
 
     @staticmethod
     def _botones_conductor() -> list[QuickReply]:
-        return [BTN_PUBLICAR, BTN_SALI, BTN_LLENO, BTN_CORTAR, BTN_DESVIO, BTN_FIN, BTN_UBIC, BTN_PASAJERO]
+        return [BTN_PUBLICAR, BTN_SALI, BTN_LLENO, BTN_CORTAR, BTN_DESVIO, BTN_FIN, BTN_UBIC, BTN_A_PASAJERO, BTN_MENU]
 
     @staticmethod
     def _botones_pasajero(canal: str) -> list[QuickReply]:
-        return [BTN_VER, BTN_CASA, BTN_CONDUCTOR, BTN_MENU] + ([BTN_TEL] if canal == "telegram" else [])
+        return [BTN_VER, BTN_CASA, BTN_A_CONDUCTOR, BTN_MENU] + ([BTN_TEL] if canal == "telegram" else [])
+
+    def ajustar_menu(self, canal: str, user_id: str, out: OutboundMessage) -> OutboundMessage:
+        """El menú principal del asistente ofrece el cambio al rol CONTRARIO al que la persona tiene."""
+        if not any(o.id == "soy_conductor" for o in out.opciones_rapidas):
+            return out
+        try:
+            conductor = self._r.perfil(self._actor(canal, self.identidad(canal, user_id)[1])).modo == "conductor"
+        except Exception:  # noqa: BLE001 — el menú nunca se rompe por esto
+            return out
+        cambio = BTN_A_PASAJERO if conductor else BTN_A_CONDUCTOR
+        opciones = [cambio if o.id == "soy_conductor" else o for o in out.opciones_rapidas]
+        return out.model_copy(update={"opciones_rapidas": opciones})
 
     # --- Textos compartidos con la API web ---
     def _recorrido(self, t: Trip) -> str:
@@ -240,19 +265,46 @@ class RideChat:
                 return self._msg(f"📍 Cuando estés en {cual}, toca «Enviar mi ubicación» y la guardo.",
                                  [BTN_UBIC, BTN_MENU])
 
-            # 5) Elegir / cambiar de rol
-            if n in ("soy conductor", "conductor", "modo conductor"):
+            # 5) Elegir / cambiar de rol (conductor ⇄ pasajero)
+            if n in MI_ROL:
+                if conductor:
+                    return self._msg("🚙 Ahora estás como CONDUCTOR.\n¿Quieres pasarte a pasajero? Toca el botón 👇",
+                                     [BTN_A_PASAJERO, BTN_SEGUIR_CONDUCTOR, BTN_MENU])
+                return self._msg("🧍 Ahora estás como PASAJERO.\n¿Quieres pasarte a conductor? Toca el botón 👇",
+                                 [BTN_A_CONDUCTOR, BTN_VER, BTN_MENU])
+            if n in A_CONDUCTOR:
+                ya = conductor
                 self._r.registrar_perfil(actor, nombre if not perfil.nombre else None, "conductor")
                 return self._msg(
-                    "🚙 Listo, estás como CONDUCTOR.\n\nPara publicar un viaje escríbeme así:\n"
+                    ("🚙 Ya estás como CONDUCTOR." if ya else "🚙 Listo, ahora estás como CONDUCTOR.")
+                    + "\n\nPara publicar un viaje escríbeme así:\n"
                     "👉 salgo 6:30 de El Ensueño a Potosí con 10 cupos\n\n"
-                    "Luego usa los botones: ✅ Ya salí (comparte ubicación), 🚫 Lleno, ✂️ Cortar viaje, ↪️ Desvío, 🏁 Terminé.",
+                    "Luego usa los botones: ✅ Ya salí (comparte ubicación), 🚫 Lleno, ✂️ Cortar viaje, ↪️ Desvío, 🏁 Terminé.\n"
+                    "Para volver a pasajero toca 🔄 Cambiar a pasajero.",
                     self._botones_conductor())
-            if n in ("soy pasajero", "pasajero", "modo pasajero"):
+            if n == "seguir como conductor":
+                return self._msg("🚙 Sigues como CONDUCTOR. Tu viaje sigue publicado.", self._botones_conductor())
+            if n in A_PASAJERO or n == "terminar viaje y ser pasajero":
+                activo = self._d.viaje_activo(rid) if conductor else None
+                if activo and n != "terminar viaje y ser pasajero":
+                    # No se deja un viaje colgado: los pasajeros que apartaron cupo lo están esperando
+                    esperan = (f" y {_pasajeros(activo.esperando)} te "
+                               f"{'espera' if activo.esperando == 1 else 'esperan'}") if activo.esperando else ""
+                    return self._msg(
+                        f"⚠️ Tienes un viaje publicado: {activo.ruta} a las {activo.hora}{esperan}.\n\n"
+                        "¿Lo terminas y te pasas a pasajero? Si tocas 🏁, les aviso a tus pasajeros.",
+                        [BTN_FIN_Y_PASAJERO, BTN_SEGUIR_CONDUCTOR])
+                aviso = ""
+                if activo:
+                    t = self._d.finalizar(activo.id, rid)
+                    self._avisos += self.avisos_pasajeros(
+                        t, f"🏁 El viaje de las {t.hora} ({t.ruta}) terminó. Busca otro en 🕒 Ver viajes.")
+                    aviso = f"🏁 Terminé tu viaje de las {t.hora} y avisé a tus pasajeros.\n"
                 self._r.registrar_perfil(actor, nombre if not perfil.nombre else None, "pasajero")
                 return self._msg(
-                    "🧍 Listo, estás como PASAJERO.\n\nToca 🕒 Ver viajes para ver los jeeps y colectivos que salen, "
-                    "o escríbeme por ejemplo: colectivo a Potosí.",
+                    aviso + ("🧍 Ya estás como PASAJERO." if not conductor else "🧍 Listo, ahora estás como PASAJERO.")
+                    + "\n\nToca 🕒 Ver viajes para ver los jeeps y colectivos que salen, "
+                    "o escríbeme por ejemplo: colectivo a Potosí.\nPara volver a conductor toca 🔄 Cambiar a conductor.",
                     self._botones_pasajero(canal))
 
             # 6) Pasajero: ver próximos viajes (opcionalmente hacia/desde un barrio)

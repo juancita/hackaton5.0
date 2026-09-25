@@ -41,7 +41,12 @@ Conductor:
   🚫 Lleno  ·  ↪️ desvío por la 68 porque hay protesta  ·  🏁 Terminé  ·  cuantos esperan
 Pasajero:
   🕒 Ver viajes  ·  jeep a Paraíso  ·  Apartar 1
+Cambiar de rol (cuando quiera, en los dos sentidos):
+  🔄 Cambiar a pasajero  ·  🔄 Cambiar a conductor  ·  «mi rol» / «salir del modo conductor»
+  Si el conductor tiene un viaje publicado, el bot pregunta antes:
+  🏁 Terminar viaje y ser pasajero (avisa a sus pasajeros)  ·  🚙 Seguir como conductor
 ```
+El menú principal siempre ofrece el cambio al rol contrario al que la persona tiene.
 Todo lo que no es de viajes (p. ej. "de Meissen a Paraíso") sigue yendo al asistente de rutas.
 
 ## 4. Cámaras de fotodetección (Edge AI)

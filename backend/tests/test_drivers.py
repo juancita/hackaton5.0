@@ -129,3 +129,51 @@ def test_mi_casa_por_ubicacion_y_ruta(client):
     assert "Guardado" in tg(client, 31, loc=(4.5689, -74.1703), nombre="Rosa")   # junto a Potosí
     texto = tg(client, 31, "de Meissen a mi casa", "Rosa")
     assert "Potosí" in texto or "La más rápida" in texto
+
+
+def _botones(client, uid, texto, nombre="X"):
+    m = {"message_id": 1, "chat": {"id": uid}, "from": {"id": uid, "first_name": nombre}, "text": texto}
+    r = client.post("/webhooks/telegram", json={"update_id": 1, "message": m}).json()
+    filas = (r.get("reply_markup") or {}).get("keyboard", [])
+    return r.get("text") or r.get("caption") or "", [b["text"] for fila in filas for b in fila]
+
+
+def test_cambio_de_rol_por_chat_ida_y_vuelta(client):
+    texto, botones = _botones(client, 31, "🚙 Soy conductor", "Wilson")
+    assert "ahora estás como CONDUCTOR" in texto
+    assert "🔄 Cambiar a pasajero" in botones and "🏠 Menú principal" in botones
+    texto, botones = _botones(client, 31, "mi rol")
+    assert "CONDUCTOR" in texto and "🔄 Cambiar a pasajero" in botones
+    texto, botones = _botones(client, 31, "🔄 Cambiar a pasajero")
+    assert "ahora estás como PASAJERO" in texto and "🔄 Cambiar a conductor" in botones
+    texto, _ = _botones(client, 31, "salir del modo conductor")
+    assert "Ya estás como PASAJERO" in texto
+    texto, botones = _botones(client, 31, "🔄 Cambiar a conductor")
+    assert "CONDUCTOR" in texto and "🔄 Cambiar a pasajero" in botones
+
+
+def test_no_deja_viaje_colgado_al_pasarse_a_pasajero(client, container):
+    tg(client, 41, "🚙 Soy conductor", "Wilson")
+    tg(client, 41, "salgo 6:10 de El Ensueño a Potosí con 10 cupos", "Wilson")
+    tg(client, 42, "🧍 Soy pasajero", "Rosa")
+    tg(client, 42, "ver viajes", "Rosa")
+    tg(client, 42, "Apartar 1", "Rosa")
+    texto, botones = _botones(client, 41, "🔄 Cambiar a pasajero")
+    assert "Tienes un viaje publicado" in texto and "1 pasajero te espera" in texto
+    assert botones == ["🏁 Terminar viaje y ser pasajero", "🚙 Seguir como conductor"]
+    texto, _ = _botones(client, 41, "🚙 Seguir como conductor")
+    assert "Sigues como CONDUCTOR" in texto
+    texto, _ = _botones(client, 41, "🔄 Cambiar a pasajero")
+    texto, botones = _botones(client, 41, "🏁 Terminar viaje y ser pasajero")
+    assert "Terminé tu viaje de las 06:10" in texto and "PASAJERO" in texto
+    assert "🔄 Cambiar a conductor" in botones
+    rid = container.rides.identidad("telegram", "41")[1]
+    assert container.drivers.viaje_activo(rid) is None
+
+
+def test_menu_principal_ofrece_el_rol_contrario(client):
+    _, botones = _botones(client, 51, "menú")
+    assert "🔄 Cambiar a conductor" in botones
+    tg(client, 51, "🚙 Soy conductor", "Jairo")
+    _, botones = _botones(client, 51, "🏠 Menú principal")
+    assert "🔄 Cambiar a pasajero" in botones and "🔄 Cambiar a conductor" not in botones
