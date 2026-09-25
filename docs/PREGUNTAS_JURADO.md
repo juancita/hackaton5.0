@@ -23,30 +23,29 @@ Si no sabes algo: *"Buena pregunta; eso lo validamos en el piloto"*. Nunca inven
 
 ## 2. ¿Quién la costea y cómo?
 
-> **"Por etapas. El prototipo lo pusimos nosotros. El piloto de 6 meses cuesta unos 150 millones y lo
-> financiamos con convocatorias de innovación y un convenio con la Alcaldía Local. Desde ahí se sostiene
-> sola: la Secretaría de Movilidad paga una suscripción por el tablero que acaban de ver. El pasajero nunca paga."**
+> **"Por etapas. El prototipo lo pusimos nosotros. El piloto de 6 meses cuesta unos 260 millones y lo
+> financiamos con convocatorias de innovación y un convenio con la Alcaldía Local, que paga el tablero desde el
+> primer mes. Mantener la app bien hecha cuesta unos 28 millones al mes; por eso invertimos dos años y somos
+> rentables desde el tercero. El pasajero nunca paga."**
 
 **Respaldo:**
 
 | Etapa | Quién paga | Con qué |
 |---|---|---|
-| Prototipo (hoy) | El equipo | Tiempo del equipo; la infraestructura cuesta casi cero |
-| Piloto 6 meses (≈ COP 150 M) | Fondos no reembolsables (MinTIC, convocatorias de innovación) + convenio con la Alcaldía Local | Operación, gestores comunitarios, formación de conductores |
-| Operación (año 1 en adelante) | Entidades públicas, empresas, universidades y plataformas | Tablero (≈ COP 10 M/mes por localidad), estudios de datos agregados y alianzas |
+| Prototipo (hoy) | El equipo | Tiempo del equipo |
+| Piloto 6 meses (≈ $ 260.000.000) | Fondos no reembolsables (MinTIC, convocatorias) + convenio con la Alcaldía Local | Mantener la app, gestores comunitarios, formación de conductores |
+| Años 1 y 2 (≈ $ 400.000.000 de financiación) | Fondos, convenio e inversión | Llegar a 4 y luego 8 localidades |
+| Desde el mes 25 | Entidades públicas, empresas, universidades y plataformas | La operación se paga sola |
 
-- **Costos año 1 ≈ COP 230 M.** La mayor parte es equipo y trabajo de campo con los conductores; la nube y la IA
-  son la parte pequeña. *(Estimado, se valida en el piloto.)*
-- **La nube para una localidad cuesta ≈ USD 270 al mes (≈ COP 1,1 M): unos COP 36 por vecino al mes.**
-- **Precios:** tablero COP 10 M/mes por localidad · estudios COP 15–40 M · licencia a plataformas COP 150 M/año.
+- **Mantener la app: $ 27.918.000 al mes con 1 localidad.** Solo $ 4.280.000 son nube (USD 1.070 con alta
+  disponibilidad, entorno de pruebas, copias, IA, mapas, monitoreo y seguridad); el resto es gente: operación y
+  seguridad, mantenimiento, soporte, protección de datos y gestores en territorio.
+- **Economía de escala:** con 8 localidades baja a **$ 10.282.250 por localidad al mes**.
+- **Resultado:** año 1 −$ 239.816.000 · año 2 −$ 146.696.000 · año 3 **+$ 191.304.000**. Equilibrio mensual en el mes 25.
+- **Precios:** tablero $ 10.000.000/mes por localidad · estudios $ 15.000.000–40.000.000 · licencia $ 150.000.000/año.
 - **¿Cuándo venden datos?** La Alcaldía paga el tablero desde el mes 1 del piloto; a terceros, desde el mes 7
-  (con 3 meses de datos y volumen suficiente para anonimizar). Equilibrio mensual desde el mes 7.
+  (con 3 meses de datos y volumen suficiente para anonimizar).
 - Todo el detalle y el simulador: [MODELO_NEGOCIO.md](MODELO_NEGOCIO.md).
-- La IA es barata porque usamos el modelo liviano de Gemini (*flash-lite*), **solo cuando las reglas no
-  entienden** el mensaje, y con un tope de 5 segundos.
-- **Telegram es gratis.** WhatsApp cobra por conversación: por eso el demo va por Telegram y WhatsApp queda
-  para cuando haya financiación.
-- Ingresos proyectados: ≈ 280 M (año 1), ≈ 880 M (año 2), ≈ 2.010 M (año 3). *(Están en la diapositiva.)*
 
 ## 3. ¿Cómo convencemos a los conductores informales de usarla?
 

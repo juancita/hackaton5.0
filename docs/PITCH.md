@@ -101,8 +101,8 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 > **Uno: la Secretaría de Movilidad y la Alcaldía no saben cómo se mueve la gente en la loma; nosotros sí: les
 > vendemos un tablero con la demanda real por 10 millones al mes por localidad. Dos: estudios agregados y
 > anónimos para operadores, comercio y universidades, de 15 a 40 millones cada uno. Tres: a Moovit, Google o
-> Waze les licenciamos la capa informal, unos 150 millones al año por plataforma. Y mantener todo esto cuesta
-> menos de 40 pesos al mes por vecino."**
+> Waze les licenciamos la capa informal, unos 150 millones al año por plataforma. El pasajero y el conductor
+> nunca pagan."**
 >
 > *(Si hay 10 segundos: cambia a la pestaña **Admin → Tablero de movilidad** y señala el análisis de la IA.)*
 > **"Esto es lo que compra la Secretaría: a qué hora sale la loma, por dónde sale, a dónde va, qué rutas se
@@ -117,9 +117,9 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 > base de datos, cámaras e IA. Las ideas no mueven a nadie; los equipos que ejecutan, sí."**
 
 ### BLOQUE 7 — FINANZAS · [4:00–4:15] · *Diapositiva 8 (lee la tabla)*
-> **"Con el piloto llegamos a unos 280 millones el primer año, 880 el segundo y unos 2.000 millones el tercero.
-> Desde el mes 7 cada mes se paga solo. Y lo caro no es la tecnología: mantener la plataforma cuesta menos de
-> 40 pesos al mes por vecino."**
+> **"Somos realistas: mantener la app bien hecha cuesta unos 28 millones al mes. Los dos primeros años
+> invertimos para llegar a 4 y luego a 8 localidades; en el mes 25 la operación se paga sola y el tercer año
+> deja unos 190 millones. Para llegar ahí necesitamos unos 400 millones entre fondos e inversión."**
 >
 > *(Costos y "¿cuándo venden los datos?": diapositivas de **anexo** al final; solo si preguntan.
 > Detalle completo en [MODELO_NEGOCIO.md](MODELO_NEGOCIO.md).)*
@@ -180,7 +180,7 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 - **"¿La alianza con Moovit es real?"** → Aún no; es la propuesta. El sistema ya está preparado para recibir sus datos; les ofrecemos lo que no tienen: el informal.
 - **"¿Y si la IA se equivoca?"** → No calcula rutas ni precios: solo entiende y redacta. Si cambia una cifra, se descarta.
 - **"¿Y si no hay internet?"** → La app guarda los horarios típicos que aprendió y sigue funcionando.
-- **"¿Cuánto necesitan?"** → Piloto de 6 meses en El Ensueño–Sierra Morena–Potosí y el corredor del cable: unos COP 150 millones.
+- **"¿Cuánto necesitan?"** → Piloto de 6 meses en El Ensueño–Sierra Morena–Potosí y el corredor del cable: unos $ 260 millones; para llegar al equilibrio (mes 25), unos $ 400 millones entre fondos e inversión.
 
 ## 9) Tarjeta de bolsillo
 1. **Rosa sale del Ensueño; Wilson no sabe cuántos lo esperan y corta en Sierra Morena.**
@@ -197,16 +197,16 @@ simuladas; en producción requieren convenio con la Secretaría de Movilidad.)*
 ### Cifras de referencia (van en las diapositivas; no memorizar)
 | | Año 1 | Año 2 | Año 3 |
 |---|---|---|---|
-| Tablero de datos para entidades públicas | 120 M (1 localidad) | 480 M (4) | 960 M (8) |
-| Estudios de movilidad (datos agregados) | 60 M | 250 M | 600 M |
-| Alianzas con plataformas (licencia capa informal) | — | 150 M | 450 M |
-| Fondos no reembolsables (MinTIC, convocatorias) | 100 M | — | — |
-| **Ingresos** | **≈ 280 M** | **≈ 880 M** | **≈ 2.010 M** |
-| **Costos** | ≈ 230 M | ≈ 500 M | ≈ 1.000 M |
-| **Resultado** | +50 M (−50 sin fondos) | +380 M | +1.010 M |
+| Tablero para entidades (1 → 4 → 8 localidades) | $ 120.000.000 | $ 480.000.000 | $ 960.000.000 |
+| Estudios de movilidad | $ 60.000.000 | $ 250.000.000 | $ 600.000.000 |
+| Alianzas con plataformas | — | $ 150.000.000 | $ 450.000.000 |
+| Fondos no reembolsables | $ 100.000.000 | — | — |
+| **Ingresos** | **$ 280.000.000** | **$ 880.000.000** | **$ 2.010.000.000** |
+| **Costos** | $ 519.816.000 | $ 1.026.696.000 | $ 1.818.696.000 |
+| **Resultado** | −$ 239.816.000 | −$ 146.696.000 | +$ 191.304.000 |
 
-Precios: tablero COP 10 M/mes por localidad · estudios COP 15–40 M · licencia a plataformas COP 150 M/año.
-Nube: ≈ USD 270/mes por localidad (≈ COP 36 por vecino al mes). Equilibrio mensual desde el mes 7.
+Mantener la app: $ 27.918.000 al mes con 1 localidad (nube $ 4.280.000) · $ 10.282.250 por localidad con 8.
+Equilibrio mensual en el mes 25 · Financiación necesaria ≈ $ 400.000.000 · Piloto de 6 meses ≈ $ 260.000.000.
 Simulador con los supuestos: `python3 scripts/simular_negocio.py`.
 
 TAM: ~20 localidades/municipios con ladera × COP 120 M/año ≈ COP 2.400 M/año en tableros + datos y alianzas ·

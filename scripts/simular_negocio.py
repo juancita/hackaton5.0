@@ -1,91 +1,127 @@
-"""Simulador del modelo de negocio de Muévete CB (costos, precios, ingresos y punto de equilibrio).
+"""Simulador del modelo de negocio de Muévete CB: precios, costo REAL de mantener la aplicación,
+ingresos, resultado y punto de equilibrio.
 
 Todos los SUPUESTOS están arriba: cámbialos y vuelve a correr para ver el efecto.
 Uso:  python3 scripts/simular_negocio.py
-Cifras en millones de pesos (COP M) salvo que diga USD. Son estimaciones para validar en el piloto.
+Montos en pesos colombianos (COP). Son estimaciones para validar en el piloto.
 """
 
-USD_COP = 4000  # tasa de cambio de referencia
+USD_COP = 4_000  # tasa de cambio de referencia
 
 # ---------------------------------------------------------------- PRECIOS (lo que cobramos)
-PRECIO_TABLERO_MES = 10.0          # COP M por localidad al mes (suscripción de la entidad pública)
-PRECIO_ESTUDIO = 20.0              # COP M por estudio agregado (rango 15–40 según alcance)
-PRECIO_LICENCIA_PLATAFORMA = 150.0  # COP M al año por plataforma (capa del transporte informal)
+PRECIO_TABLERO_MES = 10_000_000          # por localidad al mes (suscripción de la entidad pública)
+PRECIO_ESTUDIO = 20_000_000              # por estudio agregado (rango 15–40 M según alcance)
+PRECIO_LICENCIA_PLATAFORMA = 150_000_000  # al año por plataforma (capa del transporte informal)
 
-# ---------------------------------------------------------------- ESCALA (clientes por año)
-LOCALIDADES = [1, 4, 8]            # localidades/municipios con tablero contratado (año 1, 2, 3)
-ESTUDIOS = [3, 12.5, 30]           # estudios vendidos al año (año 1 empiezan en el mes 7)
-PLATAFORMAS = [0, 1, 3]            # alianzas con licencia (Moovit, Google, Waze…)
-FONDOS = [100.0, 0, 0]             # convocatorias no reembolsables (MinTIC, innovación)
-VECINOS_ACTIVOS = [30_000, 110_000, 250_000]  # usuarios activos al mes al final de cada año
+# ---------------------------------------------------------------- ESCALA (por año)
+LOCALIDADES = [1, 4, 8]      # localidades/municipios con tablero contratado al cierre de cada año
+ESTUDIOS = [3, 12.5, 30]     # estudios vendidos al año (año 1: desde el mes 7)
+PLATAFORMAS = [0, 1, 3]      # alianzas con licencia (Moovit, Google, Waze…)
+FONDOS = [100_000_000, 0, 0]  # convocatorias no reembolsables (MinTIC, innovación)
+VECINOS_ACTIVOS = [30_000, 110_000, 250_000]
 
-# ---------------------------------------------------------------- INFRAESTRUCTURA (USD al mes)
-# Piloto: 1 localidad, ~30.000 vecinos activos y ~300.000 mensajes/mes al chat.
-INFRA_PILOTO_USD = {
-    "Servidor de la app (2 contenedores, 2 vCPU / 4 GB)": 50,
-    "Base de datos PostgreSQL gestionada + copias de seguridad": 70,
-    "Mapas base (proveedor de teselas; OSM no permite uso masivo)": 50,
-    "IA Gemini flash-lite (~300 mil llamadas de ~1.500 tokens)": 80,
-    "Dominio, certificados, monitoreo y registros": 20,
-    "Bot de Telegram": 0,
+# ---------------------------------------------------------------- MANTENER LA APLICACIÓN (COP al mes)
+# A) Plataforma central: una sola instalación sirve a todas las localidades.
+NUBE_BASE_USD = {  # producción con alta disponibilidad + entorno de pruebas
+    "Servidores de la app (2 instancias + balanceador)": 160,
+    "Base de datos gestionada con réplica y copias automáticas": 250,
+    "Entorno de pruebas (staging)": 80,
+    "Almacenamiento, copias de seguridad y transferencia": 60,
+    "Mapas y geocodificación": 150,
+    "IA Gemini (chat, análisis del tablero)": 150,
+    "Monitoreo, registros y alertas": 120,
+    "Seguridad: firewall web, CDN, certificados y secretos": 80,
+    "Dominio y correo": 20,
 }
-
-# ---------------------------------------------------------------- COSTOS ANUALES (COP M)
-COSTOS = {
-    "Equipo (desarrollo, datos e IA, ventas)": [130, 300, 600],
-    "Gestores comunitarios (conductores y JAC)": [36, 70, 140],
-    "Infraestructura y nube (incluye IA y mapas)": [18, 40, 80],
-    "Legal y protección de datos (Ley 1581)": [16, 25, 40],
-    "Comercial (demos, eventos, desplazamientos)": [15, 40, 90],
-    "Imprevistos": [15, 25, 50],
+PLATAFORMA_MES = {
+    "Nube e infraestructura (detalle arriba)": sum(NUBE_BASE_USD.values()) * USD_COP,
+    "Ingeniero de operación y seguridad (DevOps, medio tiempo)": 4_500_000,
+    "Desarrollador de mantenimiento (correctivo y evolutivo, medio tiempo)": 4_000_000,
+    "Protección de datos y cumplimiento Ley 1581 (horas)": 1_200_000,
+    "Pruebas de seguridad anuales y seguro cibernético (prorrateo)": 2_000_000,
+    "Licencias y herramientas (código, integración continua, oficina)": 400_000,
 }
+# B) Por cada localidad atendida
+POR_LOCALIDAD_MES = {
+    "Nube adicional (usuarios, IA y mapas)": 1_500_000,
+    "Soporte a vecinos y conductores (media persona)": 1_500_000,
+    "Gestor comunitario en territorio": 3_000_000,
+}
+WHATSAPP_POR_LOCALIDAD_MES = 600_000  # desde el año 2 (plataforma + mensajes de aviso)
+GESTORES_EXTRA_ANIO1 = 1              # el primer año hacen falta 2 gestores para arrancar
+# C) Crecimiento: equipo de producto y comercial/administración (COP al mes por año)
+PRODUCTO_MES = [10_000_000, 25_000_000, 45_000_000]   # desarrollo nuevo, datos e IA
+COMERCIAL_MES = [4_000_000, 10_000_000, 18_000_000]   # ventas, contador, legal, desplazamientos
+PLATAFORMA_EXTRA_MES = [0, 0, 5_600_000]              # año 3: operación de tiempo completo
+IMPREVISTOS = 0.10
 
 
-def ingresos(anio: int) -> dict[str, float]:
+def fmt(n: float) -> str:
+    return f"$ {n:,.0f}".replace(",", ".")
+
+
+def costo_mantener_mes(anio: int, localidades: int) -> float:
+    base = sum(PLATAFORMA_MES.values()) + PLATAFORMA_EXTRA_MES[anio]
+    por_loc = sum(POR_LOCALIDAD_MES.values()) + (WHATSAPP_POR_LOCALIDAD_MES if anio > 0 else 0)
+    extra = GESTORES_EXTRA_ANIO1 * POR_LOCALIDAD_MES["Gestor comunitario en territorio"] if anio == 0 else 0
+    return (base + localidades * por_loc + extra) * (1 + IMPREVISTOS)
+
+
+def costos_anio(anio: int) -> dict[str, float]:
+    return {
+        "Mantener la aplicación (plataforma, soporte, gestores, nube)": costo_mantener_mes(anio, LOCALIDADES[anio]) * 12,
+        "Equipo de producto (desarrollo nuevo, datos e IA)": PRODUCTO_MES[anio] * 12 * (1 + IMPREVISTOS),
+        "Comercial y administración": COMERCIAL_MES[anio] * 12 * (1 + IMPREVISTOS),
+    }
+
+
+def ingresos_anio(anio: int) -> dict[str, float]:
     return {
         "Tablero para entidades públicas": LOCALIDADES[anio] * PRECIO_TABLERO_MES * 12,
-        "Estudios de movilidad (datos agregados)": ESTUDIOS[anio] * PRECIO_ESTUDIO,
+        "Estudios de movilidad": ESTUDIOS[anio] * PRECIO_ESTUDIO,
         "Alianzas con plataformas": PLATAFORMAS[anio] * PRECIO_LICENCIA_PLATAFORMA,
         "Fondos no reembolsables": FONDOS[anio],
     }
 
 
 def main() -> None:
-    infra_usd = sum(INFRA_PILOTO_USD.values())
-    infra_cop_mes = infra_usd * USD_COP / 1e6
-    print("=== Infraestructura del piloto (1 localidad) ===")
-    for k, v in INFRA_PILOTO_USD.items():
-        print(f"  {k:<62} USD {v:>5}")
-    print(f"  {'TOTAL':<62} USD {infra_usd:>5} /mes  ≈ COP {infra_cop_mes:.1f} M/mes ≈ COP {infra_cop_mes * 12:.0f} M/año")
-    print(f"  Costo por vecino activo: ≈ COP {infra_usd * USD_COP / VECINOS_ACTIVOS[0]:.0f} al mes\n")
+    print("=== Mantener la aplicación: 1 localidad (piloto) ===")
+    nube = sum(NUBE_BASE_USD.values())
+    for k, v in NUBE_BASE_USD.items():
+        print(f"   nube · {k:<58} USD {v:>5}  {fmt(v * USD_COP):>14}")
+    for k, v in PLATAFORMA_MES.items():
+        print(f"  {k:<66} {fmt(v):>14}")
+    for k, v in POR_LOCALIDAD_MES.items():
+        print(f"  {k:<66} {fmt(v):>14}")
+    print(f"  {'Gestor adicional de arranque (año 1)':<66} {fmt(GESTORES_EXTRA_ANIO1 * 3_000_000):>14}")
+    m = costo_mantener_mes(0, 1)
+    print(f"  {'TOTAL con 10% de imprevistos':<66} {fmt(m):>14} al mes · {fmt(m * 12)} al año")
+    print(f"  Nube: USD {nube:,}/mes = {fmt(nube * USD_COP)} · por vecino activo: {fmt(m / VECINOS_ACTIVOS[0])} al mes\n")
 
-    print("=== Estado de resultados (COP M) ===")
+    print("=== Estado de resultados ===")
     acumulado = 0.0
     for a in range(3):
-        ing = ingresos(a)
-        cos = {k: v[a] for k, v in COSTOS.items()}
+        ing, cos = ingresos_anio(a), costos_anio(a)
         ti, tc = sum(ing.values()), sum(cos.values())
-        operativo = ti - FONDOS[a] - tc
         acumulado += ti - tc
-        print(f"Año {a + 1}: ingresos {ti:,.0f} · costos {tc:,.0f} · resultado {ti - tc:+,.0f} "
-              f"(sin fondos {operativo:+,.0f}) · acumulado {acumulado:+,.0f}")
-        for k, v in ing.items():
-            if v:
-                print(f"    + {k:<45} {v:>7,.0f}")
-        costo_localidad = tc / LOCALIDADES[a]
-        print(f"    costo por localidad atendida ≈ {costo_localidad:,.0f} · ingreso por localidad ≈ {ti / LOCALIDADES[a]:,.0f}")
+        print(f"Año {a + 1} ({LOCALIDADES[a]} localidades): ingresos {fmt(ti)} · costos {fmt(tc)} · "
+              f"resultado {fmt(ti - tc)} · acumulado {fmt(acumulado)}")
+        for k, v in cos.items():
+            print(f"    - {k:<60} {fmt(v):>16}")
+        print(f"    mantener la app por localidad: {fmt(costo_mantener_mes(a, LOCALIDADES[a]) / LOCALIDADES[a])} al mes")
 
-    # Punto de equilibrio operativo mes a mes (ingresos se reparten parejo en el año; año 1 los estudios empiezan en el mes 7)
-    print("\n=== Punto de equilibrio operativo (sin fondos) ===")
+    print("\n=== Punto de equilibrio mensual ===")
     for mes in range(1, 37):
         a = (mes - 1) // 12
-        loc = LOCALIDADES[a] if a == 0 else LOCALIDADES[a - 1] + (LOCALIDADES[a] - LOCALIDADES[a - 1]) * ((mes - 1) % 12 + 1) / 12
+        loc = 1 if a == 0 else LOCALIDADES[a - 1] + (LOCALIDADES[a] - LOCALIDADES[a - 1]) * ((mes - 1) % 12 + 1) / 12
         est = (ESTUDIOS[0] / 6 if mes >= 7 else 0) if a == 0 else ESTUDIOS[a] / 12
-        ing_mes = loc * PRECIO_TABLERO_MES + est * PRECIO_ESTUDIO + PLATAFORMAS[a] * PRECIO_LICENCIA_PLATAFORMA / 12
-        cos_mes = sum(v[a] for v in COSTOS.values()) / 12
-        if ing_mes >= cos_mes:
-            print(f"  Mes {mes}: ingresos ≈ {ing_mes:.1f} ≥ costos ≈ {cos_mes:.1f} COP M/mes → equilibrio operativo")
+        ing = loc * PRECIO_TABLERO_MES + est * PRECIO_ESTUDIO + PLATAFORMAS[a] * PRECIO_LICENCIA_PLATAFORMA / 12
+        cos = costo_mantener_mes(a, loc) + (PRODUCTO_MES[a] + COMERCIAL_MES[a]) * (1 + IMPREVISTOS)
+        if ing >= cos:
+            print(f"  Mes {mes}: ingresos {fmt(ing)} ≥ costos {fmt(cos)} → equilibrio")
             break
+    else:
+        print("  No se alcanza en 36 meses con estos supuestos")
 
 
 if __name__ == "__main__":
