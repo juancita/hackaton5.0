@@ -156,6 +156,9 @@ class RouteEventRow(Base):
     origen_id: Mapped[str] = mapped_column(String(64))
     destino_id: Mapped[str] = mapped_column(String(64))
     canal: Mapped[str] = mapped_column(String(16))
+    prioridad: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    modo: Mapped[str | None] = mapped_column(String(16), nullable=True)            # medio principal de la ruta
+    destino_final: Mapped[str | None] = mapped_column(String(24), nullable=True)   # zona de la ciudad a la que sigue
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 

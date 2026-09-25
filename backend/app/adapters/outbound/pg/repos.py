@@ -20,6 +20,7 @@ from app.adapters.outbound.pg.tables import (
     TripRow,
     VoteRow,
 )
+from app.domain.analytics import ReporteResumen
 from app.domain.drivers import DriverProfile, RouteEvent, SavedPlace, SeatRequest, Trip
 from app.domain.models import Incident, IncidentState, ReportEntry, Reporter, Role, VoteEntry
 
@@ -307,7 +308,8 @@ class PgDriverRepository:
     def add_route_event(self, ev: RouteEvent) -> None:
         with self._sessions.begin() as s:
             s.add(RouteEventRow(reporter_id=ev.reporter_id, origen_id=ev.origen_id,
-                                destino_id=ev.destino_id, canal=ev.canal, creado_en=ev.creado_en))
+                                destino_id=ev.destino_id, canal=ev.canal, creado_en=ev.creado_en,
+                                prioridad=ev.prioridad, modo=ev.modo, destino_final=ev.destino_final))
 
     def route_stats(self, limit: int = 20) -> list[tuple[str, str, int]]:
         with self._sessions() as s:
@@ -328,3 +330,47 @@ class PgDriverRepository:
         with self._sessions() as s:
             r = s.get(IdentityLinkRow, canal_key)
             return r.reporter_id if r else None
+
+
+class PgAnalyticsSource:
+    """Lectura para el tablero de analítica (solo SELECT; columnas mínimas, sin datos personales)."""
+
+    def __init__(self, sessions: sessionmaker[Session]):
+        self._sessions = sessions
+
+    def consultas(self, desde: datetime) -> list[RouteEvent]:
+        c = RouteEventRow
+        with self._sessions() as s:
+            rows = s.execute(select(c.reporter_id, c.origen_id, c.destino_id, c.canal, c.prioridad, c.modo,
+                                    c.destino_final, c.creado_en).where(c.creado_en >= desde)).all()
+        return [RouteEvent.model_construct(reporter_id=r[0], origen_id=r[1], destino_id=r[2], canal=r[3],
+                                           prioridad=r[4], modo=r[5], destino_final=r[6], creado_en=r[7], id=None)
+                for r in rows]
+
+    def viajes(self, desde: datetime) -> list[Trip]:
+        with self._sessions() as s:
+            rows = s.scalars(select(TripRow).where(TripRow.creado_en >= desde)).all()
+            return [_trip_dom(r) for r in rows]
+
+    def cupos(self, desde: datetime) -> list[SeatRequest]:
+        c = SeatRequestRow
+        with self._sessions() as s:
+            rows = s.execute(select(c.id, c.trip_id, c.passenger_id, c.baja_en, c.estado, c.creado_en)
+                             .where(c.creado_en >= desde)).all()
+        return [SeatRequest.model_construct(id=r[0], trip_id=r[1], passenger_id=r[2], passenger_nombre="",
+                                            baja_en=r[3], estado=r[4], creado_en=r[5]) for r in rows]
+
+    def reportes(self, desde: datetime) -> list[ReporteResumen]:
+        with self._sessions() as s:
+            rows = s.execute(
+                select(IncidentRow.tipo, ReportRow.canal, IncidentRow.estado, IncidentRow.de_id, ReportRow.creado_en)
+                .join(ReportRow, ReportRow.incident_id == IncidentRow.id).where(ReportRow.creado_en >= desde)
+            ).all()
+        return [ReporteResumen(tipo=r[0], canal=r[1], estado=r[2], de_id=r[3], creado_en=r[4]) for r in rows]
+
+    def usuarios(self) -> dict[str, int]:
+        with self._sessions() as s:
+            total = s.scalar(select(func.count()).select_from(ReporterRow)) or 0
+            conductores = s.scalar(select(func.count()).select_from(ReporterRow)
+                                   .where(ReporterRow.modo == "conductor")) or 0
+        return {"total": total, "conductores": conductores}

@@ -7,13 +7,22 @@ from datetime import datetime, timedelta
 from app.adapters.outbound.json_catalog import JsonCatalog
 from app.adapters.outbound.map_renderer import TileMapRenderer
 from app.adapters.outbound.memory_repos import (
+    MemoryAnalyticsSource,
     MemoryConversationStore,
     MemoryDriverRepository,
     MemoryIncidentRepository,
     MemoryReporterRepository,
 )
-from app.adapters.outbound.refiners import GeminiInterpreter, GeminiRefiner, NoopInterpreter, NoopRefiner
+from app.adapters.outbound.refiners import (
+    GeminiAnalyst,
+    GeminiInterpreter,
+    GeminiRefiner,
+    NoopAnalyst,
+    NoopInterpreter,
+    NoopRefiner,
+)
 from app.config import Settings
+from app.domain.analytics import AnalyticsService
 from app.domain.assistant import AssistantService
 from app.domain.drivers import DriverService
 from app.domain.ride_chat import RideChat
@@ -23,6 +32,7 @@ from app.domain.reports import ReportService, utcnow
 from app.domain.routing import RoutingService
 from app.domain.trip import PlanTripUseCase
 from app.ports.outbound import (
+    DataAnalyst,
     IncidentRepository,
     MapRenderer,
     MessageInterpreter,
@@ -44,6 +54,8 @@ class Container:
     mapas: MapRenderer
     rides: RideChat | None = None
     refiner: ResponseRefiner | None = None
+    analytics: AnalyticsService | None = None
+    analista: DataAnalyst | None = None   # redacta el resumen ejecutivo del tablero
 
 
 def build_container(
@@ -59,10 +71,12 @@ def build_container(
     network = JsonCatalog().load()
 
     drivers_repo = None
+    analytics_src = None
     if incidents is None or reporters is None:
         if settings.storage == "postgres":
             from app.adapters.outbound.pg.db import make_session_factory
             from app.adapters.outbound.pg.repos import (
+                PgAnalyticsSource,
                 PgDriverRepository,
                 PgIncidentRepository,
                 PgReporterRepository,
@@ -71,10 +85,13 @@ def build_container(
             sessions = make_session_factory(settings.database_url)
             incidents, reporters = PgIncidentRepository(sessions), PgReporterRepository(sessions)
             drivers_repo = PgDriverRepository(sessions)
+            analytics_src = PgAnalyticsSource(sessions)
         else:
             incidents, reporters = MemoryIncidentRepository(), MemoryReporterRepository()
     if drivers_repo is None:
         drivers_repo = MemoryDriverRepository()
+    if analytics_src is None:
+        analytics_src = MemoryAnalyticsSource(drivers_repo, incidents, reporters)
 
     gemini = settings.llm_provider == "gemini" and settings.gemini_api_key
     opciones_gemini = dict(
@@ -105,4 +122,7 @@ def build_container(
     rides = RideChat(drivers, reports, places, settings.id_salt,
                      lambda pid: (network.lugar(pid).nombre if network.lugar(pid) else pid))
     mapas = mapas or TileMapRenderer(settings.map_tile_url)
-    return Container(settings, network, places, routing, reports, trip, assistant, drivers, mapas, rides, refiner)
+    analytics = AnalyticsService(network, analytics_src, clock)
+    analista = GeminiAnalyst(settings.gemini_api_key, settings.gemini_model, **opciones_gemini) if gemini else NoopAnalyst()
+    return Container(settings, network, places, routing, reports, trip, assistant, drivers, mapas, rides, refiner,
+                     analytics, analista)

@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from app.adapters.inbound.deps import get_container
 from app.adapters.inbound.http_api import imagen_mapa, parametros_mapa
 from app.container import Container
+from app.domain.analytics import modo_principal
 from app.domain.models import InboundMessage, MapaRuta, OutboundMessage
 
 log = logging.getLogger(__name__)
@@ -71,7 +72,22 @@ async def web_chat(
         if viaje:
             return viaje
         msg = msg.model_copy(update={"texto": c.rides.reescribir("web", msg.user_id, msg.texto)})
-    return await c.assistant.handle(msg)
+    out = await c.assistant.handle(msg)
+    registrar_consulta_chat(c, "web", msg.user_id, out)
+    return out
+
+
+def registrar_consulta_chat(c: Container, canal: str, user_id: str, out: OutboundMessage) -> None:
+    """Las rutas que el asistente entrega por chat también alimentan el tablero (anónimo)."""
+    if not out.plan or not out.plan.opciones or not c.rides:
+        return
+    try:
+        rid = c.rides.identidad(canal, user_id)[1]
+        op = out.plan.opciones[out.plan.recomendada]
+        c.drivers.registrar_consulta(rid, out.plan.origen.id, out.plan.destino.id, canal, op.prioridad,
+                                     modo_principal(out.plan))
+    except Exception:  # noqa: BLE001 — el tracking nunca rompe la respuesta
+        pass
 
 
 # --- Telegram ------------------------------------------------------------------
@@ -152,6 +168,7 @@ async def telegram_webhook(
     if out is None:
         texto = c.rides.reescribir("telegram", msg.user_id, msg.texto) if c.rides else msg.texto
         out = await c.assistant.handle(msg.model_copy(update={"texto": texto}))
+        registrar_consulta_chat(c, "telegram", msg.user_id, out)
     if c.rides:  # avisos push a otras personas (pasajeros o conductor) generados por este mensaje
         await enviar_avisos_telegram(_http(request), c, c.rides.tomar_avisos())
     mapa_url = url_mapa(request, c, out.mapa) if await mapa_listo(c, out.mapa) else None

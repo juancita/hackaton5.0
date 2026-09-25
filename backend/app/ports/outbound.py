@@ -71,3 +71,9 @@ class MapRenderer(Protocol):
     """Dibuja el mapa de una ruta como PNG."""
 
     def render(self, mapa: RouteMap) -> bytes: ...
+
+
+class DataAnalyst(Protocol):
+    """LLM que redacta el resumen ejecutivo del tablero a partir de cifras ya calculadas (no calcula nada)."""
+
+    async def resumir(self, hechos: dict) -> str: ...

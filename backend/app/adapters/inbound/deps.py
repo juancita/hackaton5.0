@@ -1,6 +1,7 @@
 """Dependencias HTTP compartidas: contenedor e identidad (usuario anónimo o admin)."""
 
 import secrets
+from urllib.parse import unquote
 
 from fastapi import Depends, Header, HTTPException, Request
 
@@ -12,9 +13,21 @@ def get_container(request: Request) -> Container:
     return request.app.state.container
 
 
+def _clave_recibida(key: str) -> str:
+    """La web envía la clave con encodeURIComponent (los headers HTTP no admiten tildes ni ñ);
+    un cliente que la mande en UTF-8 crudo llega como latin-1 y también se recupera."""
+    try:
+        key = key.encode("latin-1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    return unquote(key)
+
+
 def _es_admin(c: Container, key: str | None) -> bool:
     esperado = c.settings.admin_api_key
-    return bool(esperado and key and secrets.compare_digest(key, esperado))
+    if not (esperado and key):
+        return False
+    return secrets.compare_digest(_clave_recibida(key).encode(), esperado.encode())
 
 
 def get_actor(

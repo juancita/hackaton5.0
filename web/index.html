@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,500,0..1,0&display=block" />
-  <link rel="stylesheet" href="css/styles.css?v=25" />
+  <link rel="stylesheet" href="css/styles.css?v=26" />
 </head>
 <body>
   <header class="topbar">
@@ -150,7 +150,7 @@
       <div id="adminLogin" class="card admin-login">
         <div class="admin-escudo" aria-hidden="true"><span class="ms">shield_person</span></div>
         <h2>Ingreso de administrador</h2>
-        <p class="hint">Verifica o rechaza alertas y limpia el mapa. Tus reportes pesan 100% y quedan verificados al instante.</p>
+        <p class="hint">Mira el tablero de movilidad con el análisis de la IA, verifica o rechaza alertas y limpia el mapa. Tus reportes pesan 100% y quedan verificados al instante.</p>
         <form id="adminForm" class="admin-form">
           <input id="adminKey" type="password" placeholder="Clave de administrador" autocomplete="current-password" required />
           <button id="btnAdmin" class="primary" type="submit">Entrar</button>
@@ -163,9 +163,17 @@
           <div><strong><span class="ms" aria-hidden="true">shield_person</span> Sesión de administrador</strong><br><small>Activa solo en esta pestaña</small></div>
           <button id="btnSalirAdmin" class="linkbtn ghost" type="button">Salir</button>
         </div>
-        <div id="adminStats" class="admin-stats"></div>
-        <div class="feed-head"><h3>Moderar alertas</h3></div>
-        <div id="adminLista" class="reportes"></div>
+        <div class="admin-tabs" role="tablist" aria-label="Secciones del administrador">
+          <button type="button" class="admin-tab activo" data-tab="tablero" role="tab"><span class="ms" aria-hidden="true">insights</span>Tablero de movilidad</button>
+          <button type="button" class="admin-tab" data-tab="moderar" role="tab"><span class="ms" aria-hidden="true">fact_check</span>Moderar alertas</button>
+        </div>
+        <!-- Tablero de analítica: lo llena js/tablero.js -->
+        <div id="adminTablero" class="tablero"></div>
+        <div id="adminModerar" hidden>
+          <div id="adminStats" class="admin-stats"></div>
+          <div class="feed-head"><h3>Moderar alertas</h3></div>
+          <div id="adminLista" class="reportes"></div>
+        </div>
       </div>
 
       <button id="btnLimpiar" class="linkbtn peligro" type="button"><span class="ms" aria-hidden="true">delete_sweep</span>Limpiar todas las alertas</button>
@@ -252,5 +260,6 @@
   <script src="js/ai.js"></script>
   <script src="js/app.js"></script>
   <script src="js/rides.js"></script>
+  <script src="js/tablero.js"></script>
 </body>
 </html>

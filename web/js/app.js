@@ -887,18 +887,30 @@
   }
 
   // ---------- Administrador (pestaña #/admin) ----------
+  // Pestañas del admin: tablero de movilidad (analítica + IA) o moderar alertas
+  let tabAdmin = 'tablero';
+  let tableroCargado = false;
   function pintarAdmin() {
     const activo = enLinea && API.esAdmin;
     $('#adminLogin').hidden = activo;
     $('#adminPanel').hidden = !activo;
     $('#adminOffline').hidden = enLinea;
     $('#adminKey').disabled = $('#btnAdmin').disabled = !enLinea;
-    $('#btnLimpiar').hidden = !activo && enLinea;
+    $('#view-admin').classList.toggle('con-tablero', activo && tabAdmin === 'tablero');
+    $$('.admin-tab').forEach((b) => b.classList.toggle('activo', b.dataset.tab === tabAdmin));
+    $('#adminTablero').hidden = tabAdmin !== 'tablero';
+    $('#adminModerar').hidden = tabAdmin !== 'moderar';
+    $('#btnLimpiar').hidden = activo ? tabAdmin !== 'moderar' : enLinea;
     $('#btnLimpiar').innerHTML = ico('delete_sweep') + (enLinea ? 'Limpiar todas las alertas' : 'Limpiar alertas de este dispositivo');
+    if (!activo && tableroCargado) { tableroCargado = false; window.Tablero && Tablero.cerrar(); }
+    if (activo && tabAdmin === 'tablero' && !tableroCargado && $('#view-admin').classList.contains('active') && window.Tablero) {
+      tableroCargado = true; Tablero.abrir();
+    }
     pintarListaAdmin();
   }
+  $$('.admin-tab').forEach((b) => b.addEventListener('click', () => { tabAdmin = b.dataset.tab; pintarAdmin(); }));
   function pintarListaAdmin() {
-    if ($('#adminPanel').hidden) return;
+    if ($('#adminPanel').hidden || $('#adminModerar').hidden) return;
     const lista = vigentes();
     const n = (f) => lista.filter(f).length;
     $('#adminStats').innerHTML = [

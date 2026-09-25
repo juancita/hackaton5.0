@@ -36,6 +36,20 @@ INSTRUCCION_INTERPRETE = (
 )
 
 
+INSTRUCCION_ANALISTA = (
+    "Eres el analista de datos de Muévete CB, una plataforma de movilidad de Ciudad Bolívar (Bogotá) que integra "
+    "TransMiCable, SITP y transporte informal (jeeps, colectivos, veredales). Escribe para el gerente de una entidad "
+    "pública de movilidad que decide si compra este tablero. Con base SOLO en los HECHOS (JSON), redacta en español "
+    "un resumen ejecutivo: 2 frases con el hallazgo más importante y por qué importa, seguidas de exactamente 3 "
+    "recomendaciones accionables, cada una en una línea que empiece con '• ' y que se entienda sola: nombra el barrio, "
+    "la ruta, la salida o la hora concreta y la cifra que la justifica. Reglas estrictas: usa solo cifras que "
+    "aparezcan en los hechos, sin redondear ni inventar ninguna, y respeta exactamente lo que mide cada cifra tal "
+    "como la describen las conclusiones; escribe con ortografía correcta y tildes, porcentajes con el símbolo % y "
+    "miles con punto (19.977); no menciones datos personales; sin markdown (ni asteriscos ni títulos); "
+    "máximo 900 caracteres."
+)
+
+
 class _Gemini:
     """Cliente de Gemini (SDK `google-genai`) con modelo de respaldo.
 
@@ -127,3 +141,19 @@ class GeminiInterpreter(_Gemini):
         if isinstance(resp.parsed, Interpretation):
             return resp.parsed
         return Interpretation.model_validate_json(resp.text) if resp.text else None
+
+
+class NoopAnalyst:
+    """Sin LLM: el tablero muestra solo las conclusiones calculadas con reglas."""
+
+    async def resumir(self, hechos: dict) -> str:
+        return ""
+
+
+class GeminiAnalyst(_Gemini):
+    """Redacta el resumen ejecutivo del tablero a partir de cifras ya calculadas por el dominio."""
+
+    async def resumir(self, hechos: dict) -> str:
+        prompt = f"HECHOS (JSON):\n{json.dumps(hechos, ensure_ascii=False, default=str)[:6000]}"
+        resp = await self._generar(INSTRUCCION_ANALISTA, prompt, temperature=0.3)
+        return (resp.text or "").replace("**", "").strip()[:1200]

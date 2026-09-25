@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.adapters.inbound.deps import get_actor, get_container, get_viewer_id, require_admin
 from app.container import Container
+from app.domain.analytics import modo_principal
 from app.domain.models import (
     Actor,
     IncidentType,
@@ -73,7 +74,8 @@ def routes(
     # Tracking anónimo de la demanda de rutas (dato de negocio); nunca guarda el teléfono en claro
     if viewer:
         try:
-            c.drivers.registrar_consulta(viewer, body.origen_id, body.destino_id, "web")
+            c.drivers.registrar_consulta(viewer, body.origen_id, body.destino_id, "web",
+                                         body.prioridad, modo_principal(plan))
         except Exception:
             pass
     return plan

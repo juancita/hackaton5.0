@@ -48,7 +48,8 @@ const API = (() => {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), ms);
     const headers = { 'Content-Type': 'application/json', 'X-Client-Id': comoCliente || clientId };
-    if (adminKey) headers['X-Admin-Key'] = adminKey;
+    // encodeURIComponent: la clave puede tener tildes, ñ o espacios (los headers solo aceptan ASCII)
+    if (adminKey) headers['X-Admin-Key'] = encodeURIComponent(adminKey);
     try {
       const r = await fetch(base + ruta, {
         method: metodo, headers, body: body ? JSON.stringify(body) : undefined, signal: ctrl.signal,
@@ -118,6 +119,16 @@ const API = (() => {
     verificar: (id) => llamar('POST', `/admin/incidents/${encodeURIComponent(id)}/verificar`),
     rechazar: (id) => llamar('POST', `/admin/incidents/${encodeURIComponent(id)}/rechazar`),
     limpiar: () => llamar('DELETE', '/admin/incidents'),
+    // --- Tablero de analítica (solo admin) ---
+    tablero: async (dias) => ok(await llamar('GET', `/admin/tablero?dias=${dias}`, null, 10000)),
+    // La IA (Gemini) redacta el resumen ejecutivo: puede tardar unos segundos
+    tableroResumen: async (dias, nuevo) => ok(await llamar('GET', `/admin/tablero/resumen?dias=${dias}${nuevo ? '&nuevo=true' : ''}`, null, 25000)),
+    tableroCsv: async (dias) => {
+      try {
+        const r = await fetch(`${base}/admin/tablero.csv?dias=${dias}`, { headers: { 'X-Admin-Key': encodeURIComponent(adminKey) } });
+        return r.ok ? await r.blob() : null;
+      } catch (e) { return null; }
+    },
   };
 })();
 

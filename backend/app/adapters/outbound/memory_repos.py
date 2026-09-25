@@ -3,6 +3,7 @@
 from collections import Counter
 from datetime import datetime
 
+from app.domain.analytics import ReporteResumen
 from app.domain.drivers import DriverProfile, RouteEvent, SavedPlace, SeatRequest, Trip
 from app.domain.models import Conversation, Incident, IncidentState, Reporter, Role
 
@@ -200,3 +201,28 @@ class MemoryDriverRepository:
 
     def get_link(self, canal_key: str) -> str | None:
         return self._links.get(canal_key)
+
+
+class MemoryAnalyticsSource:
+    """Lectura para el tablero sobre los repositorios en memoria (tests y demo sin BD)."""
+
+    def __init__(self, drivers: "MemoryDriverRepository", incidents: MemoryIncidentRepository,
+                 reporters: MemoryReporterRepository):
+        self._d, self._i, self._r = drivers, incidents, reporters
+
+    def consultas(self, desde: datetime) -> list[RouteEvent]:
+        return [e for e in self._d._events if e.creado_en >= desde]
+
+    def viajes(self, desde: datetime) -> list[Trip]:
+        return [t for t in self._d._trips.values() if t.creado_en >= desde]
+
+    def cupos(self, desde: datetime) -> list[SeatRequest]:
+        return [s for s in self._d._seats if s.creado_en >= desde]
+
+    def reportes(self, desde: datetime) -> list[ReporteResumen]:
+        return [ReporteResumen(tipo=i.tipo, canal=r.canal, estado=i.estado.value, de_id=i.de_id, creado_en=r.creado_en)
+                for i in self._i._data.values() for r in i.reports if r.creado_en >= desde]
+
+    def usuarios(self) -> dict[str, int]:
+        todos = list(self._r._data.values())
+        return {"total": len(todos), "conductores": sum(getattr(r, "modo", "") == "conductor" for r in todos)}

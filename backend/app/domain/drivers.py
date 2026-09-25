@@ -90,6 +90,9 @@ class RouteEvent(BaseModel):
     destino_id: str
     canal: str
     creado_en: datetime
+    prioridad: str | None = None
+    modo: str | None = None            # medio principal de la ruta recomendada (cable, sitp, informal…)
+    destino_final: str | None = None   # zona de la ciudad a la que sigue el viaje (tablero para entidades)
 
 
 # --- Puerto de repositorio ---------------------------------------------------
@@ -336,9 +339,11 @@ class DriverService:
         return self._repo.list_places(reporter_id)
 
     # -- Tracking anónimo de rutas consultadas (dato de negocio) --
-    def registrar_consulta(self, reporter_id: str, origen_id: str, destino_id: str, canal: str) -> None:
+    def registrar_consulta(self, reporter_id: str, origen_id: str, destino_id: str, canal: str,
+                           prioridad: str | None = None, modo: str | None = None) -> None:
         self._repo.add_route_event(RouteEvent(
             reporter_id=reporter_id, origen_id=origen_id, destino_id=destino_id, canal=canal, creado_en=self._now(),
+            prioridad=prioridad, modo=modo,
         ))
 
     def rutas_mas_pedidas(self, limit: int = 20) -> list[dict]:
