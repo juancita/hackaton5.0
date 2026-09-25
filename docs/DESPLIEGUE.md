@@ -120,7 +120,26 @@ docker compose run --rm -e STORAGE=memory -p 8080:8080 --no-deps backend
 ---
 
 ## 4. Canales externos (Telegram / WhatsApp)
-Ambos necesitan una **URL pública HTTPS** hacia el backend (dominio propio con proxy inverso, Railway o un túnel como `ngrok http 8080` para pruebas).
+Ambos necesitan una **URL pública HTTPS** hacia el backend (dominio propio con proxy inverso, Railway o un túnel para pruebas).
+
+### 4.1 Telegram para el demo (un comando) ⭐
+`scripts/telegram_demo.sh` automatiza todo con **cloudflared** (túnel HTTPS gratis, sin cuenta):
+```bash
+brew install cloudflared                         # una sola vez
+# pon TELEGRAM_TOKEN (de @BotFather) y, opcional, TELEGRAM_WEBHOOK_SECRET en .env
+bash scripts/telegram_demo.sh                    # abre el túnel y registra el webhook
+```
+El script: levanta los servicios, abre el túnel al backend (:8080), **espera a que sea enrutable**,
+fija `PUBLIC_BASE_URL` (para que Telegram descargue las imágenes de ruta), registra el webhook
+**con reintentos** y deja el túnel abierto. **Mantén esa terminal abierta durante el demo.**
+
+> La URL de `trycloudflare.com` es temporal: cambia cada vez que reinicias el script. Para una URL
+> fija usa Railway (sección 3.3) o un dominio con proxy inverso.
+>
+> Si Telegram responde `Failed to resolve host`, es que el webhook se registró antes de que el
+> túnel propagara: el script ya reintenta; si lo haces a mano, espera a que `curl $URL/health` dé 200.
+
+### 4.2 A mano / producción
 1. Pon `TELEGRAM_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` (y `PUBLIC_BASE_URL=https://tu-dominio`) en `.env` y `docker compose up -d backend`.
 2. Registra el webhook desde el contenedor:
    ```bash

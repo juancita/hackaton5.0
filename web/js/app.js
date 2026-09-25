@@ -124,6 +124,51 @@
   autocompletar($('#destino'));
   const idLugar = (input) => input.dataset.id || Engine.resolver(input.value);
 
+  // ---------- Origen desde la ubicación del dispositivo (GPS) ----------
+  // Toma la posición del navegador y elige el paradero más cercano como origen.
+  // En http de LAN (sin GPS) usa la ubicación de desarrollo (misma que los reportes).
+  const btnOrigenGps = $('#origenGps');
+  function paraderoCercano(lat, lng) {
+    const R = 6371000, rad = (d) => d * Math.PI / 180;
+    let mejor = null;
+    PARADEROS.forEach((p) => {
+      if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
+      const dLat = rad(p.lat - lat), dLng = rad(p.lng - lng);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat)) * Math.cos(rad(p.lat)) * Math.sin(dLng / 2) ** 2;
+      const d = 2 * R * Math.asin(Math.sqrt(a));
+      if (!mejor || d < mejor.d) mejor = { p, d };
+    });
+    return mejor;
+  }
+  function usarUbicacionOrigen(lat, lng) {
+    const c = paraderoCercano(lat, lng);
+    btnOrigenGps.classList.remove('cargando');
+    if (!c) { toast('No encontré un paradero cercano a tu ubicación.'); return; }
+    const inp = $('#origen'); inp.value = c.p.nombre; inp.dataset.id = c.p.id;
+    btnOrigenGps.classList.add('ok');
+    const dist = c.d >= 1000 ? `${(c.d / 1000).toFixed(1)} km` : `${Math.round(c.d)} m`;
+    toast(`${ico('my_location')} Origen: <b>${esc(c.p.nombre)}</b><br><small>El paradero más cercano a tu ubicación (a ${dist})</small>`);
+    // Si ya hay destino, calcula la ruta de una vez
+    if (idLugar($('#destino'))) buscar();
+  }
+  btnOrigenGps.addEventListener('click', () => {
+    if (btnOrigenGps.classList.contains('cargando')) return;
+    btnOrigenGps.classList.remove('ok');
+    btnOrigenGps.classList.add('cargando');
+    if (MODO_DEV_HTTP) { usarUbicacionOrigen(UBICACION_DEV[0], UBICACION_DEV[1]); return; }
+    if (!navigator.geolocation) { btnOrigenGps.classList.remove('cargando'); toast('Tu navegador no permite acceder a la ubicación.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => usarUbicacionOrigen(pos.coords.latitude, pos.coords.longitude),
+      (err) => {
+        btnOrigenGps.classList.remove('cargando');
+        toast(err && err.code === 1
+          ? 'Permiso de ubicación denegado. Actívalo para usar tu GPS.'
+          : 'No pude obtener tu ubicación. Intenta de nuevo o escribe el origen.');
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+    );
+  });
+
   // ---------- Conexión con el servidor ----------
   // Con servidor: rutas, reportes y alertas son compartidos por todos los dispositivos (Postgres).
   // Sin servidor: rutas y chat funcionan en este dispositivo (engine.js + ai.js); reportes no.
