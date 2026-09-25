@@ -63,6 +63,8 @@ if grep -q '^PUBLIC_BASE_URL=' .env; then
 else
   printf '\nPUBLIC_BASE_URL=%s\n' "$URL" >> .env
 fi
+# El .env se cargó al inicio con la URL VIEJA: se exporta la nueva o compose seguiría usando la anterior
+export PUBLIC_BASE_URL="$URL"
 docker compose up -d backend >/dev/null
 
 # 6) Registrar el webhook (con reintentos por si el túnel aún propaga)
