@@ -203,8 +203,8 @@
   }
   async function refrescarIncidentes(avisar = true) {
     if (!enLinea) { pintarTodo(); return; }
-    // Los últimos reportes guardados de la misma ventana que muestra el mapa (1 h)
-    const [lista, ultimos] = await Promise.all([API.incidentes(), API.recientes({ horas: 1, limit: 50 })]);
+    // Los últimos reportes guardados de la misma ventana que muestra el mapa (2 h)
+    const [lista, ultimos] = await Promise.all([API.incidentes(), API.recientes({ horas: 2, limit: 50 })]);
     if (!lista) return;
     const firma = JSON.stringify([lista, ultimos || []].map((l) => l.map((i) => [i.id, i.confianza, i.estado, i.n_reportes, i.n_confirma, i.n_niega, i.vigente, i.es_mio, i.mi_voto])));
     if (firma === firmaInc) return;
@@ -221,13 +221,14 @@
   }
   function pintarTodo() { pintarReportes(); pintarIncidentes(paraMapa()); }
 
-  // ---------- Feed "Alertas en vivo": la última hora; al bajar se cargan las anteriores ----------
+  // ---------- Feed "Alertas en vivo": las últimas 2 horas. Lo anterior es HISTORIAL: solo se carga
+  // cuando la persona toca «Ver historial» (antes se cargaba solo al bajar y la lista no terminaba nunca).
   const PAGINA_FEED = 10;
-  let feedMas = [], feedFin = false, feedCargando = false;
+  let feedMas = [], feedFin = false, feedCargando = false, historialAbierto = false;
   function listaFeed() {
     if (!enLinea) return [];
     const vistos = new Set(), out = [];
-    [...incRecientes, ...feedMas].forEach((v) => { if (!vistos.has(v.id)) { vistos.add(v.id); out.push(incidenteLocal(v)); } });
+    [...incRecientes, ...(historialAbierto ? feedMas : [])].forEach((v) => { if (!vistos.has(v.id)) { vistos.add(v.id); out.push(incidenteLocal(v)); } });
     return out.sort((a, b) => b.ts - a.ts);
   }
   async function cargarMasFeed() {
@@ -241,22 +242,26 @@
     feedCargando = false;
     if (pag) { feedMas.push(...pag); feedFin = pag.length < PAGINA_FEED; pintarReportes(); }
     pintarFinFeed();
-    if (pag && !feedFin) vigilarFeed();
   }
   function pintarFinFeed() {
     const el = $('#feedMas');
     el.hidden = !enLinea;
-    el.innerHTML = feedCargando ? 'Cargando alertas anteriores…'
-      : feedFin ? `${ico('history')} No hay más alertas` : `${ico('expand_more')} Desliza para ver alertas anteriores`;
+    el.innerHTML = feedCargando ? 'Cargando historial…'
+      : !historialAbierto ? `<button type="button" class="linkbtn ghost" data-feed="abrir">${ico('history')} Ver historial (reportes de más de 2 horas)</button>`
+      : feedFin ? `${ico('history')} No hay más reportes en el historial · <button type="button" class="linkbtn ghost" data-feed="cerrar">Ocultar historial</button>`
+      : `<button type="button" class="linkbtn ghost" data-feed="mas">${ico('expand_more')} Ver más del historial</button> <button type="button" class="linkbtn ghost" data-feed="cerrar">Ocultar historial</button>`;
   }
+  $('#feedMas').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-feed]'); if (!b) return;
+    if (b.dataset.feed === 'cerrar') { historialAbierto = false; feedMas = []; feedFin = false; pintarReportes(); return; }
+    historialAbierto = true; cargarMasFeed();
+  });
   // Actualiza en el feed un incidente que cambió (p. ej. tras un voto) sin esperar al sondeo
   function actualizarEnFeed(v) {
     [incRecientes, feedMas].forEach((l) => { const k = l.findIndex((x) => x.id === v.id); if (k >= 0) l[k] = v; });
   }
-  const obsFeed = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) cargarMasFeed(); }, { rootMargin: '200px' });
-  // Volver a observar dispara el callback si el final de la lista ya está a la vista (lista corta)
-  function vigilarFeed() { obsFeed.unobserve($('#feedMas')); obsFeed.observe($('#feedMas')); }
-  vigilarFeed();
+  // El historial ya no se carga solo al hacer scroll (se abre con el botón)
+  function vigilarFeed() { pintarFinFeed(); }
   function toastIncidente(i, origen) {
     const t = Reports.TIPOS[i.tipo] || Reports.TIPOS.novedad;
     toast(`<b>${icoTipo(i.tipo)} ${t.label}</b><br>${nombreDe(i.deId)} → ${nombreDe(i.aId)}<br><small>${origen} · ${i.autor}</small>`, t.color);
@@ -358,7 +363,7 @@
   }
 
   // ---------- Mapa de la ruta elegida ----------
-  // Se dibuja sobre el mapa vivo, junto a los reportes de la última hora.
+  // Se dibuja sobre el mapa vivo, junto a los reportes de las últimas 2 horas.
   let opsPlan = [];
   function ocultarMapaRuta() {
     if (!capaRuta) return;
@@ -482,8 +487,8 @@
   responderChat('hola');
 
   // ---------- MAPA VIVO (Leaflet, tipo Waze) ----------
-  // Solo muestra los reportes de la comunidad de la última hora y la ruta elegida por la persona.
-  const VENTANA_MAPA_MS = 60 * 60 * 1000;
+  // Solo muestra los reportes de la comunidad de las últimas 2 horas y la ruta elegida por la persona.
+  const VENTANA_MAPA_MS = 2 * 60 * 60 * 1000;  // un reporte vive máximo 2 h: después pasa al historial
   const recientes = (lista) => lista.filter((i) => Date.now() - i.ts <= VENTANA_MAPA_MS);
   let mapa = null, capaInc = null, capaRuta = null, usandoSvg = false;
   function abrirMapa() {
@@ -822,11 +827,11 @@
   function pintarReportes() {
     const lista = listaFeed(); const cont = $('#listaReportes');
     const ultimaHora = lista.filter((i) => Date.now() - i.ts <= VENTANA_MAPA_MS).length;
-    $('#repCount').textContent = ultimaHora === 1 ? '1 en la última hora' : `${ultimaHora} en la última hora`;
+    $('#repCount').textContent = ultimaHora === 1 ? '1 en las últimas 2 horas' : `${ultimaHora} en las últimas 2 horas`;
     cont.innerHTML = !enLinea
       ? `<p class="empty">${ico('cloud_off')}<br>Sin conexión con el servidor.<br><small>Las alertas se cargan desde el servidor; reintentamos en unos segundos.</small></p>`
       : lista.length ? lista.map(tarjetaAlerta).join('')
-      : `<p class="empty">${ico('task_alt')}<br>No hay alertas en la última hora.<br><small>Si ves algo en la vía, repórtalo y avisamos a todos.</small></p>`;
+      : `<p class="empty">${ico('task_alt')}<br>No hay alertas en las últimas 2 horas.<br><small>Si ves algo en la vía, repórtalo y avisamos a todos.</small></p>`;
     pintarFinFeed();
     pintarListaAdmin();
   }

@@ -278,7 +278,7 @@ button.primary:active { transform: scale(.98); }
 .estrellas.mini .ms { font-size: 15px; }
 .estrellas.mini b { margin-left: 0; font-size: 12px; }
 .rep-item.vencida { opacity: .7; }
-.feed-mas { text-align: center; color: var(--gris); font-size: 13px; padding: 14px 0 20px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.feed-mas { text-align: center; color: var(--gris); font-size: 13px; padding: 14px 0 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
 .feed-mas[hidden] { display: none; }
 .estrellas b { margin-left: 6px; color: var(--texto, inherit); font-size: .95em; }
 .msg.escribiendo { opacity: .6; }

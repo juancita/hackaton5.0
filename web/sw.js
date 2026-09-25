@@ -1,9 +1,9 @@
 /* Service Worker — funciona OFFLINE (clave en zonas altas sin señal) */
-const CACHE = 'muevecb-v35';
+const CACHE = 'muevecb-v36';
 const RUNTIME = 'muevecb-rt-v11';
 const ASSETS = [
   './', './index.html', './simulador.html',
-  './css/styles.css?v=26',
+  './css/styles.css?v=27',
   './js/data.js', './js/icons.js', './js/engine.js', './js/datasources.js', './js/reports.js', './js/api.js', './js/ai.js', './js/app.js', './js/rides.js', './js/tablero.js', './js/sim.js',
   './manifest.webmanifest',
 ];

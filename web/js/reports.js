@@ -8,12 +8,12 @@
 
 const Reports = (() => {
   const TIPOS = {
-    derrumbe:    { label: 'Derrumbe / cierre vial', icono: '⛰️', color: '#8e44ad', bloquea: true,  factor: null, vidaMin: 180, sev: 5 },
+    derrumbe:    { label: 'Derrumbe / cierre vial', icono: '⛰️', color: '#8e44ad', bloquea: true,  factor: null, vidaMin: 120, sev: 5 },
     bloqueo:     { label: 'Bloqueo / manifestación', icono: '🚧', color: '#e74c3c', bloquea: true,  factor: null, vidaMin: 120, sev: 5 },
     trancon:     { label: 'Trancón fuerte',          icono: '🐢', color: '#e67e22', bloquea: false, factor: 1.8,  vidaMin: 60,  sev: 3 },
     lleno:       { label: 'Muy lleno / no para',     icono: '🧍', color: '#f1c40f', bloquea: false, factor: 1.4,  vidaMin: 45,  sev: 2 },
     sinservicio: { label: 'Sin servicio',            icono: '⛔', color: '#c0392b', bloquea: true,  factor: null, vidaMin: 90,  sev: 4 },
-    novedad:     { label: 'Novedad / cambio',        icono: 'ℹ️', color: '#3498db', bloquea: false, factor: 1.2,  vidaMin: 180, sev: 1 },
+    novedad:     { label: 'Novedad / cambio',        icono: 'ℹ️', color: '#3498db', bloquea: false, factor: 1.2,  vidaMin: 120, sev: 1 },
   };
 
   function nodo(id) { return Engine.nodoPorId[id]; }

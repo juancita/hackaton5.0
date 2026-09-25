@@ -25,12 +25,12 @@ from app.domain.routing import clave_tramo
 from app.ports.outbound import IncidentRepository, ReporterRepository
 
 TIPOS: dict[str, IncidentType] = {
-    "derrumbe": IncidentType(label="Derrumbe / cierre vial", icono="⛰️", color="#8e44ad", bloquea=True, factor=None, vidaMin=180, sev=5),
+    "derrumbe": IncidentType(label="Derrumbe / cierre vial", icono="⛰️", color="#8e44ad", bloquea=True, factor=None, vidaMin=120, sev=5),
     "bloqueo": IncidentType(label="Bloqueo / manifestación", icono="🚧", color="#e74c3c", bloquea=True, factor=None, vidaMin=120, sev=5),
     "trancon": IncidentType(label="Trancón fuerte", icono="🐢", color="#e67e22", bloquea=False, factor=1.8, vidaMin=60, sev=3),
     "lleno": IncidentType(label="Muy lleno / no para", icono="🧍", color="#f1c40f", bloquea=False, factor=1.4, vidaMin=45, sev=2),
     "sinservicio": IncidentType(label="Sin servicio", icono="⛔", color="#c0392b", bloquea=True, factor=None, vidaMin=90, sev=4),
-    "novedad": IncidentType(label="Novedad / cambio", icono="ℹ️", color="#3498db", bloquea=False, factor=1.2, vidaMin=180, sev=1),
+    "novedad": IncidentType(label="Novedad / cambio", icono="ℹ️", color="#3498db", bloquea=False, factor=1.2, vidaMin=120, sev=1),
 }
 
 UMBRAL_EFECTO = 0.4       # por debajo no afecta rutas
