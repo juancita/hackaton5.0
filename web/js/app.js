@@ -7,6 +7,8 @@
   const { PARADEROS, MODOS, TRAMOS, CAMARAS } = window.DB;
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => document.querySelectorAll(s);
+  // Nombre de un paradero sin romper la pantalla si el servidor conoce lugares nuevos
+  const nombreDe = (id) => (Engine.nodoPorId[id] || {}).nombre || id;
 
   // ---------- Navegación (hash routing: /#/rutas, /#/asistente, /#/reportar, /#/admin) ----------
   const SLUG_POR_VISTA = { plan: 'rutas', chat: 'asistente', viajes: 'viajes', report: 'reportar', admin: 'admin' };
@@ -257,7 +259,7 @@
   vigilarFeed();
   function toastIncidente(i, origen) {
     const t = Reports.TIPOS[i.tipo] || Reports.TIPOS.novedad;
-    toast(`<b>${icoTipo(i.tipo)} ${t.label}</b><br>${Engine.nodoPorId[i.deId].nombre} → ${Engine.nodoPorId[i.aId].nombre}<br><small>${origen} · ${i.autor}</small>`, t.color);
+    toast(`<b>${icoTipo(i.tipo)} ${t.label}</b><br>${nombreDe(i.deId)} → ${nombreDe(i.aId)}<br><small>${origen} · ${i.autor}</small>`, t.color);
   }
   const detalle = (r) => {
     const d = r && r.data && r.data.detail;
@@ -298,12 +300,20 @@
     if (enLinea) {
       cont.innerHTML = '<p class="empty">Buscando rutas…</p>';
       const r = await API.rutas(oId, dId, prioridad, modos);
-      if (r && r.ok) { pintarPlan(r.data.opciones, r.data.recomendada, r.data.incidentes_aplicados.length + (r.data.incidentes_evitados || []).length, 'servidor'); return; }
-      if (r) { cont.innerHTML = `<p class="empty">${detalle(r)}</p>`; return; }
+      if (r && r.ok) {
+        // Si algo falla al pintar (p. ej. datos viejos en caché), se cae al motor local: nunca queda "Buscando…"
+        try { pintarPlan(r.data.opciones, r.data.recomendada, r.data.incidentes_aplicados.length + (r.data.incidentes_evitados || []).length, 'servidor'); return; }
+        catch (e) { console.warn('No se pudo pintar la ruta del servidor', e); }
+      } else if (r) { cont.innerHTML = `<p class="empty">${detalle(r)}</p>`; return; }
     }
     // Sin servidor: motor local, sin alertas (las alertas viven en el servidor)
-    const ops = Engine.opciones(oId, dId, modos, prioridad);
-    pintarPlan(ops, Math.max(0, ops.findIndex((o) => o.prioridad === prioridad && !/^(Sin|Con) /.test(o.etiqueta))), 0, 'local');
+    try {
+      const ops = Engine.opciones(oId, dId, modos, prioridad);
+      pintarPlan(ops, Math.max(0, ops.findIndex((o) => o.prioridad === prioridad && !/^(Sin|Con) /.test(o.etiqueta))), 0, 'local');
+    } catch (e) {
+      console.warn('Motor local', e);
+      cont.innerHTML = '<p class="empty">No pude calcular la ruta. Recarga la página e intenta de nuevo.</p>';
+    }
   }
   function pintarPlan(ops, recomendada, nIncidentes, fuente) {
     const cont = $('#resultados');
@@ -367,7 +377,7 @@
       puntos.push(...linea);
       L.polyline(linea, { color: '#fff', weight: 9, opacity: 0.9 }).addTo(capaRuta);
       L.polyline(linea, { color: m.color, weight: 6, dashArray: m.formal ? null : '8,8' }).addTo(capaRuta)
-        .bindPopup(`${icoModo(tr.modo)} ${m.nombre} · <b>${tr.ruta}</b><br>${Engine.nodoPorId[tr.desde].nombre} → ${Engine.nodoPorId[tr.hasta].nombre}<br>${Math.round(tr.min)} min`);
+        .bindPopup(`${icoModo(tr.modo)} ${m.nombre} · <b>${tr.ruta}</b><br>${nombreDe(tr.desde)} → ${nombreDe(tr.hasta)}<br>${Math.round(tr.min)} min`);
       // Paradas intermedias del tramo
       paradas.slice(1, -1).map(coord).filter(Boolean)
         .forEach((p) => L.circleMarker(p, { radius: 4, color: m.color, weight: 2, fillColor: '#fff', fillOpacity: 1 }).addTo(capaRuta));
@@ -380,12 +390,12 @@
     op.tramos.slice(1).forEach((tr) => {
       const p = coord(tr.desde);
       if (p) L.circleMarker(p, { radius: 7, color: '#fff', weight: 2, fillColor: '#111', fillOpacity: 1 }).addTo(capaRuta)
-        .bindPopup(`${ico('sync_alt')} Transbordo en <b>${Engine.nodoPorId[tr.desde].nombre}</b>`);
+        .bindPopup(`${ico('sync_alt')} Transbordo en <b>${nombreDe(tr.desde)}</b>`);
     });
     const pin = (id, letra, color) => {
       const p = coord(id); if (!p) return;
       L.marker(p, { icon: L.divIcon({ className: '', html: `<div class="ruta-pin" style="background:${color}">${letra}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }) })
-        .addTo(capaRuta).bindPopup(`<b>${Engine.nodoPorId[id].nombre}</b>`);
+        .addTo(capaRuta).bindPopup(`<b>${nombreDe(id)}</b>`);
     };
     pin(op.tramos[0].desde, 'A', '#1A6B00');
     pin(op.tramos[op.tramos.length - 1].hasta, 'B', '#8A0000');
@@ -395,7 +405,7 @@
   function tarjetaRuta(op, recomendada, i) {
     const pasos = op.tramos.map((tr) => {
       const m = MODOS[tr.modo];
-      const nOr = Engine.nodoPorId[tr.desde].nombre, nDe = Engine.nodoPorId[tr.hasta].nombre;
+      const nOr = nombreDe(tr.desde), nDe = nombreDe(tr.hasta);
       const costo = tr.cop > 0 ? ` · $${tr.cop.toLocaleString('es-CO')}` : '';
       const alerta = tr.motivo ? `<div class="alerta">${ico('warning')} ${sinEmoji(tr.motivo)}</div>` : '';
       const otras = alternativas(tr);
@@ -713,7 +723,7 @@
       const t = repCercano.tramo, m = MODOS[t.modo];
       const dist = repCercano.dist < 30 ? 'sobre la vía' : `a ${Math.round(repCercano.dist)} m`;
       el.innerHTML = `<span class="rep-donde-ico" style="--c:${m.color}">${icoModo(t.modo)}</span>
-        <span><b>${m.nombre} · ${esc(t.ruta)}</b><br><small>${Engine.nodoPorId[t.de].nombre} ↔ ${Engine.nodoPorId[t.a].nombre} · ${dist}</small></span>`;
+        <span><b>${m.nombre} · ${esc(t.ruta)}</b><br><small>${nombreDe(t.de)} ↔ ${nombreDe(t.a)} · ${dist}</small></span>`;
     }
     if (MODO_DEV_HTTP && repPos) el.insertAdjacentHTML('beforeend', `<small class="rep-donde-aviso">${ico('science')} Modo dev (http): ubicación fija de prueba, no es tu GPS</small>`);
   }
@@ -795,7 +805,7 @@
   // Tarjeta de admin: detalle completo para moderar (verificar / rechazar)
   function tarjetaAdmin(i) {
     const t = Reports.TIPOS[i.tipo] || Reports.TIPOS.novedad;
-    const ruta = `${Engine.nodoPorId[i.deId].nombre} → ${Engine.nodoPorId[i.aId].nombre}`;
+    const ruta = `${nombreDe(i.deId)} → ${nombreDe(i.aId)}`;
     const nota = i.nota ? `<p class="rep-nota">“${esc(i.nota)}”</p>` : '';
     const pct = Math.round(i.confianza * 100);
     const estado = i.estado === 'verificado' ? `<span class="estado ok">${ico('verified', 'fill')}Verificado</span>`
@@ -938,5 +948,13 @@
   setInterval(() => { if (enLinea) pintarReportes(); }, 60000); // «hace X min» al día
 
   // ---------- Service worker ----------
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // Si llega una versión nueva de la app, se recarga una vez para no seguir con el código viejo
+    const habiaSw = !!navigator.serviceWorker.controller;
+    let recargado = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (habiaSw && !recargado) { recargado = true; location.reload(); }
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+  }
 })();

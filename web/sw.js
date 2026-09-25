@@ -1,5 +1,5 @@
 /* Service Worker — funciona OFFLINE (clave en zonas altas sin señal) */
-const CACHE = 'muevecb-v32';
+const CACHE = 'muevecb-v33';
 const RUNTIME = 'muevecb-rt-v11';
 const ASSETS = [
   './', './index.html', './simulador.html',
@@ -9,7 +9,8 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' salta la caché HTTP del navegador: el SW nuevo nunca guarda archivos viejos
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(
@@ -17,7 +18,8 @@ self.addEventListener('activate', (e) => {
   )).then(() => self.clients.claim()));
 });
 
-// Estrategia: cache-first para lo propio; stale-while-revalidate para CDN y tiles.
+// Estrategia: red primero para lo propio (siempre la última versión; caché si no hay señal o tarda >3 s);
+// stale-while-revalidate para CDN y tiles.
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   const esExterno = url.origin !== self.location.origin;
@@ -41,5 +43,17 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
-  e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request).catch(() => caches.match('./index.html'))));
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const red = fetch(e.request, { cache: 'no-cache' }).then((res) => {
+      if (res && res.status === 200) cache.put(e.request, res.clone());
+      return res;
+    });
+    const lento = new Promise((ok) => setTimeout(ok, 3000));
+    try {
+      const res = await Promise.race([red, lento]);
+      if (res) return res;
+    } catch (err) { /* sin red: se usa la caché */ }
+    return (await cache.match(e.request)) || (await caches.match(e.request)) || red.catch(() => caches.match('./index.html'));
+  })());
 });

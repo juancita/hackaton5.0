@@ -46,8 +46,8 @@ const AI = (() => {
     const modos = window.DB.MODOS;
     const pasos = op.tramos.map((tr, i) => {
       const m = modos[tr.modo];
-      const nOr = Engine.nodoPorId[tr.desde].nombre;
-      const nDe = Engine.nodoPorId[tr.hasta].nombre;
+      const nOr = (Engine.nodoPorId[tr.desde] || {}).nombre;
+      const nDe = (Engine.nodoPorId[tr.hasta] || {}).nombre;
       const costo = tr.cop > 0 ? ` · $${tr.cop.toLocaleString('es-CO')}` : '';
       const alerta = tr.motivo ? ` ⚠️ ${tr.motivo}` : '';
       return `${i + 1}. ${m.icono} ${m.nombre} (${tr.ruta}): ${nOr} → ${nDe} · ${Math.round(tr.min)} min${costo}${alerta}`;
@@ -114,7 +114,7 @@ const AI = (() => {
     }
 
     if (intent.destino && !intent.origen) {
-      return { tipo: 'texto', texto: `¿Desde dónde sales para llegar a ${Engine.nodoPorId[intent.destino].nombre}?` };
+      return { tipo: 'texto', texto: `¿Desde dónde sales para llegar a ${(Engine.nodoPorId[intent.destino] || {}).nombre}?` };
     }
 
     return { tipo: 'texto', texto: 'Cuéntame tu *origen* y *destino*. Ej: "de Sierra Morena al Hospital Meissen".' };

@@ -63,7 +63,7 @@
   }
   async function votarComo(idx, inc, valor) {
     const r = await API.votar(inc.id, valor, USUARIOS[idx].id);
-    if (r && r.ok) ultimo(idx, `${ico(valor === 'confirma' ? 'thumb_up' : 'thumb_down')} Calificó: ${inc.label} en ${Engine.nodoPorId[inc.de_id].nombre}`);
+    if (r && r.ok) ultimo(idx, `${ico(valor === 'confirma' ? 'thumb_up' : 'thumb_down')} Calificó: ${inc.label} en ${((Engine.nodoPorId[inc.de_id] || {}).nombre || inc.de_id)}`);
     await refrescar();
   }
   cont.addEventListener('click', (e) => {
@@ -109,7 +109,7 @@
       const clase = !i.vigente ? ' vencido' : !i.afecta_rutas ? ' tenue' : '';
       const icon = L.divIcon({ className: 'inc-icon', html: `<div class="inc-pin${clase}" style="--c:${t.color}">${icoTipo(i.tipo)}</div>`, iconSize: [34, 34] });
       L.marker([i.lat, i.lng], { icon, zIndexOffset: i.vigente ? 0 : -1000 }).addTo(capaInc)
-        .bindPopup(`<b>${icoTipo(i.tipo)} ${t.label}</b><br>${Engine.nodoPorId[i.de_id].nombre} → ${Engine.nodoPorId[i.a_id].nombre}`
+        .bindPopup(`<b>${icoTipo(i.tipo)} ${t.label}</b><br>${((Engine.nodoPorId[i.de_id] || {}).nombre || i.de_id)} → ${((Engine.nodoPorId[i.a_id] || {}).nombre || i.a_id)}`
           + `<br><small>${esc(i.nota)} ${estrellasMini(i.estrellas_autor)} · ${ico('thumb_up')} ${i.n_confirma} · ${ico('thumb_down')} ${i.n_niega}</small>`);
     });
   }
@@ -152,7 +152,7 @@
   function pintarFeed(lista) {
     const feed = $('#feed');
     feed.innerHTML = lista.map((i) => `<div data-id="${i.id}" class="${i.vigente ? '' : 'vencido'}">${icoTipo(i.tipo)} <b>${esc(i.label)}</b>
-      en ${Engine.nodoPorId[i.de_id].nombre} · ${esc(i.nota)} ${estrellasMini(i.estrellas_autor)}
+      en ${((Engine.nodoPorId[i.de_id] || {}).nombre || i.de_id)} · ${esc(i.nota)} ${estrellasMini(i.estrellas_autor)}
       · ${ico('thumb_up')} ${i.n_confirma} ${ico('thumb_down')} ${i.n_niega}${i.vigente ? '' : ' · vencida'}</div>`).join('');
   }
   $('#feed').addEventListener('click', (e) => {
